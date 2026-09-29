@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orion Lite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!--APP-->
+<div id="app">
+  <header class="bar" id="bar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Orion Lite</span></div>
+    <div class="empire" id="empire"></div>
+    <div class="stats" id="stats"></div>
+    <nav class="actions">
+      <button class="btn ghost" data-open="research" id="btn-research">Forschung</button>
+      <button class="btn ghost" data-open="diplo" id="btn-diplo">Diplomatie</button>
+      <button class="btn ghost" data-open="rules" id="btn-rules">KI-Regeln</button>
+      <button class="btn ghost" data-open="menu" id="btn-menu">Menü</button>
+      <button class="btn primary" id="btn-end" title="Taste: Enter">Runde beenden</button>
+    </nav>
+  </header>
+  <main class="stage">
+    <section class="map-wrap" id="map-wrap" aria-label="Sternenkarte">
+      <canvas id="map"></canvas>
+      <div class="map-tools">
+        <button class="btn icon" id="zoom-in" aria-label="Hineinzoomen">+</button>
+        <button class="btn icon" id="zoom-out" aria-label="Herauszoomen">−</button>
+        <button class="btn icon" id="zoom-fit" aria-label="Ganze Galaxis zeigen">⤢</button>
+      </div>
+      <div class="map-hint" id="map-hint"></div>
+    </section>
+    <aside class="side" id="side">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="system" class="tab">System</button>
+        <button role="tab" data-tab="empire" class="tab">Imperium</button>
+        <button role="tab" data-tab="fleets" class="tab">Flotten</button>
+        <button role="tab" data-tab="log" class="tab">Ereignisse</button>
+      </div>
+      <div class="side-body" id="side-body"></div>
+    </aside>
+  </main>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="modal-back" id="modal-back" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+  </div>
+</div>
+<!--/APP-->
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
