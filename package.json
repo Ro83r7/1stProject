@@ -1,0 +1,10 @@
+{
+  "name": "aventurischer-spieltisch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DSA-Browserspiel: Das Programm würfelt, Claude erzählt.",
+  "scripts": {
+    "test": "node --test spieltisch/test/*.test.js",
+    "start": "python3 -m http.server 8080 --directory spieltisch"
+  }
+}

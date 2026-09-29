@@ -1,0 +1,725 @@
+/* Layout: ein Spieltisch – links der Heldenbogen, in der Mitte die Erzählung, rechts Würfel und Protokoll.
+   Auf schmalen Bildschirmen wechseln Reiter zwischen den drei Bereichen. */
+:root {
+  --filz: #e4ebe5;
+  --filz-tief: #d5dfd7;
+  --karte: #fbfcf9;
+  --karte-2: #f1f5f1;
+  --tinte: #17231e;
+  --tinte-2: #4c5d55;
+  --linie: #c3cfc6;
+  --messing: #85600f;
+  --messing-weich: #efe2c2;
+  --blut: #a42a24;
+  --blut-weich: #f6dcd8;
+  --gruen: #22703c;
+  --gruen-weich: #d7eddc;
+  --gold: #8b6a00;
+  --gold-weich: #f5ebc4;
+  --schatten: 0 1px 0 rgb(23 35 30 / 0.04), 0 10px 24px -16px rgb(23 35 30 / 0.45);
+
+  /* DSA5-Würfelfarben je Eigenschaft */
+  --eig-MU: #c62f2a; --eig-MU-t: #fff;
+  --eig-KL: #7b3b9b; --eig-KL-t: #fff;
+  --eig-IN: #2c8a4e; --eig-IN-t: #fff;
+  --eig-CH: #26282b; --eig-CH-t: #f3f3f3;
+  --eig-FF: #e0b21a; --eig-FF-t: #2a2206;
+  --eig-GE: #2a67b8; --eig-GE-t: #fff;
+  --eig-KO: #f4f2ec; --eig-KO-t: #22211d;
+  --eig-KK: #df7a23; --eig-KK-t: #2a1705;
+  --eig-neutral: #e9e3d2; --eig-neutral-t: #2a261b;
+
+  --font-titel: "Grenze Gotisch", "UnifrakturMaguntia", Georgia, serif;
+  --font-text: "Alegreya", Georgia, "Times New Roman", serif;
+  --font-ui: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --font-zahl: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --filz: #0e1c17;
+    --filz-tief: #0a1511;
+    --karte: #15261f;
+    --karte-2: #1b2f27;
+    --tinte: #e9e6da;
+    --tinte-2: #a6b3aa;
+    --linie: #2b4238;
+    --messing: #d9ae55;
+    --messing-weich: #3a3120;
+    --blut: #ef7a6e;
+    --blut-weich: #3d1f1c;
+    --gruen: #72c98d;
+    --gruen-weich: #183526;
+    --gold: #e8c357;
+    --gold-weich: #3a3217;
+    --schatten: 0 1px 0 rgb(0 0 0 / 0.2), 0 12px 28px -18px rgb(0 0 0 / 0.9);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --filz: #0e1c17;
+  --filz-tief: #0a1511;
+  --karte: #15261f;
+  --karte-2: #1b2f27;
+  --tinte: #e9e6da;
+  --tinte-2: #a6b3aa;
+  --linie: #2b4238;
+  --messing: #d9ae55;
+  --messing-weich: #3a3120;
+  --blut: #ef7a6e;
+  --blut-weich: #3d1f1c;
+  --gruen: #72c98d;
+  --gruen-weich: #183526;
+  --gold: #e8c357;
+  --gold-weich: #3a3217;
+  --schatten: 0 1px 0 rgb(0 0 0 / 0.2), 0 12px 28px -18px rgb(0 0 0 / 0.9);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--filz);
+  color: var(--tinte);
+  font: 400 1rem/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--messing); outline-offset: 2px; }
+.unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.leise { color: var(--tinte-2); }
+.klein { font-size: 0.875rem; }
+code { font-family: var(--font-zahl); font-size: 0.85em; }
+
+.eyebrow {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--messing);
+  margin: 0;
+}
+
+/* ---------- Seite ---------- */
+
+.seite {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-inline: 16px;
+  max-width: 1680px;
+  margin-inline: auto;
+}
+
+.kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 16px 12px;
+  border-bottom: 1px solid var(--linie);
+}
+.marke h1 {
+  font-family: var(--font-titel);
+  font-weight: 700;
+  font-size: clamp(1.7rem, 1.25rem + 1.6vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.marke h1::first-letter { color: var(--blut); }
+.unterzeile {
+  margin: 6px 0 0;
+  color: var(--tinte-2);
+  font-family: var(--font-text);
+  font-style: italic;
+}
+.kopf-aktionen { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.meister-knopf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  background: var(--karte);
+  cursor: pointer;
+}
+.meister-knopf b { font-weight: 700; }
+.meister-knopf .punkt { width: 9px; height: 9px; border-radius: 50%; background: var(--tinte-2); }
+.meister-knopf[data-bereit="ja"] .punkt { background: var(--gruen); box-shadow: 0 0 0 3px var(--gruen-weich); }
+
+.knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--karte);
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.05s;
+}
+.knopf:hover:not(:disabled) { border-color: var(--messing); }
+.knopf:active:not(:disabled) { transform: translateY(1px); }
+.knopf:disabled { opacity: 0.45; cursor: not-allowed; }
+.knopf.haupt { background: var(--tinte); color: var(--karte); border-color: var(--tinte); }
+.knopf.haupt:hover:not(:disabled) { background: var(--messing); border-color: var(--messing); color: var(--karte); }
+.knopf.leise-knopf { background: transparent; }
+.knopf.klein { padding: 5px 11px; font-size: 0.875rem; }
+.knopf.gross { padding: 12px 22px; font-size: 1.05rem; }
+
+.reiter {
+  display: flex;
+  gap: 4px;
+  padding-block: 10px;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--filz);
+  overflow-x: auto;
+}
+.reiter button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--linie);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.reiter button[aria-pressed="true"] { background: var(--tinte); color: var(--karte); border-color: var(--tinte); }
+
+.spielflaeche {
+  flex: 1;
+  display: grid;
+  gap: 18px;
+  padding-block: 8px 16px;
+}
+.panel { min-width: 0; }
+.spielflaeche[data-aktiv="abenteuer"] .panel:not(.panel-abenteuer),
+.spielflaeche[data-aktiv="held"] .panel:not(.panel-held),
+.spielflaeche[data-aktiv="wuerfel"] .panel:not(.panel-wuerfel) { display: none; }
+
+.fuss {
+  padding-block: 10px 16px;
+  font-size: 0.75rem;
+  color: var(--tinte-2);
+  border-top: 1px solid var(--linie);
+}
+
+@media (min-width: 1100px) {
+  .seite { height: 100%; }
+  .reiter { display: none; }
+  .spielflaeche {
+    grid-template-columns: minmax(280px, 330px) minmax(0, 1fr) minmax(300px, 370px);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    padding-block: 16px;
+  }
+  .spielflaeche .panel { display: block !important; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+  .spielflaeche .panel-abenteuer { display: flex !important; flex-direction: column; overflow: hidden; }
+  .panel-abenteuer .erzaehlung { flex: 1 1 auto; overflow-y: auto; min-height: 120px; scrollbar-width: thin; padding-right: 8px; }
+  .panel-abenteuer .aktion { flex: 0 1 auto; max-height: 68%; overflow-y: auto; scrollbar-width: thin; padding-right: 8px; }
+  .fuss { padding-block: 8px 12px; }
+}
+
+/* ---------- Karten ---------- */
+
+.karte {
+  background: var(--karte);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 16px;
+}
+.karte + .karte { margin-top: 16px; }
+.karte-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.karte-kopf .eyebrow { flex-basis: 100%; }
+.karte-kopf h3 { font-family: var(--font-text); font-size: 1.35rem; font-weight: 700; }
+.panel-titel { font-family: var(--font-text); font-size: 1.15rem; font-weight: 700; }
+
+.knopfreihe { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.knopfreihe.dicht { margin-top: 10px; gap: 6px; }
+
+.chip {
+  display: inline-block;
+  margin-top: 6px;
+  margin-right: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.chip.warnung { background: var(--gold-weich); color: var(--gold); }
+.chip.gefahr { background: var(--blut-weich); color: var(--blut); }
+
+/* ---------- Heldenbogen ---------- */
+
+.bogen-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.bogen-kopf h2 { font-family: var(--font-titel); font-size: 2rem; font-weight: 700; line-height: 1; }
+.bogen-kopf p { margin: 4px 0 0; color: var(--tinte-2); font-family: var(--font-text); font-style: italic; }
+.bogen-knoepfe { display: flex; gap: 6px; }
+
+.zustandswerte { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 16px; }
+.wert-lep { grid-column: 1 / -1; }
+.wert-zeile { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.etikett { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinte-2); display: block; }
+.zahl { font-family: var(--font-zahl); font-variant-numeric: tabular-nums; font-weight: 500; }
+.wert-klein .zahl { font-size: 1.1rem; }
+
+.leiste { display: block; height: 10px; border-radius: 999px; background: var(--karte-2); border: 1px solid var(--linie); overflow: hidden; }
+.leiste span { display: block; height: 100%; border-radius: inherit; background: var(--gruen); transition: width 0.4s ease; }
+.leiste.mittel span { background: var(--gold); }
+.leiste.kritisch span { background: var(--blut); }
+.leiste.klein { height: 6px; }
+
+.pips { display: flex; gap: 6px; margin-top: 5px; }
+.pip { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--messing); }
+.pip.voll { background: var(--messing); }
+
+.abschnitt {
+  margin: 20px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--messing);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.abschnitt small { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--tinte-2); font-size: 0.78rem; }
+
+.eig-raster { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.eig {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--karte-2);
+  cursor: pointer;
+  text-align: left;
+}
+.eig:hover:not(:disabled) { border-color: var(--messing); }
+.eig:disabled { cursor: default; }
+.eig .eig-punkt { grid-row: 1 / 3; }
+.eig-k { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: var(--tinte-2); }
+.eig-w { font-family: var(--font-zahl); font-size: 1.15rem; font-weight: 500; line-height: 1.1; }
+
+.eig-punkt {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  border: 1px solid rgb(0 0 0 / 0.25);
+  flex: none;
+}
+.eig-punkt.eig-MU { background: var(--eig-MU); }
+.eig-punkt.eig-KL { background: var(--eig-KL); }
+.eig-punkt.eig-IN { background: var(--eig-IN); }
+.eig-punkt.eig-CH { background: var(--eig-CH); border-color: var(--tinte-2); }
+.eig-punkt.eig-FF { background: var(--eig-FF); }
+.eig-punkt.eig-GE { background: var(--eig-GE); }
+.eig-punkt.eig-KO { background: var(--eig-KO); border-color: var(--tinte-2); }
+.eig-punkt.eig-KK { background: var(--eig-KK); }
+
+.kampfwerte { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0; }
+.kampfwerte div { background: var(--karte-2); border: 1px solid var(--linie); border-radius: 8px; padding: 5px 8px; min-width: 0; }
+.kampfwerte .kw-waffe { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; }
+.kampfwerte dt { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; color: var(--tinte-2); }
+.kampfwerte dd { margin: 0; font-family: var(--font-zahl); font-weight: 500; }
+.kampfwerte .kw-waffe dd { font-family: var(--font-text); font-weight: 700; }
+
+.talentgruppe { border-top: 1px solid var(--linie); }
+.talentgruppe summary { cursor: pointer; padding: 8px 0; font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+.talentgruppe summary .leise { font-weight: 400; font-size: 0.8rem; }
+.talentgruppe ul { list-style: none; margin: 0 0 8px; padding: 0; }
+.talent {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 2.2em;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.talent:hover:not(:disabled) { background: var(--karte-2); }
+.talent:disabled { cursor: default; }
+.talent.ungelernt { color: var(--tinte-2); }
+.t-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-probe { display: inline-flex; gap: 5px; }
+.t-probe .eig-punkt { width: 9px; height: 9px; }
+.t-fw { font-family: var(--font-zahl); font-variant-numeric: tabular-nums; text-align: right; font-weight: 500; }
+
+.inventar { margin: 0; padding-left: 18px; font-family: var(--font-text); }
+.notizen { font-family: var(--font-text); white-space: pre-wrap; margin: 0; }
+.bogen-fuss { margin-top: 16px; }
+
+.bearbeiten label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--tinte-2); margin: 10px 0 4px; }
+.bearbeiten input, .bearbeiten textarea, .dialog input[type="password"], .dialog select, .dialog textarea, .formel-form input, .eingabe textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--karte-2);
+}
+.feld-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.feld-raster label { margin: 0; }
+.feld-raster label span { display: block; margin-bottom: 2px; }
+.feld-raster.talente { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.feld-raster.talente label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+
+/* ---------- Erzählung ---------- */
+
+.szene-kopf { display: flex; align-items: baseline; gap: 10px; min-height: 0; }
+.szene-kopf:not(:empty) { padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid var(--linie); }
+.szene-name { font-family: var(--font-text); font-weight: 700; font-size: 1.1rem; }
+
+.erzaehlung { display: flex; flex-direction: column; gap: 18px; }
+.eintrag { max-width: 70ch; }
+.prosa { font-family: var(--font-text); font-size: 1.1rem; line-height: 1.62; }
+.prosa p { margin: 0 0 0.75em; }
+.prosa p:last-child { margin-bottom: 0; }
+
+.eintrag.meister .szene-titel {
+  font-family: var(--font-titel);
+  font-weight: 500;
+  font-size: 1.45rem;
+  color: var(--messing);
+  margin-bottom: 6px;
+}
+.eintrag.meister .prosa > p:first-child::first-letter {
+  font-family: var(--font-titel);
+  font-weight: 700;
+  font-size: 2.6em;
+  float: left;
+  line-height: 0.85;
+  padding: 0.08em 0.08em 0 0;
+  color: var(--blut);
+}
+.marken { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.marken span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--linie);
+  background: var(--karte);
+}
+.marke-probe { border-color: var(--messing) !important; color: var(--messing); }
+.marke-kampf { border-color: var(--blut) !important; color: var(--blut); }
+.marke-gewinn { border-color: var(--gruen) !important; color: var(--gruen); }
+.waechter { list-style: none; margin: 8px 0 0; padding: 0; font-size: 0.8rem; color: var(--gold); }
+.waechter li { padding: 2px 0; }
+
+.eintrag.spieler {
+  align-self: flex-end;
+  max-width: min(56ch, 90%);
+  text-align: right;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: 1.05rem;
+}
+.eintrag.spieler p { margin: 2px 0 0; }
+.wer {
+  display: block;
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tinte-2);
+}
+
+.eintrag.tisch {
+  font-family: var(--font-zahl);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border: 1px dashed var(--linie);
+  border-radius: 8px;
+  background: var(--karte-2);
+  max-width: 78ch;
+}
+.eintrag.tisch p { margin: 2px 0 0; overflow-wrap: anywhere; }
+.eintrag.tisch.status-erfolg { border-color: var(--gruen); }
+.eintrag.tisch.status-misserfolg { border-color: var(--blut); }
+.eintrag.tisch.status-krit { border-color: var(--gold); border-style: solid; }
+.eintrag.tisch.status-patzer { border-color: var(--blut); border-style: solid; }
+
+.willkommen { max-width: 64ch; padding-block: 8px 24px; }
+.willkommen h2 { font-family: var(--font-titel); font-weight: 700; font-size: clamp(1.8rem, 1.3rem + 1.6vw, 2.6rem); line-height: 1.05; margin: 6px 0 14px; }
+.willkommen-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.ablauf { margin: 24px 0 0; padding-left: 22px; font-size: 0.95rem; color: var(--tinte-2); display: grid; gap: 4px; }
+.ablauf b { color: var(--tinte); }
+
+/* ---------- Aktionsbereich ---------- */
+
+.aktion { padding-top: 14px; display: grid; gap: 12px; }
+.aktion:empty { display: none; }
+.aktion .karte + .karte { margin-top: 0; }
+
+.denkt { display: flex; align-items: center; gap: 12px; padding: 12px 4px; color: var(--tinte-2); font-family: var(--font-text); font-style: italic; flex-wrap: wrap; }
+.punkte { display: inline-flex; gap: 5px; }
+.punkte i { width: 8px; height: 8px; border-radius: 50%; background: var(--messing); animation: pochen 1.2s ease-in-out infinite; }
+.punkte i:nth-child(2) { animation-delay: 0.15s; }
+.punkte i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes pochen { 0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+.fehlerkarte { border: 1px solid var(--blut); background: var(--blut-weich); color: var(--tinte); border-radius: var(--radius); padding: 12px 14px; }
+.fehlerkarte p { margin: 0; }
+.fehlerkarte .knopfreihe { margin-top: 10px; }
+
+.probe-karte, .ergebnis-karte { border-color: var(--messing); }
+.mod { font-size: 0.9rem; color: var(--tinte-2); }
+.grund { margin: -4px 0 10px; font-family: var(--font-text); font-style: italic; color: var(--tinte-2); }
+.probe-werte { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.pw {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--karte-2);
+  font-weight: 500;
+}
+.pw b { font-family: var(--font-zahl); font-size: 1.05rem; }
+.pw small { font-family: var(--font-zahl); color: var(--tinte-2); font-size: 0.75rem; }
+.pw.fw { border-style: dashed; }
+
+.urteil { font-weight: 700; padding: 3px 12px; border-radius: 999px; font-size: 0.95rem; }
+.urteil.erfolg { background: var(--gruen-weich); color: var(--gruen); }
+.urteil.misserfolg { background: var(--blut-weich); color: var(--blut); }
+.urteil.krit { background: var(--gold-weich); color: var(--gold); }
+.urteil.patzer { background: var(--blut); color: var(--karte); }
+
+.wuerfelreihe { display: flex; flex-wrap: wrap; gap: 14px; }
+.w-slot {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  min-width: 76px;
+}
+button.w-slot { cursor: pointer; }
+button.w-slot:hover { border-color: var(--linie); }
+.w-slot.gewaehlt { border-color: var(--messing); background: var(--messing-weich); }
+.w-unter { font-size: 0.78rem; font-weight: 700; color: var(--tinte-2); letter-spacing: 0.04em; }
+.w-diff { font-family: var(--font-zahl); font-size: 0.78rem; }
+.w-diff.minus { color: var(--blut); }
+.w-diff.plus { color: var(--gruen); }
+.w-leer { font-size: 2rem; color: var(--tinte-2); }
+
+.w20 { position: relative; display: inline-grid; place-items: center; width: 60px; height: 60px; }
+.w20 svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.25)); }
+.w20 .w-koerper { stroke-width: 3; stroke-linejoin: round; }
+.w20 .w-kante { fill: none; stroke-width: 2; opacity: 0.3; }
+.w20 .w-flaeche { stroke-width: 2.5; stroke-linejoin: round; opacity: 0.18; }
+.w20 .w-zahl { position: relative; font-family: var(--font-zahl); font-weight: 500; font-size: 1.15rem; padding-top: 5px; font-variant-numeric: tabular-nums; }
+
+.w20.eig-MU { --wf: var(--eig-MU); --wt: var(--eig-MU-t); }
+.w20.eig-KL { --wf: var(--eig-KL); --wt: var(--eig-KL-t); }
+.w20.eig-IN { --wf: var(--eig-IN); --wt: var(--eig-IN-t); }
+.w20.eig-CH { --wf: var(--eig-CH); --wt: var(--eig-CH-t); }
+.w20.eig-FF { --wf: var(--eig-FF); --wt: var(--eig-FF-t); }
+.w20.eig-GE { --wf: var(--eig-GE); --wt: var(--eig-GE-t); }
+.w20.eig-KO { --wf: var(--eig-KO); --wt: var(--eig-KO-t); }
+.w20.eig-KK { --wf: var(--eig-KK); --wt: var(--eig-KK-t); }
+.w20.eig-neutral { --wf: var(--eig-neutral); --wt: var(--eig-neutral-t); }
+.w20 { color: var(--wt); }
+.w20 .w-koerper { fill: var(--wf); stroke: var(--wt); stroke-opacity: 0.55; }
+.w20 .w-kante { stroke: var(--wt); }
+.w20 .w-flaeche { fill: var(--wt); stroke: var(--wt); }
+
+.w6 {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin: 6px;
+  border-radius: 10px;
+  background: var(--eig-neutral);
+  color: var(--eig-neutral-t);
+  border: 2px solid rgb(0 0 0 / 0.2);
+  box-shadow: 0 2px 3px rgb(0 0 0 / 0.25), inset 0 -3px 0 rgb(0 0 0 / 0.08);
+  font-family: var(--font-zahl);
+  font-weight: 500;
+  font-size: 1.2rem;
+}
+
+.rollt .w20, .rollt .w6 { animation: kullern 0.65s cubic-bezier(0.3, 0.7, 0.4, 1); }
+.rollt .w-slot:nth-child(2) .w20, .rollt .w-slot:nth-child(2) .w6 { animation-duration: 0.6s; }
+.rollt .w-slot:nth-child(3) .w20, .rollt .w-slot:nth-child(3) .w6 { animation-duration: 0.7s; }
+@keyframes kullern {
+  0% { transform: translate(-18px, -10px) rotate(-200deg) scale(0.85); opacity: 0.4; }
+  60% { transform: translate(3px, 2px) rotate(20deg) scale(1.03); opacity: 1; }
+  100% { transform: none; }
+}
+
+.rechnung { margin: 10px 0 0; font-family: var(--font-zahl); font-size: 0.85rem; color: var(--tinte-2); }
+.rechnung b { color: var(--tinte); }
+
+.kampf-karte { border-color: var(--blut); }
+.gegner-liste { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.gegner button, .held-im-kampf {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--linie);
+  border-radius: 8px;
+  background: var(--karte-2);
+  text-align: left;
+}
+.gegner button { cursor: pointer; }
+.gegner button:disabled { cursor: default; }
+.gegner.ziel button { border-color: var(--blut); box-shadow: inset 3px 0 0 var(--blut); }
+.gegner.besiegt { opacity: 0.55; }
+.gegner .leiste, .held-im-kampf .leiste { grid-column: 1 / -1; }
+.g-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.g-name small { font-weight: 500; color: var(--blut); margin-left: 4px; }
+.g-lep { font-family: var(--font-zahl); font-size: 0.9rem; }
+.g-werte { grid-column: 1 / -1; font-family: var(--font-zahl); font-size: 0.75rem; color: var(--tinte-2); }
+.held-im-kampf { border-style: dashed; }
+
+.umschalter { grid-column: 1 / -1; display: inline-flex; margin-top: 6px; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; justify-self: start; }
+.umschalter button { border: 0; padding: 5px 12px; background: transparent; cursor: pointer; font-size: 0.875rem; }
+.umschalter button + button { border-left: 1px solid var(--linie); }
+.umschalter button[aria-pressed="true"] { background: var(--tinte); color: var(--karte); }
+
+.runden-log { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-family: var(--font-zahl); font-size: 0.78rem; max-height: 180px; overflow-y: auto; }
+.runden-log li { padding: 8px 10px; border-radius: 8px; background: var(--karte-2); display: grid; gap: 3px; }
+.runden-log .gegner { color: var(--blut); }
+.runden-log span { overflow-wrap: anywhere; }
+
+.ende-karte { border-color: var(--gold); display: grid; gap: 8px; justify-items: start; }
+.ende-karte p { margin: 0; font-family: var(--font-text); font-size: 1.05rem; }
+
+.vorschlaege { display: flex; flex-wrap: wrap; gap: 8px; }
+.vorschlag {
+  padding: 7px 14px;
+  border: 1px solid var(--messing);
+  border-radius: 999px;
+  background: var(--karte);
+  color: var(--tinte);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+}
+.vorschlag:hover { background: var(--messing-weich); }
+
+.eingabe { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.eingabe textarea { resize: vertical; min-height: 48px; font-family: var(--font-text); font-size: 1.05rem; background: var(--karte); }
+@media (max-width: 520px) {
+  .eingabe { grid-template-columns: 1fr; }
+  .eig-raster { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kampfwerte { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .w-slot { min-width: 64px; }
+}
+
+/* ---------- Würfeltisch ---------- */
+
+.formel-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; margin-top: 8px; }
+.formel-form input { font-family: var(--font-zahl); }
+.frei-ergebnis { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linie); }
+.frei-ergebnis .wuerfelreihe { margin: 6px 0; gap: 6px; }
+.frei-ergebnis .w-slot { min-width: 0; padding: 2px; }
+.frei-ergebnis p.klein { margin: 4px 0 8px; font-family: var(--font-zahl); font-size: 0.8rem; overflow-wrap: anywhere; }
+.frei-ergebnis.status-erfolg .eyebrow { color: var(--gruen); }
+.frei-ergebnis.status-misserfolg .eyebrow, .frei-ergebnis.status-patzer .eyebrow { color: var(--blut); }
+.frei-ergebnis.status-krit .eyebrow { color: var(--gold); }
+
+.protokoll-kopf { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.kette { margin: 10px 0 0; padding: 6px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; }
+.kette.ok { background: var(--gruen-weich); color: var(--gruen); }
+.kette.bruch { background: var(--blut-weich); color: var(--blut); }
+.protokoll { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.protokoll li { padding: 8px 0; border-top: 1px solid var(--linie); }
+.p-kopf { display: flex; gap: 8px; align-items: baseline; font-size: 0.8rem; }
+.p-nr { font-family: var(--font-zahl); color: var(--messing); font-weight: 500; }
+.p-art { font-weight: 700; }
+.p-zeit { margin-left: auto; font-family: var(--font-zahl); color: var(--tinte-2); font-variant-numeric: tabular-nums; }
+.p-text { margin: 3px 0; font-size: 0.8rem; color: var(--tinte-2); overflow-wrap: anywhere; }
+.p-wuerfe { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; font-family: var(--font-zahl); font-size: 0.72rem; }
+.p-wuerfe span { padding: 1px 6px; border-radius: 4px; background: var(--karte-2); border: 1px solid var(--linie); }
+.p-wuerfe .p-hash { margin-left: auto; border: 0; background: transparent; color: var(--tinte-2); }
+
+.erklaerung summary { cursor: pointer; font-weight: 700; }
+.erklaerung ul { padding-left: 18px; margin: 10px 0; display: grid; gap: 6px; font-size: 0.9rem; }
+.erklaerung p { margin: 0; }
+
+/* ---------- Dialoge ---------- */
+
+.dialog {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 20px;
+  border: 1px solid var(--linie);
+  border-radius: 14px;
+  background: var(--karte);
+  color: var(--tinte);
+  box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.5);
+}
+.dialog::backdrop { background: rgb(8 16 13 / 0.55); }
+.dialog h2 { font-family: var(--font-text); font-size: 1.4rem; font-weight: 700; }
+.dialog > form > p { margin: 6px 0 14px; }
+.dialog label { display: block; }
+.dialog .wahl { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wahl-karte {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid var(--linie);
+  border-radius: 10px;
+  background: var(--karte-2);
+  cursor: pointer;
+}
+.wahl-karte:has(input:checked) { border-color: var(--messing); background: var(--messing-weich); }
+.wahl-karte:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
+.wahl-karte input { margin-top: 4px; accent-color: var(--messing); }
+.wahl-karte small { display: block; color: var(--tinte-2); font-size: 0.85rem; margin-top: 2px; }
+.wahl-extra { display: grid; gap: 4px; padding: 4px 4px 8px 32px; }
+.wahl-extra > label:not(.haken) { font-size: 0.8rem; font-weight: 700; color: var(--tinte-2); margin-top: 6px; }
+.haken { display: flex !important; align-items: center; gap: 8px; margin: 8px 0; font-size: 0.9rem; }
+.haken input { accent-color: var(--messing); }
+.szenarien { display: grid; gap: 8px; margin-bottom: 12px; }
+#neu-eigen-label { font-size: 0.8rem; font-weight: 700; color: var(--tinte-2); margin-bottom: 4px; }
+#export-text { font-family: var(--font-zahl); font-size: 0.8rem; }
+.dialog-knoepfe { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.fehler { color: var(--blut); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aventurischer Spieltisch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&family=Alegreya+Sans:wght@400;500;700&family=Grenze+Gotisch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/spieltisch.css">
+</head>
+<body>
+<div class="seite">
+  <header class="kopf">
+    <div class="marke">
+      <h1>Aventurischer Spieltisch</h1>
+      <p class="unterzeile">Drei W20, Draanas Heldenbogen und ein Meister, der nicht würfeln darf.</p>
+    </div>
+    <div class="kopf-aktionen">
+      <button type="button" id="btn-meister" class="meister-knopf" aria-haspopup="dialog">
+        <span class="punkt" aria-hidden="true"></span>
+        <span>Meister: <b id="meister-name">Solo</b></span>
+      </button>
+      <button type="button" id="btn-neu" class="knopf">Neues Abenteuer</button>
+    </div>
+  </header>
+
+  <nav class="reiter" aria-label="Bereiche">
+    <button type="button" data-reiter="abenteuer" aria-pressed="true">Abenteuer</button>
+    <button type="button" data-reiter="held" aria-pressed="false">Heldenbogen</button>
+    <button type="button" data-reiter="wuerfel" aria-pressed="false">Würfel</button>
+  </nav>
+
+  <main class="spielflaeche" data-aktiv="abenteuer">
+    <section class="panel panel-held" data-panel="held" aria-label="Heldenbogen">
+      <div id="heldenbogen"></div>
+    </section>
+
+    <section class="panel panel-abenteuer" data-panel="abenteuer" aria-label="Abenteuer">
+      <div id="szene" class="szene-kopf"></div>
+      <div id="erzaehlung" class="erzaehlung" aria-live="polite"></div>
+      <div id="aktion" class="aktion"></div>
+    </section>
+
+    <section class="panel panel-wuerfel" data-panel="wuerfel" aria-label="Würfel und Protokoll">
+      <div id="wuerfeltisch"></div>
+    </section>
+  </main>
+
+  <footer class="fuss">
+    Fan-Projekt nach Regeln von „Das Schwarze Auge“ 5 (vereinfacht). DAS SCHWARZE AUGE und AVENTURIEN sind Marken der Ulisses Spiele GmbH.
+  </footer>
+</div>
+
+<dialog id="dlg-meister" class="dialog" aria-labelledby="dlg-meister-titel">
+  <form method="dialog" id="form-meister">
+    <h2 id="dlg-meister-titel">Wer soll Meister sein?</h2>
+    <p class="leise">Egal wen du wählst: Gewürfelt wird nur vom Spieltisch. Der Meister fordert Proben an und erzählt die Folgen.</p>
+    <fieldset class="wahl">
+      <label class="wahl-karte" id="wahl-claudeai">
+        <input type="radio" name="backend" value="claudeai">
+        <span>
+          <b>Claude über claude.ai</b>
+          <small id="claudeai-status">Wird geprüft …</small>
+        </span>
+      </label>
+      <div class="wahl-extra" data-fuer="claudeai">
+        <label for="claudeai-stufe">Modell</label>
+        <select id="claudeai-stufe">
+          <option value="default">Ausgewogen (empfohlen)</option>
+          <option value="complex">Stärkstes Modell, langsamer</option>
+          <option value="quick">Schnell, knapper erzählt</option>
+        </select>
+      </div>
+
+      <label class="wahl-karte">
+        <input type="radio" name="backend" value="api">
+        <span>
+          <b>Claude über die Anthropic API</b>
+          <small>Mit eigenem API-Schlüssel. Funktioniert, wenn du die Seite lokal oder auf GitHub Pages öffnest.</small>
+        </span>
+      </label>
+      <div class="wahl-extra" data-fuer="api">
+        <label for="api-schluessel">API-Schlüssel</label>
+        <input type="password" id="api-schluessel" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+        <label class="haken"><input type="checkbox" id="api-merken"> Auf diesem Gerät merken</label>
+        <label for="api-modell">Modell</label>
+        <select id="api-modell"></select>
+        <p class="leise klein">Der Schlüssel geht nur direkt vom Browser an api.anthropic.com. Nutze einen Schlüssel mit Ausgabenlimit.</p>
+      </div>
+
+      <label class="wahl-karte">
+        <input type="radio" name="backend" value="solo">
+        <span>
+          <b>Solo-Abenteuer „Das dunkle Leuchtfeuer“</b>
+          <small>Ohne KI und ohne Verbindung. Ein festes Abenteuer an der thorwalschen Küste.</small>
+        </span>
+      </label>
+    </fieldset>
+    <p id="meister-fehler" class="fehler" hidden></p>
+    <div class="dialog-knoepfe">
+      <button type="button" class="knopf leise-knopf" data-schliessen>Abbrechen</button>
+      <button type="submit" class="knopf haupt" value="ok">Übernehmen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-neu" class="dialog" aria-labelledby="dlg-neu-titel">
+  <form method="dialog" id="form-neu">
+    <h2 id="dlg-neu-titel">Neues Abenteuer</h2>
+    <p class="leise" id="neu-hinweis"></p>
+    <div id="neu-szenarien" class="szenarien"></div>
+    <label for="neu-eigen" id="neu-eigen-label">Oder ein eigener Aufhänger</label>
+    <textarea id="neu-eigen" rows="3" placeholder="z. B. Draana soll in Havena einen verschwundenen Lotsen finden."></textarea>
+    <label class="haken"><input type="checkbox" id="neu-heilen" checked> Draana ausgeruht starten (volle LeP und Schicksalspunkte)</label>
+    <div class="dialog-knoepfe">
+      <button type="button" class="knopf leise-knopf" data-schliessen>Abbrechen</button>
+      <button type="submit" class="knopf haupt" value="ok">Abenteuer beginnen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-export" class="dialog" aria-labelledby="dlg-export-titel">
+  <form method="dialog" id="form-export">
+    <h2 id="dlg-export-titel">Heldenbogen sichern</h2>
+    <p class="leise">Kopiere den Text, um Draana woanders weiterzuspielen, oder füge einen gesicherten Bogen ein und übernimm ihn.</p>
+    <textarea id="export-text" rows="12" spellcheck="false"></textarea>
+    <p id="export-meldung" class="leise klein" role="status"></p>
+    <div class="dialog-knoepfe">
+      <button type="button" class="knopf leise-knopf" data-schliessen>Schließen</button>
+      <button type="button" class="knopf" id="btn-kopieren">Kopieren</button>
+      <button type="button" class="knopf haupt" id="btn-import">Eingefügten Bogen übernehmen</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/wuerfel.js"></script>
+<script src="js/regeln.js"></script>
+<script src="js/held.js"></script>
+<script src="js/meister.js"></script>
+<script src="js/solo.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
