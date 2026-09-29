@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KI-Reifegrad-Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: Kopf mit Firmenprofil, darunter zweispaltig Fragebogen (Tabs je Dimension) | haftende Auswertung, danach Maßnahmenplan in voller Breite */
+:root {
+  --bg: #f4f7f6;
+  --surface: #ffffff;
+  --ink: #15242a;
+  --muted: #56686d;
+  --line: #d6dfdd;
+  --accent: #0b6e69;
+  --accent-ink: #ffffff;
+  --accent-soft: #e0f0ed;
+  --needle: #a4640f;
+  --needle-soft: #fbefd9;
+  --grid: #e6ecea;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1618; --surface: #152125; --ink: #e4eceb; --muted: #9aaeab; --line: #2a3b3e;
+    --accent: #4cbfb4; --accent-ink: #0b1a1b; --accent-soft: #173936; --needle: #e2a54a; --needle-soft: #3a2c15; --grid: #223134;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1618; --surface: #152125; --ink: #e4eceb; --muted: #9aaeab; --line: #2a3b3e;
+  --accent: #4cbfb4; --accent-ink: #0b1a1b; --accent-soft: #173936; --needle: #e2a54a; --needle-soft: #3a2c15; --grid: #223134;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+p { margin: 0; }
+.eyebrow { font-size: .78rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Kopf */
+header { display: grid; gap: 14px; }
+.lead { max-width: 62ch; color: var(--muted); font-size: 1.08rem; }
+.profile { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.field { display: grid; gap: 4px; flex: 1 1 180px; min-width: 0; }
+.field label { font-size: .82rem; color: var(--muted); font-weight: 600; }
+.field input, .field select {
+  font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink); width: 100%;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 8px 14px; border-radius: 8px; font-weight: 600; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.notice { display: flex; gap: 10px; align-items: center; background: var(--needle-soft); color: var(--ink); border-radius: 8px; padding: 8px 12px; font-size: .92rem; }
+.notice b { color: var(--needle); }
+
+/* Hauptbereich */
+.main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.tab {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 6px 12px; font-size: .9rem; display: inline-flex; gap: 8px; align-items: center;
+}
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab .cnt { font-family: var(--font-data); font-size: .75rem; opacity: .75; }
+.tab.done .cnt::before { content: "✓ "; }
+
+.dimhead { display: grid; gap: 4px; margin-bottom: 14px; }
+.dimhead p { color: var(--muted); max-width: 60ch; }
+fieldset.q { border: 0; margin: 0 0 22px; padding: 0; min-width: 0; }
+fieldset.q legend { font-weight: 600; font-size: 1.02rem; margin-bottom: 8px; padding: 0; display: flex; gap: 10px; }
+fieldset.q legend .qn { font-family: var(--font-data); color: var(--muted); font-weight: 500; font-size: .85rem; padding-top: 2px; }
+.opts { display: grid; gap: 6px; }
+.opt { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
+.opt:hover { border-color: var(--accent); }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.opt .lv { font-family: var(--font-data); font-size: .85rem; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt:has(input:checked) .lv { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt .tx { padding-top: 2px; }
+.pager { display: flex; justify-content: space-between; gap: 8px; }
+
+/* Auswertung */
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+@media (max-width: 900px) { .result { position: static; } }
+.score { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.dial { width: 92px; height: 92px; flex: none; }
+.score .big { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.score .sub { color: var(--muted); font-size: .92rem; }
+.ladder { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.step { border-radius: 6px; padding: 6px 4px; text-align: center; font-size: .72rem; background: var(--grid); color: var(--muted); line-height: 1.2; }
+.step b { display: block; font-family: var(--font-data); font-size: .8rem; }
+.step.on { background: var(--accent); color: var(--accent-ink); }
+.step.past { background: var(--accent-soft); color: var(--ink); }
+
+.chart { display: grid; gap: 8px; position: relative; }
+.bars { display: grid; gap: 10px; position: relative; }
+.row { display: grid; grid-template-columns: 104px minmax(0, 1fr) 38px; gap: 8px; align-items: center; font-size: .88rem; }
+.row .lbl { overflow-wrap: anywhere; line-height: 1.2; }
+.track { position: relative; height: 14px; }
+.track .gl { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--grid); }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 0 4px 4px 0; transition: width .35s ease; }
+.row.weak .bar { background: var(--needle); }
+.row .val { font-family: var(--font-data); font-size: .82rem; text-align: right; font-variant-numeric: tabular-nums; }
+.row .val.open { color: var(--muted); }
+.row:hover .bar { filter: brightness(1.08); }
+.axis { display: grid; grid-template-columns: 104px minmax(0, 1fr) 38px; gap: 8px; }
+.axis .ticks { position: relative; height: 16px; font-family: var(--font-data); font-size: .7rem; color: var(--muted); }
+.axis .ticks span { position: absolute; transform: translateX(-50%); }
+.avgline { position: absolute; top: -6px; bottom: -6px; width: 0; border-left: 2px dashed var(--ink); opacity: .55; pointer-events: none; }
+.legend { font-size: .8rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 6px; font-size: .8rem; max-width: 240px; }
+.cap { font-size: .9rem; background: var(--needle-soft); border-radius: 8px; padding: 8px 12px; }
+
+/* Plan */
+.plan { display: grid; gap: 16px; }
+.phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 800px) { .phases { grid-template-columns: minmax(0, 1fr); } }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; align-content: start; }
+.phase .when { font-family: var(--font-data); font-size: .8rem; color: var(--accent); }
+.chip { display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--needle-soft); color: var(--needle); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: .92rem; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.num { white-space: nowrap; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px; }
+details summary { cursor: pointer; font-weight: 600; }
+details .body { display: grid; gap: 10px; margin-top: 12px; max-width: 72ch; color: var(--ink); }
+details ul { margin: 0; padding-left: 20px; }
+.cta { display: flex; justify-content: space-between; gap: 16px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 20px; }
+.cta p { max-width: 60ch; color: var(--muted); }
+.status { font-size: .88rem; color: var(--accent); min-height: 1.3em; }
+textarea.copyfallback { width: 100%; min-height: 160px; font-family: var(--font-data); font-size: .8rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+footer { font-size: .82rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">SANG Expert Consulting · Werkzeug für KMU</span>
+  <h1>🧭 KI-Reifegrad-Check</h1>
+  <p class="lead">18 Fragen in 6 Dimensionen, rund 10 Minuten. Sie erfahren, wo Ihr Unternehmen beim Einsatz von Künstlicher Intelligenz steht, wo der Engpass liegt und welche drei Schritte in den nächsten 90 Tagen am meisten bringen.</p>
+  <div class="profile">
+    <div class="field"><label for="f-name">Unternehmen</label><input id="f-name" type="text" autocomplete="organization" placeholder="z. B. Muster GmbH"></div>
+    <div class="field"><label for="f-branche">Branche</label><input id="f-branche" type="text" placeholder="z. B. Maschinenbau"></div>
+    <div class="field"><label for="f-size">Mitarbeitende</label>
+      <select id="f-size">
+        <option value="">bitte wählen</option>
+        <option>1–9</option><option>10–49</option><option>50–249</option><option>250–499</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn" id="b-example" type="button">Beispiel laden</button>
+      <button class="btn" id="b-reset" type="button">Neu beginnen</button>
+    </div>
+  </div>
+  <div class="notice" id="example-note" hidden><b>Beispieldaten</b> Die Antworten zeigen ein fiktives Unternehmen. Klicken Sie auf „Neu beginnen“, um Ihr eigenes Unternehmen zu bewerten.</div>
+  <div class="notice" id="reset-confirm" hidden>Alle Antworten löschen?
+    <button class="btn" id="b-reset-yes" type="button">Ja, löschen</button>
+    <button class="btn" id="b-reset-no" type="button">Abbrechen</button>
+  </div>
+</header>
+
+<div class="main">
+  <section aria-labelledby="q-title">
+    <h2 id="q-title" class="eyebrow" style="font-family:var(--font-body);font-size:.78rem;margin-bottom:10px">Fragebogen</h2>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="panel"></div>
+  </section>
+
+  <aside class="result" aria-labelledby="r-title">
+    <div class="eyebrow" id="r-title">Ihr Ergebnis</div>
+    <div class="score">
+      <svg class="dial" viewBox="0 0 100 100" aria-hidden="true" id="dial"></svg>
+      <div>
+        <div class="big" id="r-level">–</div>
+        <div class="sub" id="r-sub">Beantworten Sie die Fragen links.</div>
+      </div>
+    </div>
+    <div class="ladder" id="ladder"></div>
+    <div class="chart" id="chart">
+      <div class="eyebrow">Profil nach Dimension (Skala 0–5)</div>
+      <div class="bars" id="bars"></div>
+      <div class="axis"><span></span><div class="ticks" id="ticks"></div><span></span></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Dimensionswert</span><span><i style="background:var(--needle)"></i>Engpass</span><span><i style="border-left:2px dashed var(--ink);width:0;border-radius:0"></i>Durchschnitt</span></div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <div class="cap" id="cap" hidden></div>
+  </aside>
+</div>
+
+<section class="plan" aria-labelledby="p-title">
+  <div class="dimhead">
+    <span class="eyebrow">Handlungsempfehlung</span>
+    <h2 id="p-title">Ihr 90-Tage-Plan</h2>
+    <p id="p-intro">Die drei Maßnahmen setzen dort an, wo der größte Hebel liegt: bei gesetzlichen Pflichten und bei den schwächsten Dimensionen.</p>
+  </div>
+  <div class="phases" id="phases"></div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Dimension</th><th>Wert</th><th>Stufe</th><th>Empfohlener nächster Schritt</th></tr></thead>
+      <tbody id="dimtable"></tbody>
+    </table>
+  </div>
+  <details>
+    <summary>So wird bewertet</summary>
+    <div class="body">
+      <p>Jede Frage hat fünf beschriebene Antworten, die den Reifestufen 1 bis 5 entsprechen. Der Wert einer Dimension ist der Durchschnitt ihrer drei Fragen, der Gesamtwert der Durchschnitt der sechs Dimensionen (gleich gewichtet).</p>
+      <ul>
+        <li><b>Stufe 1 Einsteiger</b> unter 1,8 · <b>Stufe 2 Entdecker</b> 1,8 bis unter 2,6 · <b>Stufe 3 Anwender</b> 2,6 bis unter 3,4 · <b>Stufe 4 Gestalter</b> 3,4 bis unter 4,2 · <b>Stufe 5 Vorreiter</b> ab 4,2</li>
+        <li><b>Engpass-Regel:</b> Die Gesamtstufe liegt höchstens eine Stufe über der schwächsten Dimension. Ein Unternehmen mit moderner Technik, aber ohne Regeln oder Schulung, ist nicht reif für skalierten KI-Einsatz.</li>
+        <li><b>Pflichten zuerst:</b> Offene Pflichten (KI-Kompetenz nach Art. 4 der EU-KI-Verordnung, geltend seit 2. Februar 2025, sowie Regeln zu Datenschutz und KI-Nutzung) rücken im Plan nach vorn.</li>
+      </ul>
+      <p>Der Check ist eine strukturierte Selbsteinschätzung. Er ersetzt keine Rechtsberatung und keine Analyse vor Ort.</p>
+    </div>
+  </details>
+  <div class="cta">
+    <p>Ergebnis als Text kopieren, zum Beispiel für die Geschäftsführung oder als Grundlage für ein Gespräch mit SANG Expert Consulting.</p>
+    <div class="actions"><button class="btn primary" id="b-copy" type="button">Ergebnis kopieren</button></div>
+  </div>
+  <div class="status" id="copy-status" role="status"></div>
+  <textarea class="copyfallback" id="copy-fallback" hidden readonly aria-label="Ergebnis als Text"></textarea>
+</section>
+
+<footer>Ihre Angaben bleiben in Ihrem Browser und werden nicht übertragen. © SANG Expert Consulting</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const LEVELS = [
+    { n: 1, name: "Einsteiger", desc: "KI ist noch kein Thema im Unternehmen." },
+    { n: 2, name: "Entdecker", desc: "Erste Experimente, aber noch ohne Plan und Regeln." },
+    { n: 3, name: "Anwender", desc: "KI wird gezielt in einzelnen Bereichen genutzt." },
+    { n: 4, name: "Gestalter", desc: "KI wird systematisch gesteuert und skaliert." },
+    { n: 5, name: "Vorreiter", desc: "KI prägt Prozesse, Angebot und Geschäftsmodell." }
+  ];
+
+  // prio: Reihenfolge bei Gleichstand (kleiner = wichtiger)
+  const DIMS = [
+    {
+      id: "strategie", name: "Strategie & Führung", short: "Strategie", prio: 3,
+      intro: "Hat KI einen Platz in den Zielen, im Budget und in der Verantwortung der Geschäftsführung?",
+      qs: [
+        { q: "Welche Rolle spielt KI in Ihrer Unternehmensstrategie?", o: [
+          "Kein Thema in der Geschäftsführung.",
+          "Wird gelegentlich diskutiert, ohne konkrete Ziele.",
+          "Erste Ziele sind formuliert, einzelne Projekte laufen.",
+          "Eine KI-Roadmap mit Zielen, Budget und Verantwortlichen liegt vor.",
+          "KI ist fester Teil der Strategie und prägt Angebot oder Geschäftsmodell."] },
+        { q: "Gibt es Budget und eine verantwortliche Person für KI?", o: [
+          "Weder Budget noch zuständige Person.",
+          "Einzelne kümmern sich nebenbei, ohne Budget.",
+          "Projektbudget für einzelne Vorhaben und eine zuständige Person.",
+          "Jährliches KI-Budget und eine klar benannte Rolle mit festem Zeitanteil.",
+          "Eigenes Team oder feste Partnerstruktur, Budget an messbare Wirkung gekoppelt."] },
+        { q: "Wie bewerten Sie den Nutzen von KI-Vorhaben?", o: [
+          "Gar nicht.",
+          "Nach Bauchgefühl und Einzelbeispielen.",
+          "Der Nutzen wird für einzelne Projekte grob abgeschätzt.",
+          "Zeit, Kosten oder Qualität werden vor und nach der Einführung gemessen.",
+          "Alle Anwendungsfälle werden nach Wert und Aufwand priorisiert und regelmäßig überprüft."] }
+      ],
+      rec: {
+        low: "Halbtägigen KI-Workshop mit der Geschäftsführung durchführen: drei Geschäftsziele festlegen, zu denen KI beitragen soll, und eine verantwortliche Person benennen.",
+        mid: "Aus den Einzelprojekten eine 12-Monats-Roadmap mit Budget, Kennzahlen und Verantwortlichen machen.",
+        high: "Anwendungsfälle quartalsweise nach Wert und Aufwand überprüfen und KI-gestützte Angebote für Kunden entwickeln."
+      }
+    },
+    {
+      id: "daten", name: "Daten & Wissen", short: "Daten", prio: 4,
+      intro: "KI ist nur so gut wie die Daten und Dokumente, auf die sie zugreifen kann.",
+      qs: [
+        { q: "Wie gut sind Ihre wichtigsten Geschäftsdaten zugänglich?", o: [
+          "Verstreut in Papier, E-Mails und Einzeldateien.",
+          "Überwiegend digital, aber in Insellösungen und Excel-Listen.",
+          "Zentrale Systeme (ERP, CRM, DMS) für die Kerndaten sind vorhanden.",
+          "Die Systeme sind verbunden, Daten sind per Schnittstelle abrufbar.",
+          "Eine zentrale Datenplattform stellt Daten für Auswertung und KI bereit."] },
+        { q: "Wie steht es um die Qualität Ihrer Daten?", o: [
+          "Unbekannt, häufig Dubletten und Fehler.",
+          "Probleme sind bekannt, Korrekturen erfolgen händisch bei Bedarf.",
+          "Regeln für Stammdaten existieren und werden teilweise eingehalten.",
+          "Jeder Datenbereich hat Verantwortliche, die Qualität wird regelmäßig geprüft.",
+          "Die Datenqualität wird automatisch überwacht und gemessen."] },
+        { q: "Ist Ihr Unternehmenswissen (Anleitungen, Angebote, Verträge) für KI nutzbar?", o: [
+          "Das Wissen steckt vor allem in den Köpfen.",
+          "Dokumente sind vorhanden, aber unsortiert auf Laufwerken.",
+          "Dokumente sind strukturiert abgelegt und durchsuchbar.",
+          "Eine gepflegte Wissensbasis mit geregelten Berechtigungen existiert.",
+          "Die Wissensbasis ist an einen KI-Assistenten angebunden und wird laufend gepflegt."] }
+      ],
+      rec: {
+        low: "Die drei wichtigsten Datenquellen (z. B. Kunden, Aufträge, Artikel) benennen und Excel-Inseln in ein zentrales System überführen.",
+        mid: "Datenverantwortliche je Bereich benennen, Stammdatenregeln verbindlich machen und Dokumente für eine Wissensbasis ordnen.",
+        high: "Die Wissensbasis an einen KI-Assistenten anbinden und die Datenqualität automatisch überwachen."
+      }
+    },
+    {
+      id: "technik", name: "Technologie & Infrastruktur", short: "Technologie", prio: 6,
+      intro: "Welche Werkzeuge sind freigegeben und wie gut ist die IT-Basis darauf vorbereitet?",
+      qs: [
+        { q: "Welche KI-Werkzeuge sind im Einsatz?", o: [
+          "Keine, oder nur private Nutzung ohne Wissen des Unternehmens.",
+          "Einzelne kostenlose Tools, jeder nach eigenem Ermessen.",
+          "Freigegebene Business-Lizenzen für einzelne Teams.",
+          "Freigegebene Tools für alle, dazu KI-Funktionen in der Fachsoftware.",
+          "Eigene oder angepasste KI-Lösungen, eingebunden in die Kernsysteme."] },
+        { q: "Wie modern ist Ihre IT-Basis?", o: [
+          "Veraltete lokale Systeme, kaum Cloud.",
+          "Teilweise Cloud, viele Medienbrüche.",
+          "Überwiegend cloudfähige Standardsoftware.",
+          "Verbundene Systemlandschaft mit Schnittstellen (APIs).",
+          "Eine Automatisierungsplattform verbindet die Systeme im Regelbetrieb."] },
+        { q: "Wer betreut IT und KI technisch?", o: [
+          "Niemand fest, Hilfe gibt es auf Zuruf.",
+          "Ein externer IT-Dienstleister ohne KI-Erfahrung.",
+          "Eine interne Ansprechperson oder ein Dienstleister mit ersten KI-Erfahrungen.",
+          "Interne IT mit KI-Know-how und feste Partner.",
+          "Eigene Entwicklungs- oder Datenkompetenz im Haus."] }
+      ],
+      rec: {
+        low: "Ein freigegebenes KI-Werkzeug mit Business-Lizenz und Auftragsverarbeitungsvertrag einführen und private Konten ablösen.",
+        mid: "KI-Funktionen der vorhandenen Fachsoftware aktivieren und erste Abläufe über eine Automatisierungsplattform verbinden.",
+        high: "Eigene Assistenten an die Kernsysteme anbinden und Betrieb, Kosten und Qualität laufend überwachen."
+      }
+    },
+    {
+      id: "menschen", name: "Menschen & Kompetenzen", short: "Menschen", prio: 2,
+      intro: "Können und wollen Ihre Mitarbeitenden KI sicher und sinnvoll nutzen?",
+      qs: [
+        { q: "Wie verbreitet ist KI-Wissen bei den Mitarbeitenden?", o: [
+          "Kaum jemand hat KI-Tools ausprobiert.",
+          "Einige Interessierte nutzen KI privat oder vereinzelt.",
+          "Ein Teil der Belegschaft nutzt KI regelmäßig im Arbeitsalltag.",
+          "Die Mehrheit ist geschult und nutzt KI sicher.",
+          "KI-Nutzung ist selbstverständlich, Mitarbeitende bauen eigene Anwendungen."] },
+        { q: "Gibt es Schulungen zu KI?", o: [
+          "Keine.",
+          "Einzelne bilden sich auf eigene Initiative weiter.",
+          "Eine einmalige Einführung für einen Teil der Belegschaft.",
+          "Dokumentierte Schulungen nach Rolle, passend zur Pflicht aus Art. 4 KI-Verordnung.",
+          "Laufendes Lernprogramm mit KI-Ansprechpersonen in jedem Bereich."] },
+        { q: "Wie steht die Belegschaft zu KI?", o: [
+          "Skepsis und Sorge um Arbeitsplätze überwiegen.",
+          "Neugier bei wenigen, Unsicherheit bei vielen.",
+          "Offene Haltung, erste Erfolge sprechen sich herum.",
+          "Mitarbeitende bringen aktiv Ideen ein, Belegschaft und Betriebsrat sind eingebunden.",
+          "Ideen aus der Belegschaft werden systematisch gesammelt und umgesetzt."] }
+      ],
+      rec: {
+        low: "Grundlagenschulung für alle Mitarbeitenden mit Übungen aus dem eigenen Arbeitsalltag durchführen und dokumentieren. Das erfüllt die Kompetenzpflicht nach Art. 4 KI-Verordnung.",
+        mid: "Schulungen nach Rolle anbieten und zwei bis drei KI-Ansprechpersonen benennen, die Kolleginnen und Kollegen im Alltag unterstützen.",
+        high: "Regelmäßigen Austausch der KI-Nutzer etablieren, interne Erfolgsbeispiele teilen und Mitarbeitende eigene Assistenten bauen lassen."
+      }
+    },
+    {
+      id: "prozesse", name: "Prozesse & Anwendungsfälle", short: "Prozesse", prio: 5,
+      intro: "Wo schafft KI heute schon messbaren Nutzen, und wie kommen neue Anwendungsfälle in den Betrieb?",
+      qs: [
+        { q: "Wie viele KI-Anwendungsfälle nutzen Sie im Regelbetrieb?", o: [
+          "Keine.",
+          "Einzelne Experimente, nichts im Regelbetrieb.",
+          "Ein bis zwei Anwendungsfälle im Regelbetrieb.",
+          "Mehrere Anwendungsfälle in verschiedenen Bereichen.",
+          "KI unterstützt die Kernprozesse durchgängig, auch im Kundenkontakt."] },
+        { q: "Wie gut sind Ihre Abläufe dokumentiert?", o: [
+          "Abläufe sind nicht beschrieben.",
+          "Einzelne Abläufe sind beschrieben, oft veraltet.",
+          "Die Kernprozesse sind dokumentiert.",
+          "Prozesse sind dokumentiert, mit Kennzahlen und Verantwortlichen.",
+          "Prozesse werden laufend gemessen und verbessert."] },
+        { q: "Wie entstehen neue KI-Anwendungsfälle?", o: [
+          "Gar nicht.",
+          "Zufällig, wenn jemand etwas ausprobiert.",
+          "Ideen werden gesammelt, aber nicht bewertet.",
+          "Ideen werden nach Nutzen und Aufwand bewertet und als Pilot umgesetzt.",
+          "Ein fester Ablauf führt von der Idee über den Pilot in den Regelbetrieb."] }
+      ],
+      rec: {
+        low: "Drei zeitintensive Routineaufgaben auswählen (z. B. Angebotserstellung, E-Mail-Beantwortung, Protokolle) und einen vierwöchigen Pilot mit Vorher-nachher-Messung starten.",
+        mid: "Ideen nach Nutzen und Aufwand bewerten und erfolgreiche Piloten mit klarer Verantwortung in den Regelbetrieb bringen.",
+        high: "Kernprozesse von Anfang bis Ende mit KI neu gestalten und die Wirkung mit Kennzahlen belegen."
+      }
+    },
+    {
+      id: "governance", name: "Governance, Recht & Sicherheit", short: "Governance", prio: 1,
+      intro: "Gibt es klare Regeln, und kennen Sie Ihre Pflichten aus DSGVO und EU-KI-Verordnung?",
+      qs: [
+        { q: "Gibt es Regeln für den Einsatz von KI?", o: [
+          "Keine Regeln.",
+          "Mündliche Absprachen.",
+          "Eine schriftliche KI-Richtlinie (erlaubte Tools, keine sensiblen Daten).",
+          "Richtlinie plus Freigabeprozess für neue Tools, allen bekannt.",
+          "Klare Rollen, ein Verzeichnis aller KI-Systeme und regelmäßige Prüfung."] },
+        { q: "Wie berücksichtigen Sie Datenschutz und Vertraulichkeit bei KI?", o: [
+          "Nicht bedacht.",
+          "Das Bewusstsein ist da, aber es gibt keine Maßnahmen.",
+          "Nur Tools mit Auftragsverarbeitungsvertrag, Datenschutzbeauftragte sind eingebunden.",
+          "Es ist festgelegt, welche Daten in welche Tools dürfen.",
+          "Datenschutz-Folgenabschätzung wo nötig, technische Schutzmaßnahmen und Audits."] },
+        { q: "Kennen Sie Ihre Pflichten aus der EU-KI-Verordnung (AI Act)?", o: [
+          "Nie davon gehört.",
+          "Bekannt, aber nicht geprüft.",
+          "Grob geprüft, die Schulungspflicht nach Art. 4 ist bekannt.",
+          "Eingesetzte KI-Systeme sind nach Risikoklassen eingeordnet, Pflichten umgesetzt.",
+          "Laufende Überwachung der Pflichten, Nachweise sind dokumentiert."] }
+      ],
+      rec: {
+        low: "Eine einseitige KI-Richtlinie verabschieden: erlaubte Tools, verbotene Daten, Kennzeichnung von KI-Inhalten. Datenschutzbeauftragte einbinden.",
+        mid: "Ein Verzeichnis der eingesetzten KI-Systeme anlegen, sie nach Risikoklassen der KI-Verordnung einordnen und einen Freigabeprozess für neue Tools festlegen.",
+        high: "KI-Systeme regelmäßig prüfen, Nachweise zur KI-Verordnung dokumentieren und die Regeln in bestehendes Qualitäts- oder Sicherheitsmanagement einbinden."
+      }
+    }
+  ];
+
+  const EXAMPLE = {
+    company: { name: "Hansen Feinwerktechnik GmbH (fiktiv)", branche: "Maschinenbau, Zulieferer", size: "50–249" },
+    answers: {
+      "strategie-0": 2, "strategie-1": 2, "strategie-2": 1,
+      "daten-0": 3, "daten-1": 3, "daten-2": 2,
+      "technik-0": 3, "technik-1": 3, "technik-2": 2,
+      "menschen-0": 2, "menschen-1": 1, "menschen-2": 2,
+      "prozesse-0": 2, "prozesse-1": 3, "prozesse-2": 2,
+      "governance-0": 1, "governance-1": 2, "governance-2": 1
+    }
+  };
+
+  const KEY = "sang-ki-reifegrad-v1";
+  const TOTAL = DIMS.reduce((s, d) => s + d.qs.length, 0);
+  let state = load() || { company: { ...EXAMPLE.company }, answers: { ...EXAMPLE.answers }, example: true };
+  let active = 0;
+
+  function load() {
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* Speicher nicht verfügbar */ }
+  }
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (x) => x.toFixed(1).replace(".", ",");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+
+  function levelOf(s) {
+    if (s < 1.8) return 1;
+    if (s < 2.6) return 2;
+    if (s < 3.4) return 3;
+    if (s < 4.2) return 4;
+    return 5;
+  }
+  function band(s) { return s < 2.5 ? "low" : s < 3.5 ? "mid" : "high"; }
+
+  function compute() {
+    const dims = DIMS.map((d) => {
+      const vals = d.qs.map((_, i) => state.answers[d.id + "-" + i]).filter((v) => v);
+      const score = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      return { d, answered: vals.length, score };
+    });
+    const scored = dims.filter((x) => x.score !== null);
+    const answered = dims.reduce((s, x) => s + x.answered, 0);
+    if (!scored.length) return { dims, answered, overall: null };
+    const overall = scored.reduce((s, x) => s + x.score, 0) / scored.length;
+    const weakest = scored.reduce((a, b) => (b.score < a.score ? b : a));
+    const raw = levelOf(overall);
+    const cap = levelOf(weakest.score) + 1;
+    const level = Math.min(raw, cap);
+    return { dims, answered, overall, weakest, raw, level, capped: level < raw };
+  }
+
+  function obligations(r) {
+    const flags = {};
+    const gov = r.dims.find((x) => x.d.id === "governance");
+    if (gov.score !== null && gov.score < 2.5) flags.governance = "Pflicht: Datenschutz & KI-Verordnung";
+    const training = state.answers["menschen-1"];
+    if (training && training <= 2) flags.menschen = "Pflicht: Art. 4 KI-Verordnung";
+    return flags;
+  }
+
+  function priorities(r) {
+    const flags = obligations(r);
+    return r.dims
+      .filter((x) => x.score !== null)
+      .map((x) => ({ ...x, flag: flags[x.d.id] || null }))
+      .sort((a, b) => (!!b.flag - !!a.flag) || (a.score - b.score) || (a.d.prio - b.d.prio))
+      .slice(0, 3);
+  }
+
+  /* ---------- Fragebogen ---------- */
+  function renderTabs() {
+    const tabs = $("tabs");
+    tabs.innerHTML = "";
+    DIMS.forEach((d, i) => {
+      const n = d.qs.filter((_, qi) => state.answers[d.id + "-" + qi]).length;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tab" + (n === d.qs.length ? " done" : "");
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(i === active));
+      b.id = "tab-" + d.id;
+      b.innerHTML = esc(d.short) + ' <span class="cnt">' + n + "/" + d.qs.length + "</span>";
+      b.addEventListener("click", () => { active = i; renderTabs(); renderPanel(); });
+      tabs.appendChild(b);
+    });
+  }
+
+  function renderPanel() {
+    const d = DIMS[active];
+    let h = '<div class="dimhead"><span class="eyebrow">Dimension ' + (active + 1) + " von " + DIMS.length + "</span><h2>" + esc(d.name) + "</h2><p>" + esc(d.intro) + "</p></div>";
+    d.qs.forEach((q, qi) => {
+      const key = d.id + "-" + qi;
+      h += '<fieldset class="q"><legend><span class="qn">' + (active + 1) + "." + (qi + 1) + "</span><span>" + esc(q.q) + '</span></legend><div class="opts">';
+      q.o.forEach((txt, oi) => {
+        const v = oi + 1;
+        const id = "a-" + key + "-" + v;
+        h += '<label class="opt" for="' + id + '"><input type="radio" id="' + id + '" name="' + key + '" value="' + v + '"' + (state.answers[key] === v ? " checked" : "") + '><span class="lv">' + v + '</span><span class="tx">' + esc(txt) + "</span></label>";
+      });
+      h += "</div></fieldset>";
+    });
+    h += '<div class="pager"><button type="button" class="btn" id="b-prev"' + (active === 0 ? " disabled" : "") + '>Zurück</button>' +
+         (active < DIMS.length - 1
+           ? '<button type="button" class="btn primary" id="b-next">Weiter: ' + esc(DIMS[active + 1].short) + "</button>"
+           : '<a class="btn primary" href="#p-title" style="text-decoration:none">Zum 90-Tage-Plan</a>') + "</div>";
+    const panel = $("panel");
+    panel.innerHTML = h;
+    panel.querySelectorAll("input[type=radio]").forEach((inp) => {
+      inp.addEventListener("change", () => {
+        state.answers[inp.name] = Number(inp.value);
+        save(); renderTabs(); renderResults();
+      });
+    });
+    const prev = $("b-prev"), next = $("b-next");
+    if (prev) prev.addEventListener("click", () => { active--; renderTabs(); renderPanel(); $("tabs").scrollIntoView({ block: "nearest" }); });
+    if (next) next.addEventListener("click", () => { active++; renderTabs(); renderPanel(); $("tabs").scrollIntoView({ block: "nearest" }); });
+  }
+
+  /* ---------- Auswertung ---------- */
+  function renderDial(overall) {
+    // Skalenring 0–5 mit Teilstrichen je Stufe, Wert in der Mitte
+    const r = 40, c = 2 * Math.PI * r, frac = overall === null ? 0 : overall / 5;
+    let ticks = "";
+    for (let t = 0; t < 5; t++) {
+      const a = (-90 + t * 72) * Math.PI / 180;
+      ticks += '<line x1="' + (50 + 46 * Math.cos(a)).toFixed(1) + '" y1="' + (50 + 46 * Math.sin(a)).toFixed(1) + '" x2="' + (50 + 49 * Math.cos(a)).toFixed(1) + '" y2="' + (50 + 49 * Math.sin(a)).toFixed(1) + '" stroke="var(--muted)" stroke-width="1.5"/>';
+    }
+    $("dial").innerHTML =
+      '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="var(--grid)" stroke-width="8"/>' + ticks +
+      '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (c * frac).toFixed(1) + " " + c.toFixed(1) + '" transform="rotate(-90 50 50)"/>' +
+      '<text x="50" y="57" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="20" font-weight="500" fill="var(--ink)">' + (overall === null ? "–" : fmt(overall)) + "</text>" +
+      '<text x="50" y="72" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="9" fill="var(--muted)">von 5</text>';
+  }
+
+  function renderResults() {
+    const r = compute();
+    renderDial(r.overall);
+    const ladder = $("ladder");
+    ladder.innerHTML = LEVELS.map((l) => {
+      const cls = r.overall === null ? "" : l.n === r.level ? " on" : l.n < r.level ? " past" : "";
+      return '<div class="step' + cls + '"' + (l.n === r.level ? ' aria-current="step"' : "") + "><b>" + l.n + "</b>" + l.name + "</div>";
+    }).join("");
+
+    if (r.overall === null) {
+      $("r-level").textContent = "–";
+      $("r-sub").textContent = "Beantworten Sie die Fragen links.";
+    } else {
+      const L = LEVELS[r.level - 1];
+      $("r-level").textContent = "Stufe " + L.n + ": " + L.name;
+      $("r-sub").textContent = L.desc + " Gesamtwert " + fmt(r.overall) + " von 5" + (r.answered < TOTAL ? " (vorläufig, " + r.answered + " von " + TOTAL + " Fragen beantwortet)" : "") + ".";
+    }
+
+    // Balken, Skala 0–5
+    const pct = (v) => (v / 5 * 100) + "%";
+    $("ticks").innerHTML = [0, 1, 2, 3, 4, 5].map((t) => '<span style="left:' + pct(t) + '">' + t + "</span>").join("");
+    const bars = $("bars");
+    bars.innerHTML = r.dims.map((x) => {
+      const weak = r.weakest && x === r.weakest;
+      const grid = [1, 2, 3, 4, 5].map((t) => '<span class="gl" style="left:' + pct(t) + '"></span>').join("");
+      return '<div class="row' + (weak ? " weak" : "") + '" data-id="' + x.d.id + '"><span class="lbl">' + esc(x.d.short) + '</span><div class="track">' + grid +
+        (x.score === null ? "" : '<div class="bar" style="width:' + pct(x.score) + '"></div>') +
+        '</div><span class="val' + (x.score === null ? " open" : "") + '">' + (x.score === null ? "offen" : fmt(x.score)) + "</span></div>";
+    }).join("") + (r.overall === null ? "" : '<div class="avgline" style="left:calc(112px + (100% - 158px) * ' + (r.overall / 5).toFixed(4) + ')"></div>');
+    bars.querySelectorAll(".row").forEach((row) => {
+      row.addEventListener("mouseenter", () => showTip(row, r));
+      row.addEventListener("mouseleave", () => { $("tip").hidden = true; });
+    });
+
+    const cap = $("cap");
+    if (r.capped) {
+      cap.hidden = false;
+      cap.innerHTML = "<b>Engpass-Regel greift:</b> Der Durchschnitt entspräche Stufe " + r.raw + ". Die schwächste Dimension (" + esc(r.weakest.d.name) + ", " + fmt(r.weakest.score) + ") begrenzt das Ergebnis auf Stufe " + r.level + ".";
+    } else if (r.weakest) {
+      cap.hidden = false;
+      cap.innerHTML = "<b>Engpass:</b> " + esc(r.weakest.d.name) + " mit " + fmt(r.weakest.score) + ". Hier bringt der nächste Schritt am meisten.";
+    } else cap.hidden = true;
+
+    renderPlan(r);
+  }
+
+  function showTip(row, r) {
+    const x = r.dims.find((y) => y.d.id === row.dataset.id);
+    const tip = $("tip");
+    tip.innerHTML = "<b>" + esc(x.d.name) + "</b><br>" + (x.score === null ? "noch nicht beantwortet" :
+      "Wert " + fmt(x.score) + " · Stufe " + levelOf(x.score) + " " + LEVELS[levelOf(x.score) - 1].name + "<br>" + x.answered + " von " + x.d.qs.length + " Fragen beantwortet");
+    tip.hidden = false;
+    const chart = $("chart").getBoundingClientRect(), rr = row.getBoundingClientRect();
+    tip.style.left = "8px";
+    tip.style.top = (rr.bottom - chart.top + 6) + "px";
+  }
+
+  function renderPlan(r) {
+    const phases = $("phases");
+    if (r.overall === null) {
+      phases.innerHTML = '<div class="phase"><p>Sobald Sie Fragen beantwortet haben, erscheinen hier die drei wichtigsten Maßnahmen.</p></div>';
+      $("dimtable").innerHTML = "";
+      return;
+    }
+    const when = ["Tage 1–30", "Tage 31–60", "Tage 61–90"];
+    phases.innerHTML = priorities(r).map((x, i) =>
+      '<div class="phase"><span class="when">' + when[i] + "</span><h3>" + esc(x.d.name) + "</h3>" +
+      (x.flag ? '<span><span class="chip">' + esc(x.flag) + "</span></span>" : "") +
+      "<p>" + esc(x.d.rec[band(x.score)]) + '</p><p class="num" style="color:var(--muted);font-size:.82rem">Aktuell ' + fmt(x.score) + " · Stufe " + levelOf(x.score) + "</p></div>").join("");
+    $("dimtable").innerHTML = r.dims.map((x) =>
+      "<tr><td>" + esc(x.d.name) + '</td><td class="num">' + (x.score === null ? "offen" : fmt(x.score)) + "</td><td>" +
+      (x.score === null ? "–" : levelOf(x.score) + " " + LEVELS[levelOf(x.score) - 1].name) + "</td><td>" +
+      (x.score === null ? "Fragen beantworten" : esc(x.d.rec[band(x.score)])) + "</td></tr>").join("");
+  }
+
+  /* ---------- Export ---------- */
+  function summaryText() {
+    const r = compute();
+    const c = state.company;
+    const lines = ["KI-Reifegrad-Check · SANG Expert Consulting", ""];
+    lines.push("Unternehmen: " + (c.name || "–") + (c.branche ? " · " + c.branche : "") + (c.size ? " · " + c.size + " Mitarbeitende" : ""));
+    if (r.overall === null) { lines.push("Noch keine Antworten."); return lines.join("\n"); }
+    lines.push("Ergebnis: Stufe " + r.level + " " + LEVELS[r.level - 1].name + " (Gesamtwert " + fmt(r.overall) + " von 5, " + r.answered + "/" + TOTAL + " Fragen)");
+    if (r.capped) lines.push("Engpass-Regel: begrenzt durch " + r.weakest.d.name + " (" + fmt(r.weakest.score) + ")");
+    lines.push("", "Profil:");
+    r.dims.forEach((x) => lines.push("- " + x.d.name + ": " + (x.score === null ? "offen" : fmt(x.score) + " (Stufe " + levelOf(x.score) + ")")));
+    lines.push("", "90-Tage-Plan:");
+    const when = ["Tage 1–30", "Tage 31–60", "Tage 61–90"];
+    priorities(r).forEach((x, i) => lines.push(when[i] + " · " + x.d.name + (x.flag ? " [" + x.flag + "]" : "") + ": " + x.d.rec[band(x.score)]));
+    return lines.join("\n");
+  }
+
+  $("b-copy").addEventListener("click", () => {
+    const text = summaryText();
+    const fb = $("copy-fallback");
+    const fallback = () => { fb.hidden = false; fb.value = text; fb.focus(); fb.select(); $("copy-status").textContent = "Kopieren nicht möglich. Text ist markiert, bitte mit Strg+C bzw. Cmd+C kopieren."; };
+    try {
+      navigator.clipboard.writeText(text).then(() => { fb.hidden = true; $("copy-status").textContent = "Ergebnis in die Zwischenablage kopiert."; }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  /* ---------- Firmenprofil & Steuerung ---------- */
+  function syncProfile() {
+    $("f-name").value = state.company.name || "";
+    $("f-branche").value = state.company.branche || "";
+    $("f-size").value = state.company.size || "";
+    $("example-note").hidden = !state.example;
+  }
+  [["f-name", "name"], ["f-branche", "branche"], ["f-size", "size"]].forEach(([id, k]) => {
+    $(id).addEventListener("input", () => { state.company[k] = $(id).value; state.example = false; $("example-note").hidden = true; save(); });
+  });
+  $("b-example").addEventListener("click", () => {
+    state = { company: { ...EXAMPLE.company }, answers: { ...EXAMPLE.answers }, example: true };
+    active = 0; save(); rerender();
+  });
+  $("b-reset").addEventListener("click", () => { $("reset-confirm").hidden = false; $("b-reset-yes").focus(); });
+  $("b-reset-no").addEventListener("click", () => { $("reset-confirm").hidden = true; });
+  $("b-reset-yes").addEventListener("click", () => {
+    state = { company: { name: "", branche: "", size: "" }, answers: {}, example: false };
+    active = 0; $("reset-confirm").hidden = true; $("copy-fallback").hidden = true; $("copy-status").textContent = "";
+    save(); rerender(); $("f-name").focus();
+  });
+
+  function rerender() { syncProfile(); renderTabs(); renderPanel(); renderResults(); }
+  rerender();
+})();
+</script>
+</body>
+</html>
