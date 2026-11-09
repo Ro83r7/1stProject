@@ -1128,7 +1128,7 @@ function demoData(){
    Zentrale Synchronisation (Supabase, Zugriff per geheimem Sync-Code)
    ========================================================= */
 const SYNC_KEY='speedlab.sync';
-const SYNC_DEFAULT={url:'',key:'',code:''};      // URL/Key des Projekts können hier fest eingetragen werden
+const SYNC_DEFAULT={url:'https://njipzdfnzpiremmbimty.supabase.co',key:'sb_publishable_Pp5YaHkVOPpYI9PnzMtHsQ_Wq8kMevf',code:''};   // Publishable Key ist öffentlich; der geheime Sync-Code schützt die Daten
 let sync=(()=>{try{return {...SYNC_DEFAULT,...JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')}}catch(e){return {...SYNC_DEFAULT}}})();
 const saveSync=()=>{try{localStorage.setItem(SYNC_KEY,JSON.stringify(sync))}catch(e){}};
 const syncOn=()=>!!(sync.url&&sync.key&&sync.code);
