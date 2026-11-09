@@ -788,12 +788,13 @@ function pageDash(){
     <div class="bar" style="margin:10px 0 4px"><i style="width:${li.into/li.need*100}%"></i></div>
     <div class="row sp tiny muted"><span>${li.into} / ${li.need} XP</span><span>Gesamt ${xp}</span></div>`;
   const ins=insights().map(i=>`<div class="note ${i.k}">${i.t}</div>`).join('');
+  const syncWarn=syncOn()?'':`<div class="note warn" style="margin-bottom:14px">☁️ <b>Dieses Gerät ist nicht mit dem zentralen Speicher verbunden.</b> Einheiten von anderen Geräten (und der Home-Bildschirm-App, die einen eigenen Speicher hat) erscheinen hier nicht. <a href="#/set" style="color:var(--accent);font-weight:700">Jetzt verbinden →</a></div>`;
   const quests=weeklyQuests().map(q=>`<div class="quest"><div class="row sp small"><span>${q.icon} ${q.name}</span><b class="num">${Math.min(q.cur,q.max)}/${q.max}${S.questsDone[q.id]?' ✅':''}</b></div><div class="bar"><i style="width:${Math.min(1,q.cur/q.max)*100}%;${q.cur>=q.max?'background:var(--ok)':''}"></i></div></div>`).join('');
   const chart=card('Verlauf',`<div class="row sp wrap" style="margin-bottom:8px">${chipsRange('range',ui.range)}${chipsBasis('basis',ui.basis)}</div><div style="margin-bottom:8px">${chipsMetric('metric',ui.metric,ui.basis)}</div><div id="trendChart"></div>`,{right:`<a class="small" style="color:var(--accent)" href="#/ana">Mehr →</a>`});
   const headRight=`<a class="btn primary ${c?'sm':''}" href="#/train">▶ Training</a>`;
   if(c){
     return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''}`,fmtDate(today()),headRight)}
-    <div class="stack-v">
+    ${syncWarn}<div class="stack-v">
       ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,true))}
       <div class="grid g2 keep2">${card('Woche',ringHtml)}${card('Serie',streakHtml)}</div>
       ${card('Nächste Einheit',nextHtml())}
@@ -806,7 +807,7 @@ function pageDash(){
     const d=dailyBest(k,'raw'),de=dailyBest(k,'e'),b=d.length?d.reduce((a,b)=>b.v>a.v?b:a):null,be=de.length?Math.max(...de.map(p=>p.v)):0;
     return `<div class="row sp">${dvChip(k)}<span class="num"><b>${b?fmt(b.v):'–'}</b> <span class="eq">${k!=='driver'&&be?'≈ '+fmt(be):''}</span> <span class="tiny muted">${b?fmtShort(b.date):''}</span></span></div>`}).join('');
   return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''} 👋`,fmtDate(today()),`<button class="btn" data-a="manual">＋ Einheit nachtragen</button>${headRight}`)}
-  <div class="grid g4" style="margin-bottom:14px">
+  ${syncWarn}<div class="grid g4" style="margin-bottom:14px">
     ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,false))}
     ${card('Diese Woche',ringHtml)}
     ${card('Wochen-Serie',streakHtml+`<div class="small muted" style="margin-top:6px">mit erreichtem Wochenziel</div>`)}
@@ -1243,7 +1244,7 @@ function syncMsgText(){
   return {off:'Nicht verbunden – Daten nur auf diesem Gerät.',idle:'Verbunden.',busy:'Synchronisiere …',ok:`✅ Synchronisiert (${t}).`,err:`⚠️ Fehler: ${esc(syncState.msg)}`}[syncState.s];
 }
 function syncBadge(){
-  if(!syncOn())return '';
+  if(!syncOn())return `<a class="tag synctag" href="#/set" style="text-decoration:none;color:var(--warn)" title="Nicht mit dem zentralen Speicher verbunden">☁️ nur lokal</a>`;
   const m={idle:'☁️',busy:'☁️ …',ok:'☁️ ✓',err:'☁️ ⚠'}[syncState.s]||'☁️';
   return `<span class="tag synctag" title="${syncMsgText().replace(/<[^>]*>/g,'')}">${m}</span>`;
 }
