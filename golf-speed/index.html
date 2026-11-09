@@ -11,7 +11,7 @@
   --bg:#0e1217;--card:#171d25;--card2:#1e2630;--text:#e9eef3;--muted:#8d99a6;--line:#2a3541;
   --accent:#27c3b0;--danger:#ef5b5b;--ok:#5fd38d;--warn:#f2b84b;
   --c-stack:#f5c400;--c-pure:#ef4a4f;--c-driver:#6ea6ff;--c-all:#27c3b0;
-  --shadow:0 2px 12px rgba(0,0,0,.35);
+  --shadow:0 2px 12px rgba(0,0,0,.35);--solid:var(--card);--on-accent:#06211d;
 }
 :root[data-theme="light"]{
   --bg:#eef1f4;--card:#ffffff;--card2:#f3f5f8;--text:#18212b;--muted:#667380;--line:#dde3e9;
@@ -65,7 +65,7 @@ body.compact h1{font-size:1.25rem}
 
 .btn{border:1px solid var(--line);background:var(--card2);border-radius:11px;padding:9px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--text)}
 .btn:hover{border-color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#06211d}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .btn.danger{color:var(--danger)}
 .btn.lg{padding:14px 22px;font-size:1.05rem;border-radius:14px}
 .btn.sm{padding:5px 10px;font-size:.82rem;border-radius:8px}
@@ -144,9 +144,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto;z-index:50}
 #modal.open{display:flex}
-.sheet{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(760px,100%);box-shadow:0 20px 70px rgba(0,0,0,.5)}
+.sheet{background:var(--solid);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(760px,100%);box-shadow:0 20px 70px rgba(0,0,0,.5)}
 #toasts{position:fixed;right:14px;bottom:14px;display:grid;gap:8px;z-index:70}
-.toast{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:10px 14px;box-shadow:var(--shadow);animation:pop .3s}
+.toast{background:var(--solid);border:1px solid var(--accent);border-radius:12px;padding:10px 14px;box-shadow:var(--shadow);animation:pop .3s}
 @keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:80}
 .note{border-left:3px solid var(--accent);padding:8px 12px;background:var(--card2);border-radius:0 10px 10px 0;font-size:.88rem}
@@ -155,6 +155,36 @@ details.sci summary{cursor:pointer;font-weight:700}
 details.sci ul{margin:8px 0 0;padding-left:20px;display:grid;gap:5px}
 .setrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px;align-items:end;padding:10px;border-radius:12px;background:var(--card2)}
 .setrow .wide{grid-column:1/-2}
+
+/* ---------- Aurora (dunkel, Glas – wie im Garmin-Dashboard) ---------- */
+html[data-theme="aurora"]{
+  --bg:#0a0e1f;--card:rgba(255,255,255,.075);--card2:rgba(255,255,255,.08);--solid:#1a2040;
+  --text:#f4f6ff;--muted:#bcc3e6;--line:rgba(255,255,255,.16);--accent:#a9b5ff;--on-accent:#0a0e1f;
+  --ok:#6ff0a6;--warn:#ffd966;--danger:#ffa59f;
+  --c-stack:#ffd23f;--c-pure:#ff7b7b;--c-driver:#9db9ff;--c-all:#2fd9d0;
+  --shadow:0 20px 50px rgba(0,0,0,.28);color-scheme:dark;
+}
+html[data-theme="aurora"] body{
+  background:
+    radial-gradient(900px 500px at 6% -5%,rgba(108,123,255,.50),transparent 60%),
+    radial-gradient(800px 520px at 100% 4%,rgba(255,107,107,.34),transparent 60%),
+    radial-gradient(900px 600px at 70% 100%,rgba(25,200,192,.30),transparent 60%),#0a0e1f;
+  background-attachment:fixed;
+}
+html[data-theme="aurora"] .card,html[data-theme="aurora"] #nav{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+html[data-theme="aurora"] #nav{background:rgba(14,18,40,.72)}
+html[data-theme="aurora"] .card{background:radial-gradient(170px 140px at 100% 0%,color-mix(in srgb,var(--glow,#6c7bff) 34%,transparent),transparent 72%),var(--card)}
+html[data-theme="aurora"] .grid>.card:nth-child(4n+1),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+1){--glow:#2fd9d0}
+html[data-theme="aurora"] .grid>.card:nth-child(4n+2),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+2){--glow:#ffd23f}
+html[data-theme="aurora"] .grid>.card:nth-child(4n+3),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+3){--glow:#b794ff}
+html[data-theme="aurora"] .grid>.card:nth-child(4n+4),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+4){--glow:#ff7b7b}
+html[data-theme="aurora"] .brand .logo{background:linear-gradient(135deg,#ff7b7b,#6c7bff);color:#fff}
+html[data-theme="aurora"] #nav a.on{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+html[data-theme="aurora"] .note{background:rgba(255,255,255,.07)}
+html[data-theme="aurora"] .delta.up{color:#6ff0a6}
+html[data-theme="aurora"] body.compact #nav,html[data-theme="aurora"] #nav{border-color:rgba(255,255,255,.16)}
+@media (max-width:760px){html[data-theme="aurora"] #nav{background:rgba(14,18,40,.86)}}
+html[data-theme="aurora"] body.compact #nav{background:rgba(14,18,40,.86)}
 
 @media (max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g21,.g3{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){
@@ -229,7 +259,7 @@ const PURE_COL=['Silber','Rot','Schwarz'];
    Pure2: Gewichte 120/151/185 g (Silber/Weiß=120, Rot=151, Schwarz=185); Länge & Leergewicht geschätzt            */
 const defaults=()=>{
   const d={v:2,
-    settings:{name:'',unit:'mph',goal:null,weekly:3,programStart:today(),theme:'auto',view:'auto',rest:40,swings:5,transfer:true,sound:true,device:'stack',
+    settings:{name:'',unit:'mph',goal:null,weekly:3,programStart:today(),theme:'aurora',themeV:2,view:'auto',rest:40,swings:5,transfer:true,sound:true,device:'stack',
       equip:{
         stack:{len:41.5,m0:200,cg:.5,wp:.95,weights:[20,45,60,75,100]},
         pure:{len:42,m0:160,cg:.5,wp:.95,weights:[120,151,185]},
@@ -247,6 +277,7 @@ function mergeState(o){
   const d=defaults();
   const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
   s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
+  if(!s.settings.themeV){s.settings.theme='aurora';s.settings.themeV=2}   // Aurora als neues Standarddesign
   const dv=s.settings.equip.driver;if(dv.len===45.5&&dv.moi===2800){dv.len=45.75;dv.moi=2900}   // alte Standardwerte → TaylorMade Qi10 (45,75″, D4)
   s.settings.model={...d.settings.model,...(o.settings||{}).model};
   const ol=(o.settings||{}).loads||{};
@@ -551,7 +582,7 @@ function lineChart(el,{series,goal,H=270}){
       g+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.8" fill="${s.color}" opacity=".45"/>`).join('')}
     else{
       if(P.length>1)g+=`<polyline points="${P.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round"/>`;
-      g+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="var(--card)" stroke="${s.color}" stroke-width="2"/>`).join('');
+      g+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="var(--solid)" stroke="${s.color}" stroke-width="2"/>`).join('');
     }
     s.pts.forEach((p,i)=>hit.push({x:P[i][0],y:P[i][1],s:s.name,c:s.color,v:p.v,d:p.date}));
   }
@@ -1016,7 +1047,7 @@ function pageSet(){
      <div class="field"><label>Einheit</label><select data-set="unit"><option value="mph" ${s.unit==='mph'?'selected':''}>mph</option><option value="kmh" ${s.unit==='kmh'?'selected':''}>km/h</option></select></div>
      <div class="field"><label>Ziel eSpeed (${uLabel()})</label><input type="number" step="0.1" data-set="goal" value="${s.goal||''}" placeholder="z. B. ${U()==='mph'?'105':'170'}"></div>
      <div class="field"><label>Wochenziel (Einheiten)</label><select data-set="weekly">${[2,3,4,5].map(n=>`<option ${s.weekly===n?'selected':''}>${n}</option>`).join('')}</select></div>
-     <div class="field"><label>Design</label><select data-set="theme"><option value="auto" ${s.theme==='auto'?'selected':''}>Automatisch</option><option value="dark" ${s.theme==='dark'?'selected':''}>Dunkel</option><option value="light" ${s.theme==='light'?'selected':''}>Hell</option></select></div>
+     <div class="field"><label>Design</label><select data-set="theme"><option value="aurora" ${s.theme==='aurora'?'selected':''}>Aurora (wie Garmin-Dashboard)</option><option value="auto" ${s.theme==='auto'?'selected':''}>Automatisch (Hell/Dunkel)</option><option value="dark" ${s.theme==='dark'?'selected':''}>Dunkel</option><option value="light" ${s.theme==='light'?'selected':''}>Hell</option></select></div>
      <div class="field"><label>Ansicht</label><select data-set="view"><option value="auto" ${s.view==='auto'?'selected':''}>Automatisch (Handy = kompakt)</option><option value="compact" ${s.view==='compact'?'selected':''}>Immer kompakt</option><option value="full" ${s.view==='full'?'selected':''}>Immer ausführlich</option></select></div>
    </div>`)}
    ${card('Standardgerät & Programm',`<div class="stack-v">${dvPicker('pickdev',s.device)}<div class="form2">
@@ -1076,7 +1107,8 @@ function setSetting(path,val){
   persist();
   if(['weekly','programStart','view','swings','rest'].includes(path))render();
 }
-function applyTheme(){const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
+function applyTheme(){const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='aurora'||t==='dark'?'#0a0e1f':t==='light'?'#eef1f4':m.content}
 function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function csv(){
   const rows=[['Datum','Art','Geraet','Stufe','Gewicht_g','Seite','Swing_Nr','Radar_mph','eSpeed_mph','Radar_kmh','eSpeed_kmh','RPE','Notiz']];
