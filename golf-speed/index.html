@@ -1154,7 +1154,7 @@ function pageSet(){
      <div class="field"><label>Projekt-URL</label><input type="text" id="sy-url" value="${esc(sync.url)}" placeholder="https://xxxx.supabase.co"></div>
      <div class="field"><label>Public/Anon-Key</label><input type="text" id="sy-key" value="${esc(sync.key)}"></div>
      <div class="field"><label>Sync-Code (geheim, ≥ 24 Zeichen)</label><input type="text" id="sy-code" value="${esc(sync.code)}"></div></div>
-     <div class="row wrap"><button class="btn primary" data-a="syncSave">Speichern & synchronisieren</button><button class="btn" data-a="syncGen">Code erzeugen</button><button class="btn" data-a="syncLink">🔗 Geräte-Link kopieren</button><button class="btn danger" data-a="syncOff">Trennen</button></div>
+     <div class="row wrap"><button class="btn primary" data-a="syncSave">Speichern & synchronisieren</button><button class="btn" data-a="syncNow">Jetzt abgleichen</button><button class="btn" data-a="syncGen">Code erzeugen</button><button class="btn" data-a="syncLink">🔗 Geräte-Link kopieren</button><button class="btn danger" data-a="syncOff">Trennen</button></div>
      <div class="small" id="syncMsg">${syncMsgText()}</div>
      <div class="tiny muted">Alle Geräte mit demselben Code teilen die Daten. Einheiten werden pro ID zusammengeführt, Löschungen und Einstellungen synchronisiert. Ansicht und Design bleiben pro Gerät. Wer den Code kennt, kann die Daten lesen – nicht weitergeben.</div></div>`)}
    ${card('Daten',`<div class="stack-v">
@@ -1241,7 +1241,7 @@ const syncOn=()=>!!(sync.url&&sync.key&&sync.code);
 let syncState={s:syncOn()?'idle':'off',t:0,msg:''},syncing=false,syncAgain=false,syncTimer=null;
 function syncMsgText(){
   const t=syncState.t?new Date(syncState.t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
-  return {off:'Nicht verbunden – Daten nur auf diesem Gerät.',idle:'Verbunden.',busy:'Synchronisiere …',ok:`✅ Synchronisiert (${t}).`,err:`⚠️ Fehler: ${esc(syncState.msg)}`}[syncState.s];
+  return {off:'Nicht verbunden – Daten nur auf diesem Gerät.',idle:'Verbunden.',busy:'Synchronisiere …',ok:`✅ Synchronisiert (${t}) – ${S.sessions.length} Einheiten lokal, ${syncState.remote??'?'} zentral.`,err:`⚠️ Fehler: ${esc(syncState.msg)}`}[syncState.s];
 }
 function syncBadge(){
   if(!syncOn())return `<a class="tag synctag" href="#/set" style="text-decoration:none;color:var(--warn)" title="Nicht mit dem zentralen Speicher verbunden">☁️ nur lokal</a>`;
@@ -1249,16 +1249,20 @@ function syncBadge(){
   return `<span class="tag synctag" title="${syncMsgText().replace(/<[^>]*>/g,'')}">${m}</span>`;
 }
 function setSyncState(s,msg=''){
-  syncState={s,t:s==='ok'?Date.now():syncState.t,msg};
+  syncState={...syncState,s,t:s==='ok'?Date.now():syncState.t,msg};
   $$('.synctag').forEach(el=>{el.outerHTML=syncBadge()});
   const m=$('#syncMsg');if(m)m.innerHTML=syncMsgText();
 }
 async function rpc(fn,args){
   const h={'Content-Type':'application/json',apikey:sync.key};
   if(sync.key.startsWith('eyJ'))h.Authorization='Bearer '+sync.key;
-  const r=await fetch(sync.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args)});
-  if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,140));
-  const t=await r.text();return t?JSON.parse(t):null;
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
+  try{
+    const r=await fetch(sync.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args),signal:ctl.signal});
+    if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,140));
+    const t=await r.text();return t?JSON.parse(t):null;
+  }catch(e){throw e.name==='AbortError'?new Error('Zeitüberschreitung – Netzwerk prüfen'):e}
+  finally{clearTimeout(to)}
 }
 const stable=o=>Array.isArray(o)?'['+o.map(stable).join(',')+']':o&&typeof o==='object'?'{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+stable(o[k])).join(',')+'}':JSON.stringify(o);
 function canon(o){
@@ -1295,6 +1299,7 @@ async function doSync(force=false){
       const mj=canon(merged);
       if(mj!==canon(local))applyState(merged);
       if(!remote||mj!==canon(remote))await rpc('speedlab_put',{p_code:sync.code,p_data:merged});
+      syncState.remote=merged.sessions.length;
     }
     setSyncState('ok');
   }catch(e){setSyncState('err',e.message)}
@@ -1382,6 +1387,7 @@ const A={
   syncSave(){sync.url=$('#sy-url').value.trim();sync.key=$('#sy-key').value.trim();sync.code=$('#sy-code').value.trim();saveSync();
     if(sync.code&&sync.code.length<24){toast('Der Sync-Code muss mindestens 24 Zeichen haben.');return}
     doSync();render()},
+  syncNow(){if(!syncOn()){toast('Erst Code eintragen und speichern.');return}syncing=false;doSync()},
   syncGen(){const b=new Uint8Array(24);crypto.getRandomValues(b);$('#sy-code').value=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_')},
   syncLink(){if(!syncOn()){toast('Erst Verbindung speichern.');return}
     const link=location.origin+location.pathname+'#/set?cfg='+encodeURIComponent(btoa(JSON.stringify({u:sync.url,k:sync.key,c:sync.code})));
