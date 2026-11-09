@@ -18,24 +18,12 @@
   --c-stack:#f5c400;--c-pure:#ef4a4f;--c-driver:#6ea6ff;--c-all:#27c3b0;
   --shadow:0 2px 12px rgba(0,0,0,.35);--solid:var(--card);--on-accent:#06211d;
 }
-:root[data-theme="light"]{
-  --bg:#eef1f4;--card:#ffffff;--card2:#f3f5f8;--text:#18212b;--muted:#667380;--line:#dde3e9;
-  --accent:#0b9c8a;--danger:#d63c3c;--ok:#1f9d55;--warn:#b7791f;
-  --c-stack:#c99a00;--c-pure:#d62828;--c-driver:#2563eb;--c-all:#0b9c8a;--shadow:0 1px 6px rgba(20,30,40,.12);
-}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#eef1f4;--card:#ffffff;--card2:#f3f5f8;--text:#18212b;--muted:#667380;--line:#dde3e9;
-    --accent:#0b9c8a;--danger:#d63c3c;--ok:#1f9d55;--warn:#b7791f;
-    --c-stack:#c99a00;--c-pure:#d62828;--c-driver:#2563eb;--c-all:#0b9c8a;--shadow:0 1px 6px rgba(20,30,40,.12);
-  }
-}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.01em}
 h1{font-size:1.5rem}h2{font-size:1.05rem}h3{font-size:.95rem}
-.muted{color:var(--muted)}.small{font-size:.82rem}.tiny{font-size:.74rem}
+.muted{color:var(--muted)}.small{font-size:.875rem}.tiny{font-size:.8rem}
 .num{font-variant-numeric:tabular-nums}
 
 #app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
@@ -59,7 +47,7 @@ body.compact h1{font-size:1.25rem}
 .g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
 .card>.ch{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
-.card>.ch .lbl{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.card>.ch .lbl{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
 .big{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;line-height:1.05}
 .big small{font-size:1rem;font-weight:600;color:var(--muted);margin-left:4px}
 .eq{color:var(--muted);font-size:.8em;font-weight:600}
@@ -76,9 +64,9 @@ body.compact h1{font-size:1.25rem}
 .btn.sm{padding:5px 10px;font-size:.82rem;border-radius:8px}
 .btn.ghost{background:transparent}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:transparent;border-radius:99px;padding:4px 11px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted)}
+.chip{border:1px solid var(--line);background:transparent;border-radius:99px;padding:5px 12px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted)}
 .chip.on{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:var(--accent);color:var(--accent)}
-.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:.74rem;font-weight:700;background:var(--card2);color:var(--muted)}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:.78rem;font-weight:700;background:var(--card2);color:var(--muted)}
 .sd{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
 
 /* Geräte-Farbschemata: Stack gelb/schwarz · Pure2 weiß/rot · Driver grau/blau */
@@ -87,7 +75,7 @@ body.compact h1{font-size:1.25rem}
 .dv.pure{background:#ffffff;color:#c1121f;box-shadow:inset 0 0 0 1.5px #c1121f}
 .dv.driver{background:#9ca3af;color:#1b3a9c}
 .dvpick{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-.dvpick button{border:2px solid transparent;border-radius:12px;padding:9px 14px;font-weight:800;cursor:pointer;opacity:.45}
+.dvpick button{border:2px solid transparent;border-radius:12px;padding:9px 14px;font-weight:800;cursor:pointer;opacity:.72}
 .dvpick button.on{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 35%,transparent)}
 .dvpick button.stack{background:#f5c400;color:#14130f}
 .dvpick button.pure{background:#fff;color:#c1121f;border-color:#c1121f}
@@ -103,8 +91,9 @@ body.compact h1{font-size:1.25rem}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:6px}
 .chartbox{position:relative}
 .chartbox svg{width:100%;height:auto;display:block;touch-action:pan-y}
-.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:.78rem;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-110%);z-index:5;display:none}
-.axis text{fill:var(--muted);font-size:11px}
+.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:.84rem;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-110%);z-index:5;display:none}
+.axis text{fill:var(--muted);font-size:12.5px}
+body.compact .axis text{font-size:14px}
 .grid-line{stroke:var(--line);stroke-width:1}
 .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px}
 .heat i{aspect-ratio:1;border-radius:3px;background:var(--card2);display:block;min-width:9px}
@@ -139,9 +128,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .bigstick{font-size:1.6rem;font-weight:800}
 .swgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin:12px 0}
 .swcell{background:var(--card2);border-radius:12px;padding:8px 6px 6px;border:1px solid var(--line)}
-.swcell .n{font-size:.68rem;color:var(--muted)}
+.swcell .n{font-size:.75rem;color:var(--muted)}
 .swcell input{text-align:center;font-size:1.35rem;font-weight:800;padding:6px 2px!important;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0}
-.swcell .es{font-size:.74rem;color:var(--muted);opacity:.85;min-height:1.1em;font-variant-numeric:tabular-nums}
+.swcell .es{font-size:.8rem;color:var(--muted);min-height:1.1em;font-variant-numeric:tabular-nums}
 .timer{font-size:5rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
 .checklist{text-align:left;display:grid;gap:8px;margin:14px 0}
 .checklist label{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;background:var(--card2);cursor:pointer}
@@ -161,12 +150,14 @@ details.sci ul{margin:8px 0 0;padding-left:20px;display:grid;gap:5px}
 .setrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px;align-items:end;padding:10px;border-radius:12px;background:var(--card2)}
 .setrow .wide{grid-column:1/-2}
 
-/* ---------- Aurora (dunkel, Glas – wie im Garmin-Dashboard) ---------- */
+/* ===== Designs – aus dem Garmin-Dashboard übernommen ===== */
+.card{border-radius:var(--radius,16px)}
+/* Aurora (dunkel, Glas) */
 html[data-theme="aurora"]{
-  --bg:#0a0e1f;--card:rgba(255,255,255,.075);--card2:rgba(255,255,255,.08);--solid:#1a2040;
-  --text:#f4f6ff;--muted:#bcc3e6;--line:rgba(255,255,255,.16);--accent:#a9b5ff;--on-accent:#0a0e1f;
+  --bg:#0a0e1f;--card:rgba(255,255,255,.09);--card2:rgba(255,255,255,.10);--solid:#1a2040;
+  --text:#f7f8ff;--muted:#cdd3f0;--line:rgba(255,255,255,.20);--accent:#b5c0ff;--on-accent:#0a0e1f;
   --ok:#6ff0a6;--warn:#ffd966;--danger:#ffa59f;
-  --c-stack:#ffd23f;--c-pure:#ff7b7b;--c-driver:#9db9ff;--c-all:#2fd9d0;
+  --c-stack:#ffd23f;--c-pure:#ff8f8f;--c-driver:#a9c1ff;--c-all:#2fd9d0;
   --shadow:0 20px 50px rgba(0,0,0,.28);color-scheme:dark;
 }
 html[data-theme="aurora"] body{
@@ -177,19 +168,91 @@ html[data-theme="aurora"] body{
   background-attachment:fixed;
 }
 html[data-theme="aurora"] .card,html[data-theme="aurora"] #nav{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-html[data-theme="aurora"] #nav{background:rgba(14,18,40,.72)}
-html[data-theme="aurora"] .card{background:radial-gradient(170px 140px at 100% 0%,color-mix(in srgb,var(--glow,#6c7bff) 34%,transparent),transparent 72%),var(--card)}
+html[data-theme="aurora"] #nav{background:rgba(14,18,40,.80)}
+html[data-theme="aurora"] .card{background:radial-gradient(170px 140px at 100% 0%,color-mix(in srgb,var(--glow,#6c7bff) 26%,transparent),transparent 72%),var(--card)}
 html[data-theme="aurora"] .grid>.card:nth-child(4n+1),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+1){--glow:#2fd9d0}
 html[data-theme="aurora"] .grid>.card:nth-child(4n+2),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+2){--glow:#ffd23f}
 html[data-theme="aurora"] .grid>.card:nth-child(4n+3),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+3){--glow:#b794ff}
 html[data-theme="aurora"] .grid>.card:nth-child(4n+4),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+4){--glow:#ff7b7b}
 html[data-theme="aurora"] .brand .logo{background:linear-gradient(135deg,#ff7b7b,#6c7bff);color:#fff}
-html[data-theme="aurora"] #nav a.on{background:color-mix(in srgb,var(--accent) 22%,transparent)}
-html[data-theme="aurora"] .note{background:rgba(255,255,255,.07)}
-html[data-theme="aurora"] .delta.up{color:#6ff0a6}
-html[data-theme="aurora"] body.compact #nav,html[data-theme="aurora"] #nav{border-color:rgba(255,255,255,.16)}
-@media (max-width:760px){html[data-theme="aurora"] #nav{background:rgba(14,18,40,.86)}}
-html[data-theme="aurora"] body.compact #nav{background:rgba(14,18,40,.86)}
+html[data-theme="aurora"] .note{background:rgba(255,255,255,.08)}
+/* Sorbet (hell, bunt) */
+html[data-theme="sorbet"]{
+  --bg:#fff8f1;--card:#ffffff;--card2:#f4eefc;--solid:#ffffff;--text:#241a33;--muted:#5b5170;--line:#e6dbf3;
+  --shadow:0 10px 0 -2px rgba(36,26,51,.05),0 18px 40px rgba(110,80,160,.13);
+  --accent:#6d46d6;--on-accent:#ffffff;--radius:26px;--ok:#137a3d;--warn:#7a4f00;--danger:#b3261e;
+  --c-stack:#8f5b00;--c-pure:#c93a3a;--c-driver:#1d4ed8;--c-all:#0b7488;color-scheme:light;
+}
+html[data-theme="sorbet"] body{
+  background:
+    radial-gradient(520px 380px at 0% 0%,#ffd9e4,transparent 70%),
+    radial-gradient(520px 380px at 100% 8%,#d7e4ff,transparent 70%),
+    radial-gradient(640px 440px at 50% 100%,#d6f7e6,transparent 70%),#fff8f1;
+  background-attachment:fixed;
+}
+html[data-theme="sorbet"] .card{border:2px solid #fff}
+html[data-theme="sorbet"] #nav{background:#ffffffd9;border-color:#fff}
+html[data-theme="sorbet"] .brand .logo{background:linear-gradient(135deg,#ff8a5c,#7a3fe0);color:#fff}
+/* Rainbow (hell, sehr bunt) */
+html[data-theme="rainbow"]{
+  --bg:#fff6fb;--card:#ffffff;--card2:#fff1d6;--solid:#ffffff;--text:#1f1537;--muted:#55496f;--line:#eadcf7;
+  --shadow:0 12px 30px rgba(168,85,247,.16);--accent:#7b2ff7;--on-accent:#ffffff;--radius:28px;
+  --ok:#0f7a40;--warn:#7a4f00;--danger:#b3261e;
+  --c-stack:#9a5b00;--c-pure:#d4264d;--c-driver:#3b4fe0;--c-all:#7b2ff7;
+  --rainbow:linear-gradient(120deg,#ff5a5f,#ffa63d,#ffe14d,#3ed598,#31c3ff,#7b61ff,#ff5fb3);color-scheme:light;
+}
+html[data-theme="rainbow"] body{
+  background:
+    radial-gradient(520px 400px at 0% 0%,#ffd0e4,transparent 70%),
+    radial-gradient(520px 400px at 100% 0%,#cfe9ff,transparent 70%),
+    radial-gradient(560px 420px at 0% 100%,#fff0b8,transparent 70%),
+    radial-gradient(560px 420px at 100% 100%,#c9f5df,transparent 70%),#fff6fb;
+  background-attachment:fixed;
+}
+html[data-theme="rainbow"] body::before{content:"";position:fixed;inset:0 0 auto;height:6px;z-index:60;background:var(--rainbow)}
+html[data-theme="rainbow"] .card{border:3px solid transparent;background:linear-gradient(#fff,#fff) padding-box,var(--rainbow) border-box}
+html[data-theme="rainbow"] #nav{background:#ffffffe6;border-right:3px solid transparent;border-image:var(--rainbow) 1}
+html[data-theme="rainbow"] .brand .logo{background:var(--rainbow);color:#1f1537}
+html[data-theme="rainbow"] .btn.primary{background:var(--rainbow);border-color:transparent;color:#1f1537}
+html[data-theme="rainbow"] h1{background:linear-gradient(100deg,#d4264d,#8a2be2 40%,#3b4fe0 70%,#007f95);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Hawaii (hell, Wasser-, Sommer- und Strandfarben) */
+html[data-theme="hawaii"]{
+  --bg:#fff6e6;--card:rgba(255,255,255,.88);--card2:#e6f8fb;--solid:#ffffff;--text:#0b3b4f;--muted:#3f6272;--line:#c4e3ea;
+  --shadow:0 14px 34px rgba(0,150,170,.16);--accent:#0e7490;--on-accent:#ffffff;--radius:28px;
+  --ok:#0b7a50;--warn:#7a4f00;--danger:#b3261e;
+  --c-stack:#946500;--c-pure:#c2305a;--c-driver:#2f58d4;--c-all:#00798f;color-scheme:light;
+}
+html[data-theme="hawaii"] body{
+  background:
+    radial-gradient(420px 420px at 92% 0%,rgba(255,214,64,.65),transparent 70%),
+    radial-gradient(600px 420px at 0% 0%,rgba(255,150,170,.35),transparent 70%),
+    linear-gradient(180deg,#cdf3ff 0%,#e8fbf7 38%,#fff3d6 100%);
+  background-attachment:fixed;
+}
+html[data-theme="hawaii"] body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:110px;z-index:-1;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 60q150-60 300 0t300 0 300 0 300 0V120H0z' fill='%2319b5c9' fill-opacity='.28'/%3E%3Cpath d='M0 80q150-50 300 0t300 0 300 0 300 0V120H0z' fill='%233aa5e8' fill-opacity='.25'/%3E%3Cpath d='M0 100q150-35 300 0t300 0 300 0 300 0V120H0z' fill='%23ffd9a0' fill-opacity='.7'/%3E%3C/svg%3E") bottom/100% 100% no-repeat}
+html[data-theme="hawaii"] .card{border:2px solid #fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html[data-theme="hawaii"] #nav{background:rgba(255,255,255,.80);border-color:#fff}
+html[data-theme="hawaii"] .brand .logo{background:linear-gradient(135deg,#ff8a5c,#ffd23f);color:#7a3a00}
+/* Klassisch (Standardfarben, folgt Hell/Dunkel des Geräts) */
+html[data-theme="klassisch"]{
+  --bg:#f3f5fb;--card:#ffffff;--card2:#f3f5fb;--solid:#ffffff;--text:#1a2033;--muted:#576078;--line:#dde2ee;
+  --shadow:0 1px 2px rgba(26,32,51,.05),0 8px 24px rgba(26,32,51,.06);--accent:#4f46e5;--on-accent:#ffffff;--radius:20px;
+  --ok:#167a3a;--warn:#8a5a00;--danger:#b3261e;--c-stack:#8f5b00;--c-pure:#c3372f;--c-driver:#1d4ed8;--c-all:#0b6f86;color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  html[data-theme="klassisch"]{
+    --bg:#0e1220;--card:#181e32;--card2:#0e1220;--solid:#181e32;--text:#eef1fa;--muted:#a6afc6;--line:#2a3250;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);--accent:#a5b4fc;--on-accent:#181e32;
+    --ok:#6fe3a0;--warn:#ffd25e;--danger:#ffa59f;--c-stack:#ffd25e;--c-pure:#ff8c82;--c-driver:#9db9ff;--c-all:#5fe3d0;color-scheme:dark;
+  }
+}
+@media (max-width:760px){html[data-theme="aurora"] #nav{background:rgba(14,18,40,.90)}}
+html[data-theme="aurora"] body.compact #nav{background:rgba(14,18,40,.90)}
+/* Design-/Ansichts-Umschalter ganz unten */
+.themes{margin:26px 0 8px;text-align:center;font-size:.8rem;color:var(--muted);opacity:.85;line-height:1.2}
+.themes:hover,.themes:focus-within{opacity:1}
+.themes button{border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:12px 8px;min-height:44px;min-width:44px}
+.themes button[aria-pressed="true"]{text-decoration:underline;text-underline-offset:3px;font-weight:700;color:var(--text)}
 
 @media (max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g21,.g3{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){
@@ -256,6 +319,9 @@ const DEV={
   driver:{name:'Driver',sub:'grau/blau',color:'var(--c-driver)'}
 };
 const DEVS=Object.keys(DEV);
+const THEMES=['aurora','sorbet','rainbow','hawaii','klassisch'];
+const THEME_NAMES={aurora:'Aurora',sorbet:'Sorbet',rainbow:'Rainbow',hawaii:'Hawaii',klassisch:'Klassisch'};
+const THEME_COLORS={aurora:'#0a0e1f',sorbet:'#fff8f1',rainbow:'#fff4fa',hawaii:'#cdf3ff'};
 const LV={L:'Leicht',M:'Mittel',H:'Schwer',D:'Driver'};
 const PURE_COL=['Silber','Rot','Schwarz'];
 
@@ -264,7 +330,7 @@ const PURE_COL=['Silber','Rot','Schwarz'];
    Pure2: Gewichte 120/151/185 g (Silber/Weiß=120, Rot=151, Schwarz=185); Länge & Leergewicht geschätzt            */
 const defaults=()=>{
   const d={v:2,
-    settings:{name:'',unit:'mph',goal:null,weekly:3,programStart:today(),theme:'aurora',themeV:2,view:'auto',rest:40,swings:5,transfer:true,sound:true,device:'stack',
+    settings:{name:'',unit:'mph',goal:null,weekly:3,programStart:today(),theme:'aurora',view:'auto',rest:40,swings:5,transfer:true,sound:true,device:'stack',
       equip:{
         stack:{len:41.5,m0:200,cg:.5,wp:.95,weights:[20,45,60,75,100]},
         pure:{len:42,m0:160,cg:.5,wp:.95,weights:[120,151,185]},
@@ -282,7 +348,7 @@ function mergeState(o){
   const d=defaults();
   const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
   s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
-  if(!(o.settings||{}).themeV){s.settings.theme='aurora';s.settings.themeV=2}   // Aurora als neues Standarddesign
+  if(!THEMES.includes(s.settings.theme))s.settings.theme='aurora';
   const dv=s.settings.equip.driver;if(dv.len===45.5&&dv.moi===2800){dv.len=45.75;dv.moi=2900}   // alte Standardwerte → TaylorMade Qi10 (45,75″, D4)
   s.settings.model={...d.settings.model,...(o.settings||{}).model};
   const ol=(o.settings||{}).loads||{};
@@ -545,9 +611,13 @@ function deltaTag(k,suffix=true){
   return `<span class="delta ${c}">${c==='up'?'▲':c==='down'?'▼':'●'} ${fmtSigned(k)}${suffix?' '+uLabel():''}</span>`;
 }
 const isCompact=()=>{const v=S.settings.view;return v==='compact'||(v==='auto'&&innerWidth<760)};
+function footer(){
+  const cur=S.settings.theme,v=S.settings.view;
+  return `<div class="themes" role="group" aria-label="Design und Ansicht">Design ${THEMES.map(t=>`<button type="button" data-a="theme" data-v="${t}" aria-pressed="${t===cur}">${THEME_NAMES[t]}</button>`).join('')}<br>Ansicht ${[['auto','Automatisch'],['compact','Kompakt'],['full','Ausführlich']].map(([k,l])=>`<button type="button" data-a="setview" data-v="${k}" aria-pressed="${v===k}">${l}</button>`).join('')}</div>`;
+}
 function head(title,sub,extra=''){
   const c=isCompact();
-  return `<div class="pagehead"><div><h1>${title}</h1>${sub?`<div class="muted ${c?'small':''}">${sub}</div>`:''}</div><div class="row wrap">${syncBadge()}${extra}<button class="btn sm ghost" data-a="toggleView" title="Ansicht wechseln">${c?'🖥 Ausführlich':'📱 Kompakt'}</button></div></div>`;
+  return `<div class="pagehead"><div><h1>${title}</h1>${sub?`<div class="muted ${c?'small':''}">${sub}</div>`:''}</div><div class="row wrap">${syncBadge()}${extra}</div></div>`;
 }
 
 /* ---------- Charts ---------- */
@@ -559,7 +629,7 @@ function niceTicks(min,max,n=5){
   return out;
 }
 function lineChart(el,{series,goal,H=270}){
-  const W=720,m={l:44,r:14,t:14,b:28};
+  const W=isCompact()?460:720,m={l:isCompact()?40:44,r:14,t:14,b:28};
   const all=series.flatMap(s=>s.pts);
   if(!all.length){el.innerHTML='<div class="empty">Noch keine Messwerte im gewählten Zeitraum.</div>';return}
   let t0=Math.min(...all.map(p=>p.t)),t1=Math.max(...all.map(p=>p.t));
@@ -572,7 +642,7 @@ function lineChart(el,{series,goal,H=270}){
   let g='';
   for(const tk of ticks){const y=m.t+(1-(tk-ymin)/(ymax-ymin))*(H-m.t-m.b);
     g+=`<line class="grid-line" x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}"/><text x="${m.l-8}" y="${y+4}" text-anchor="end">${+tk.toFixed(1)}</text>`}
-  const nx=5;for(let i=0;i<nx;i++){const t=t0+(t1-t0)*i/(nx-1),d=new Date(t);
+  const nx=isCompact()?4:5;for(let i=0;i<nx;i++){const t=t0+(t1-t0)*i/(nx-1),d=new Date(t);
     g+=`<text x="${X(t)}" y="${H-8}" text-anchor="${i===0?'start':i===nx-1?'end':'middle'}">${d.getDate()}. ${MON[d.getMonth()]}</text>`}
   if(goal&&toU(goal)>=ymin&&toU(goal)<=ymax)
     g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="var(--warn)" stroke-dasharray="5 4"/><text x="${W-m.r}" y="${Y(goal)-5}" text-anchor="end" fill="var(--warn)" font-size="11">Ziel ${+toU(goal).toFixed(1)}</text>`;
@@ -605,7 +675,7 @@ function lineChart(el,{series,goal,H=270}){
   svg.addEventListener('pointerleave',()=>{tip.style.display='none';gl.setAttribute('opacity',0)});
 }
 function barChart(el,{cats,stacks,H=200,fmtV=v=>v}){
-  const W=720,m={l:38,r:8,t:10,b:26};
+  const W=isCompact()?460:720,m={l:36,r:8,t:10,b:26};
   const tot=cats.map((_,i)=>stacks.reduce((a,s)=>a+(s.vals[i]||0),0)),mx=Math.max(1,...tot);
   const ticks=niceTicks(0,mx,3),ymax=ticks[ticks.length-1],bw=(W-m.l-m.r)/cats.length;
   let g='';
@@ -1052,8 +1122,6 @@ function pageSet(){
      <div class="field"><label>Einheit</label><select data-set="unit"><option value="mph" ${s.unit==='mph'?'selected':''}>mph</option><option value="kmh" ${s.unit==='kmh'?'selected':''}>km/h</option></select></div>
      <div class="field"><label>Ziel eSpeed (${uLabel()})</label><input type="number" step="0.1" data-set="goal" value="${s.goal||''}" placeholder="z. B. ${U()==='mph'?'105':'170'}"></div>
      <div class="field"><label>Wochenziel (Einheiten)</label><select data-set="weekly">${[2,3,4,5].map(n=>`<option ${s.weekly===n?'selected':''}>${n}</option>`).join('')}</select></div>
-     <div class="field"><label>Design</label><select data-set="theme"><option value="aurora" ${s.theme==='aurora'?'selected':''}>Aurora (wie Garmin-Dashboard)</option><option value="auto" ${s.theme==='auto'?'selected':''}>Automatisch (Hell/Dunkel)</option><option value="dark" ${s.theme==='dark'?'selected':''}>Dunkel</option><option value="light" ${s.theme==='light'?'selected':''}>Hell</option></select></div>
-     <div class="field"><label>Ansicht</label><select data-set="view"><option value="auto" ${s.view==='auto'?'selected':''}>Automatisch (Handy = kompakt)</option><option value="compact" ${s.view==='compact'?'selected':''}>Immer kompakt</option><option value="full" ${s.view==='full'?'selected':''}>Immer ausführlich</option></select></div>
    </div>`)}
    ${card('Standardgerät & Programm',`<div class="stack-v">${dvPicker('pickdev',s.device)}<div class="form2">
      <div class="field"><label>Blockstart (Woche 1)</label><input type="date" data-set="programStart" value="${s.programStart}"></div>
@@ -1112,8 +1180,8 @@ function setSetting(path,val){
   persist();
   if(['weekly','programStart','view','swings','rest'].includes(path))render();
 }
-function applyTheme(){const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
-  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='aurora'||t==='dark'?'#0a0e1f':t==='light'?'#eef1f4':m.content}
+function applyTheme(){const t=THEMES.includes(S.settings.theme)?S.settings.theme:'aurora';document.documentElement.setAttribute('data-theme',t);
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=THEME_COLORS[t]||(matchMedia('(prefers-color-scheme: dark)').matches?'#0e1220':'#f3f5fb')}
 function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function csv(){
   const rows=[['Datum','Art','Geraet','Stufe','Gewicht_g','Seite','Swing_Nr','Radar_mph','eSpeed_mph','Radar_kmh','eSpeed_kmh','RPE','Notiz']];
@@ -1252,7 +1320,7 @@ function render(){
   document.body.classList.toggle('compact',isCompact());
   $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">${syncOn()?'Zentral synchronisiert':'Daten nur lokal'}<br>${uLabel()} · v2</div>`;
   const y=scrollY;
-  $('#view').innerHTML=PAGES[r]();
+  $('#view').innerHTML=PAGES[r]()+((G&&r==='train')?'':footer());
   AFTER[r]?.();
   if(G&&r==='train')updateSwingStats();
   scrollTo(0,y);
@@ -1269,7 +1337,8 @@ const A={
   anametric(el){const v=el.dataset.v,i=ui.anaMetric.indexOf(v);if(i>=0){if(ui.anaMetric.length>1)ui.anaMetric.splice(i,1)}else ui.anaMetric.push(v);render()},
   anamode(el){ui.anaMode=el.dataset.v;render()},
   hfilter(el){ui.histFilter=el.dataset.v;render()},
-  toggleView(){S.settings.view=isCompact()?'full':'compact';persist();render()},
+  theme(el){S.settings.theme=el.dataset.v;persist();applyTheme();render()},
+  setview(el){S.settings.view=el.dataset.v;persist();render()},
   manual(){editorSheet()},
   edit(el){editorSheet(S.sessions.find(s=>s.id===el.dataset.id))},
   del(el){if(confirm('Diese Einheit wirklich löschen?')){S.deleted[el.dataset.id]=Date.now();S.sessions=S.sessions.filter(s=>s.id!==el.dataset.id);persist();render()}},
