@@ -34,7 +34,7 @@ a{color:inherit}
 #nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:.64rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#b9b29a;text-decoration:none;border-radius:12px}
 #nav a .ic{font-size:1.2rem}
 #nav a.on{color:var(--ink);background:var(--accent)}
-#view{padding:16px 14px 110px;max-width:760px;margin:0 auto}
+#view{padding:16px 14px calc(var(--navh,84px) + 90px);max-width:760px;margin:0 auto}
 .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .pagehead{flex-wrap:nowrap;align-items:center}
 .pagehead h1{min-width:0}
@@ -105,7 +105,12 @@ table.t .r{text-align:right}
 details.grp{margin-bottom:14px}
 details.grp>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:6px 4px 10px}
 details.grp>summary::-webkit-details-marker{display:none}
-.savebar{position:sticky;bottom:78px;z-index:20;margin-top:14px}
+.savebar{position:sticky;bottom:calc(var(--navh,84px) + 12px);z-index:20;margin-top:14px}
+.lvl{display:flex;align-items:center;gap:12px}.lvl .ring{flex:none;width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--ink);display:grid;place-items:center;font-weight:900;font-size:1.5rem}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-top:10px}
+.badge{background:#fff;border:2px solid var(--accent);border-radius:14px;padding:8px 6px;text-align:center;font-size:.7rem;font-weight:800;line-height:1.2}
+.badge .bi{font-size:1.5rem;display:block}.badge.off{border-color:var(--line);opacity:.45;filter:grayscale(1)}
+.dayhint{background:#fff7d6;border:2px dashed var(--accent);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:.85rem}
 .savebar .btn{box-shadow:0 8px 24px rgba(0,0,0,.25)}
 /* Verlauf */
 .hitem{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
@@ -331,7 +336,7 @@ function barChart(cats,{H=190,fmt=v=>nf(v,0),legend=[]}={}){
   return `<div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img"><g class="axis">${g}</g>${bars}</svg></div>${lg}`;
 }
 function heatmap(weeks=20){
-  const cnt={};S.sessions.forEach(s=>cnt[s.date]=(cnt[s.date]||0)+1);
+  const cnt={};S.sessions.forEach(s=>{(cnt[s.date]=cnt[s.date]||new Set()).add(s.kind)});Object.keys(cnt).forEach(k=>cnt[k]=cnt[k].size);
   const start=addDays(weekStart(today()),-(weeks-1)*7);let h='';
   for(let i=0;i<weeks*7;i++){const d=addDays(start,i);if(d>today()){h+='<i style="opacity:0"></i>';continue}
     const c=cnt[d]||0;h+=`<i class="${c>=3?'l3':c===2?'l3':c===1?'l2':''} ${d===today()?'today':''}" title="${d}: ${c}"></i>`}
@@ -355,7 +360,7 @@ function sessLine(s){
 function weekStats(ws=weekStart(today())){
   const ss=S.sessions.filter(s=>weekStart(s.date)===ws);
   return {hiit:ss.filter(s=>s.kind==='hiit').length,kraft:ss.filter(s=>s.kind==='kraft').length,
-    z2min:ss.filter(s=>s.kind==='z2').reduce((a,s)=>a+(s.min||0),0),n:ss.length};
+    z2min:ss.filter(s=>s.kind==='z2').reduce((a,s)=>a+(s.min||0),0),n:new Set(ss.map(s=>s.date)).size};
 }
 function weekStreak(){
   let w=weekStart(today()),n=0;if(!weekStats(w).n)w=addDays(w,-7);
@@ -364,6 +369,55 @@ function weekStreak(){
 function progRow(label,val,goal,unit=''){
   const p=goal?Math.min(100,val/goal*100):0;
   return `<div style="margin-top:12px"><div class="row sp"><b>${label}</b><span class="num">${nf(val,0)} / ${nf(goal,0)}${unit}${val>=goal&&goal?' ✓':''}</span></div><div class="bar" style="margin-top:6px"><i style="width:${p}%"></i></div></div>`;
+}
+
+/* ---------- Gamification: XP, Level, Abzeichen ---------- */
+function xpOf(s){
+  if(s.kind==='hiit')return 80+Math.round(Math.max(0,(s.speed||0)-10)*5);
+  if(s.kind==='z2')return Math.round((s.min||0)*1.2);
+  return 40+(s.items||[]).length*8;
+}
+const xpTotal=()=>S.sessions.reduce((a,s)=>a+xpOf(s),0)+20*new Set(S.sessions.map(s=>s.date)).size;
+const RANKS=['Rookie','Starter','Regular','Athlet','Beast','Maschine','Legende'];
+function levelInfo(xp){let lvl=1,rest=xp;const need=n=>100+40*n;while(rest>=need(lvl)){rest-=need(lvl);lvl++}
+  return {lvl,rest,need:need(lvl),rank:RANKS[Math.min(RANKS.length-1,Math.floor((lvl-1)/2))]}}
+function badgeList(){
+  const ss=S.sessions,k=ss.filter(s=>s.kind==='kraft'),h=ss.filter(s=>s.kind==='hiit'),z=ss.filter(s=>s.kind==='z2');
+  const d=new Set(ss.map(s=>s.date)).size;
+  const maxW=id=>Math.max(0,...k.flatMap(s=>(s.items||[]).filter(i=>i.ex===id).map(i=>i.w||0)));
+  const bestVol=Math.max(0,...k.map(kraftVol)),maxSpeed=Math.max(0,...h.map(x=>x.speed||0));
+  const g=S.settings.goals,weeks=[...new Set(ss.map(s=>weekStart(s.date)))];
+  const wk=weeks.filter(w=>{const t=weekStats(w);return t.hiit>=g.hiit&&t.z2min>=g.z2&&t.kraft>=g.kraft}).length;
+  const longZ=Math.max(0,...z.map(x=>x.min||0)),st=weekStreak();
+  return [
+    {id:'d1',ic:'👟',n:'Erster Schritt',ok:d>=1},{id:'d10',ic:'🔟',n:'10 Trainingstage',ok:d>=10},
+    {id:'d25',ic:'🥉',n:'25 Trainingstage',ok:d>=25},{id:'d50',ic:'🥈',n:'50 Trainingstage',ok:d>=50},{id:'d100',ic:'🥇',n:'100 Trainingstage',ok:d>=100},
+    {id:'k10',ic:'🏋️',n:'10 Kraft-Tage',ok:k.length>=10},{id:'h10',ic:'⚡',n:'10 × HIIT',ok:h.length>=10},
+    {id:'s14',ic:'🚀',n:'HIIT 14 km/h',ok:maxSpeed>=14},{id:'s15',ic:'☄️',n:'HIIT 15 km/h',ok:maxSpeed>=15},
+    {id:'z60',ic:'🫀',n:'60 min Zone 2',ok:longZ>=60},
+    {id:'bp100',ic:'🦵',n:'Beinpresse 100 kg',ok:maxW('beinpresse')>=100},{id:'bp140',ic:'🦾',n:'Beinpresse 140 kg',ok:maxW('beinpresse')>=140},
+    {id:'v10',ic:'🏗️',n:'10 t an einem Tag',ok:bestVol>=10000},{id:'v20',ic:'🚛',n:'20 t an einem Tag',ok:bestVol>=20000},
+    {id:'w1',ic:'🎯',n:'Wochenziel erreicht',ok:wk>=1},{id:'w4',ic:'🔥',n:'4 Wochen Serie',ok:st>=4},{id:'w12',ic:'💎',n:'12 Wochen Serie',ok:st>=12}
+  ];
+}
+const gamiSnap=()=>({xp:xpTotal(),lv:levelInfo(xpTotal()).lvl,b:badgeList().filter(x=>x.ok).map(x=>x.id)});
+function gamiNote(a){const b=gamiSnap();let t=`<br>⭐ +${b.xp-a.xp} XP`;if(b.lv>a.lv)t+=` · 🎉 Level ${b.lv} erreicht!`;
+  const nb=badgeList().filter(x=>x.ok&&!a.b.includes(x.id));if(nb.length)t+=`<br>🏅 Neues Abzeichen: ${nb.map(x=>x.ic+' '+esc(x.n)).join(', ')}`;return t}
+function gamiCard(){
+  const xp=xpTotal(),L=levelInfo(xp),B=badgeList(),got=B.filter(x=>x.ok).length;
+  return `<div class="card"><div class="lvl"><div class="ring">${L.lvl}</div><div style="flex:1;min-width:0"><div class="row sp"><b>${L.rank}</b><span class="small muted">${L.rest} / ${L.need} XP</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(L.rest/L.need*100)}%"></i></div><div class="tiny muted" style="margin-top:4px">Noch ${L.need-L.rest} XP bis Level ${L.lvl+1}</div></div></div>
+  <div class="lbl" style="margin-top:14px">Abzeichen · ${got} / ${B.length}</div>
+  <div class="badges">${B.map(x=>`<div class="badge ${x.ok?'':'off'}"><span class="bi">${x.ic}</span>${esc(x.n)}</div>`).join('')}</div></div>`;
+}
+function mergeKraftDays(){
+  const by={};sortedAsc().filter(s=>s.kind==='kraft').forEach(s=>{(by[s.date]=by[s.date]||[]).push(s)});
+  const order=allEx().map(e=>e.id);let ch=false;
+  for(const d in by){const l=by[d];if(l.length<2)continue;const map=new Map();
+    l.forEach(s=>(s.items||[]).forEach(i=>map.set(i.ex,i)));
+    l[0].items=[...map.values()].sort((a,b)=>order.indexOf(a.ex)-order.indexOf(b.ex));l[0].mod=Date.now();
+    l.slice(1).forEach(s=>{S.deleted[s.id]=Date.now()});ch=true}
+  if(ch)S.sessions=S.sessions.filter(s=>!S.deleted[s.id]);
+  return ch;
 }
 const dateTag=()=>`<span class="dtag">KW ${isoWeek(today())} · ${fmtDate(today())}</span>`;
 const head=(title,right=dateTag(),sub='')=>`<div class="pagehead"><h1>${title}</h1>${right}</div>${sub?`<p class="muted small subline">${sub}</p>`:''}`;
@@ -377,6 +431,7 @@ function pageDash(){
       <div class="hero-num" style="margin-top:8px;color:var(--accent)">${w.n}<small style="font-size:1rem;color:var(--muted);margin-left:8px">Einheiten</small></div>
       ${progRow('⚡ HIIT',w.hiit,g.hiit)}${progRow('🏃 Zone 2/3',w.z2min,g.z2,' min')}${progRow('🏋️ Kraft',w.kraft,g.kraft)}
     </div>
+    ${gamiCard()}
     <div class="grid g3">
       <a class="btn primary lg block" href="#/cardio" style="flex-direction:column;gap:2px;border-radius:20px">⚡<span class="tiny">HIIT</span></a>
       <a class="btn primary lg block" href="#/cardio" data-a="gotoz2" style="flex-direction:column;gap:2px;border-radius:20px">🏃<span class="tiny">Zone 2/3</span></a>
@@ -387,7 +442,7 @@ function pageDash(){
     </div>
     <div class="grid g2">
       <div class="card yellow"><div class="lbl">HIIT-Bestwert</div><div class="big">${bestH?nf(bestH,1):'–'}<small>km/h</small></div></div>
-      <div class="card"><div class="lbl">Einheiten gesamt</div><div class="big">${S.sessions.length}</div></div>
+      <div class="card"><div class="lbl">Trainingstage gesamt</div><div class="big">${new Set(S.sessions.map(s=>s.date)).size}</div></div>
     </div>
     <div class="card"><div class="row sp"><div class="lbl">Aktivität · 20 Wochen</div></div><div style="margin-top:10px">${heatmap(20)}</div></div>
   </div>`;
@@ -439,20 +494,22 @@ function pageCardio(){
 }
 function saveHiit(){
   const sp=num(ui.hiit.speed);if(!(sp>=3&&sp<=30)){toast('Bitte einen plausiblen Speed (km/h) eintragen.');return}
+  const g0=gamiSnap();
   const prev=byKind('hiit').filter(s=>s.n===+ui.hiit.n&&s.m===+ui.hiit.m);
   const pb=prev.length&&prev.every(s=>sp>s.speed);
   const s={id:uid(),kind:'hiit',date:ui.date||today(),created:Date.now(),mod:Date.now(),n:+ui.hiit.n,m:+ui.hiit.m,speed:+sp.toFixed(2)};
   const hf=num(ui.hiit.hf);if(hf>0)s.hf=hf;if(ui.hiit.note.trim())s.note=ui.hiit.note.trim();
   S.sessions.push(s);persist();ui.hiit.hf='';ui.hiit.note='';ui.date=today();saveUi();
-  toast(`⚡ <b>HIIT ${s.n} × ${s.m}</b> bei ${nf(s.speed,1)} km/h gespeichert${pb?' · 🏆 neuer Bestwert für dieses Format':''}`);render();
+  toast(`⚡ <b>HIIT ${s.n} × ${s.m}</b> bei ${nf(s.speed,1)} km/h gespeichert${pb?' · 🏆 neuer Bestwert für dieses Format':''}${gamiNote(g0)}`,6500);render();
 }
 function saveZ2(){
   const mi=num(ui.z2.min),km=num(ui.z2.km);
   if(!(mi>0&&km>0)){toast('Bitte Dauer und Distanz eintragen.');return}
+  const g0=gamiSnap();
   const s={id:uid(),kind:'z2',date:ui.date||today(),created:Date.now(),mod:Date.now(),mode:ui.z2.mode,zone:+ui.z2.zone,min:mi,km};
   const hf=num(ui.z2.hf);if(hf>0)s.hf=hf;if(ui.z2.note.trim())s.note=ui.z2.note.trim();
   S.sessions.push(s);persist();ui.z2.min='';ui.z2.km='';ui.z2.hf='';ui.z2.note='';ui.date=today();
-  toast(`🏃 <b>Zone ${s.zone} · ${MODES[s.mode].n}</b>: ${nf(mi,0)} min, ${nf(km,2)} km gespeichert`);render();
+  toast(`🏃 <b>Zone ${s.zone} · ${MODES[s.mode].n}</b>: ${nf(mi,0)} min, ${nf(km,2)} km gespeichert${gamiNote(g0)}`,6500);render();
 }
 
 /* ----- Kraft ----- */
@@ -483,7 +540,9 @@ function exRow(ex){
 function pageKraft(){
   const vis=visibleEx(),n=Object.keys(D.items).length;
   const lastK=sortedDesc().find(s=>s.kind==='kraft');
+  const dayS=S.sessions.find(x=>x.kind==='kraft'&&x.date===D.date);
   return `${head('Kraft',`<input type="date" class="dinput" data-kdate value="${D.date}" aria-label="Datum">`,'Übung antippen = in die Einheit aufnehmen. Gewicht kommt vom letzten Mal.')}
+  ${dayS?`<div class="dayhint">✅ Für diesen Tag schon gespeichert: ${esc((dayS.items||[]).map(i=>exName(i.ex,i.n)).join(', '))}.<br>Weitere Übungen werden zur selben Einheit hinzugefügt.</div>`:''}
   <div class="row wrap" style="margin-bottom:14px">
     ${lastK?`<button class="btn sm" data-a="likeLast">↺ Wie letztes Mal (${fmtShort(lastK.date)})</button>`:''}
     ${n?`<button class="btn sm danger" data-a="clearDraft">Auswahl leeren</button>`:''}
@@ -509,9 +568,14 @@ function saveKraft(){
     if(!hist.length)continue;const m=ex.t==='w'?'w':ex.t==='t'?'sec':'reps';
     const val=exValue(ex,o,m),prev=hist.map(h=>exValue(ex,h,m));
     if(ex.a?val<Math.min(...prev):val>Math.max(...prev))pbs.push(ex.n)}
-  const s={id:uid(),kind:'kraft',date:D.date||today(),created:Date.now(),mod:Date.now(),items};
-  S.sessions.push(s);persist();D={date:today(),items:{}};saveDraft();
-  toast(`🏋️ <b>Kraft-Einheit gespeichert</b> · ${items.length} Übungen${pbs.length?`<br>🏆 Neue Bestwerte: ${pbs.map(esc).join(', ')}`:''}`,pbs.length?7000:4200);
+  const g0=gamiSnap(),day=D.date||today();
+  const ex0=S.sessions.find(x=>x.kind==='kraft'&&x.date===day);
+  if(ex0){const map=new Map((ex0.items||[]).map(i=>[i.ex,i]));items.forEach(i=>map.set(i.ex,i));
+    ex0.items=[...map.values()].sort((a,b)=>order.indexOf(a.ex)-order.indexOf(b.ex));ex0.mod=Date.now()}
+  else S.sessions.push({id:uid(),kind:'kraft',date:day,created:Date.now(),mod:Date.now(),items});
+  persist();D={date:today(),items:{}};saveDraft();
+  const tot=S.sessions.find(x=>x.kind==='kraft'&&x.date===day).items.length;
+  toast(`🏋️ <b>Kraft gespeichert</b> · ${items.length} Übungen (heute gesamt ${tot})${pbs.length?`<br>🏆 Neue Bestwerte: ${pbs.map(esc).join(', ')}`:''}${gamiNote(g0)}`,7500);
   location.hash='#/dash';render();
 }
 
@@ -746,6 +810,7 @@ function mergeData(a,b){
 }
 function applyState(m){
   S=mergeState(m);window.S=S;
+  mergeKraftDays();
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
   if(!$('#modal').classList.contains('open')&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))render();
 }
@@ -791,7 +856,7 @@ function render(){
   $('#nav').innerHTML=`<div class="brand brandnav"><div class="logo">🏋️</div>FIT<b>·</b>LAB</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${l}</a>`).join('')+`<div class="navfoot">${syncBadge()}<br>${syncOn()?'Zentral synchronisiert':'Daten nur lokal'} · v1</div>`;
   const y=scrollY;
   $('#view').innerHTML=PAGES[r]();
-  scrollTo(0,y);
+  scrollTo(0,y);setNavH();
 }
 window.addEventListener('hashchange',()=>{window.scrollTo(0,0);render()});
 
@@ -870,6 +935,8 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
-applyCfgFromHash();persist();render();doSync();
+function setNavH(){const n=$('#nav');if(n&&innerWidth<900)document.documentElement.style.setProperty('--navh',n.offsetHeight+'px');else document.documentElement.style.removeProperty('--navh')}
+addEventListener('resize',setNavH);
+mergeKraftDays();applyCfgFromHash();persist();render();setNavH();doSync();
 </script>
 </body></html>
