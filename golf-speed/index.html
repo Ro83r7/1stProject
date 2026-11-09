@@ -1026,7 +1026,7 @@ function commitSession(sess,isEdit){
   sess.pbs=computePBs(sess);sess.xp=calcXP(sess);sess.mod=Date.now();
   if(isEdit){const i=S.sessions.findIndex(s=>s.id===sess.id);S.sessions[i]=sess}else S.sessions.push(sess);
   const fresh=checkBadges(true),qs=checkQuests(weekStart(sess.date));
-  persist();
+  persist();doSync();                               // gespeicherte Einheit sofort hochladen
   const after=levelInfo(totalXP());
   return {fresh,qs,levelUp:after.level>before?after:null};
 }
@@ -1315,7 +1315,7 @@ async function doSync(force=false){
       syncState.remote=merged.sessions.length;
     }
     setSyncState('ok');
-  }catch(e){setSyncState('err',e.message)}
+  }catch(e){setSyncState('err',e.message);clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),30000)}   // automatisch erneut versuchen
   finally{syncing=false;if(syncAgain){syncAgain=false;scheduleSync()}}
 }
 function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),1500)}
@@ -1324,7 +1324,9 @@ function applyCfgFromHash(){
   try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};saveSync();setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
   history.replaceState(null,'',location.pathname+'#/set');
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)doSync()});
+document.addEventListener('visibilitychange',()=>doSync());      // beim Verlassen sofort hochladen, beim Zurückkehren holen
+window.addEventListener('pagehide',()=>doSync());
+window.addEventListener('online',()=>doSync());
 setInterval(()=>{if(!document.hidden&&!G)doSync()},90000);
 
 /* =========================================================
