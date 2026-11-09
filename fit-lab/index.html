@@ -431,6 +431,7 @@ function pageDash(){
       <div class="hero-num" style="margin-top:8px;color:var(--accent)">${w.n}<small style="font-size:1rem;color:var(--muted);margin-left:8px">Einheiten</small></div>
       ${progRow('⚡ HIIT',w.hiit,g.hiit)}${progRow('🏃 Zone 2/3',w.z2min,g.z2,' min')}${progRow('🏋️ Kraft',w.kraft,g.kraft)}
     </div>
+    ${formCard()}
     ${gamiCard()}
     <div class="grid g3">
       <a class="btn primary lg block" href="#/cardio" style="flex-direction:column;gap:2px;border-radius:20px">⚡<span class="tiny">HIIT</span></a>
@@ -689,11 +690,122 @@ function anaKraft(r){
     ${MUSC.filter(g=>setsBy[g]).map(g=>`<div><div class="row sp small"><b>${g}</b><span class="num">${nf(setsBy[g]/wk,1)}</span></div><div class="bar"><i style="width:${setsBy[g]/wk/mx*100}%"></i></div></div>`).join('')||'<div class="empty">Keine Daten.</div>'}</div></div>
   <div class="card" style="margin-top:12px"><div class="lbl">Letzte Einheiten · ${esc(ex.n)}</div><table class="t"><tr><th>Datum</th><th class="r">${ex.t==='w'?'Sätze × Wdh.':ex.t==='t'?'Sätze × s':'Wdh.'}</th>${ex.t==='w'?`<th class="r">kg</th>`:''}</tr>${[...rows].reverse().slice(0,10).map(({s,i})=>`<tr><td>${fmtShort(s.date)}</td><td class="r num">${ex.t==='w'?`${i.sets} × ${i.reps}`:ex.t==='t'?`${i.sets} × ${i.sec}`:i.reps}</td>${ex.t==='w'?`<td class="r num">${nf(i.w)}</td>`:''}</tr>`).join('')}</table></div>`;
 }
+
+/* ---------- Garmin (nur lesen, über public.garmin_read) ---------- */
+const GKEY='fitlab.garmin', GCACHE='fitlab.garmin.cache', STRAP_FROM='2026-11-09'; // ab hier Brustgurt Garmin HR-200
+let gcode='';try{gcode=localStorage.getItem(GKEY)||''}catch(e){}
+let G=null;try{G=JSON.parse(localStorage.getItem(GCACHE)||'null')}catch(e){}
+let gState={s:gcode?'idle':'off',msg:''},gBusy=false;
+const gm=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+const gts=d=>parseD(d).getTime();
+async function gRead(table,since){
+  const r=await fetch(`${SYNC_DEFAULT.url}/rest/v1/rpc/garmin_read`,{method:'POST',headers:{apikey:SYNC_DEFAULT.key,'Content-Type':'application/json'},body:JSON.stringify({p_code:gcode,p_table:table,p_since:since})});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error((j&&j.message)||('HTTP '+r.status));
+  return Array.isArray(j)?j:[];
+}
+async function gSync(force){
+  if(!gcode||gBusy)return;if(!force&&G&&Date.now()-G.t<4*36e5)return;
+  gBusy=true;gState={s:'busy',msg:''};
+  try{
+    const since=addDays(today(),-400);
+    const [daily,sleep,hrv,acts]=await Promise.all(['daily','sleep','hrv','activities'].map(t=>gRead(t,since)));
+    if(!daily.length&&!sleep.length&&!hrv.length&&!acts.length)throw new Error('Keine Daten erhalten – Lesecode korrekt?');
+    const by=(a,b)=>a.d<b.d?-1:1,TY=['treadmill_running','running','cycling','indoor_cycling'];
+    G={t:Date.now(),
+      daily:daily.map(x=>({d:x.date,rhr:x.resting_hr})).sort(by),
+      sleep:sleep.map(x=>({d:x.date,sc:x.score,h:x.duration_s?x.duration_s/3600:null})).sort(by),
+      hrv:hrv.map(x=>({d:x.date,v:x.last_night_avg})).sort(by),
+      acts:acts.filter(x=>TY.includes(x.type)&&x.start_local).map(x=>({d:x.start_local.slice(0,10),ty:x.type,min:(x.duration_s||0)/60,km:(x.distance_m||0)/1000,hr:x.avg_hr,mx:x.max_hr,
+        z:[1,2,3,4,5].map(i=>x['hr_zone_s_'+i]||0)})).sort(by)};
+    try{localStorage.setItem(GCACHE,JSON.stringify(G))}catch(e){}
+    gState={s:'ok',msg:''};
+  }catch(e){gState={s:'err',msg:e.message}}
+  gBusy=false;
+  if(!$('#modal').classList.contains('open')&&!['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))render();
+}
+function gStatusText(){
+  if(!gcode)return 'Nicht verbunden.';
+  if(gState.s==='busy')return 'Lade Garmin-Daten …';
+  if(gState.s==='err')return `⚠️ ${esc(gState.msg)}`;
+  return G?`✅ Garmin-Daten vom ${new Date(G.t).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})} (${G.acts.length} Läufe/Rides, ${G.hrv.length} HRV-Nächte, ${G.sleep.length} Schlaf-Nächte)`:'Noch keine Daten geladen.';
+}
+function garminCard(){
+  return `<div class="card"><h2>⌚ Garmin</h2><p class="small muted" style="margin:6px 0 10px">Nur lesen: Ruhepuls, HRV, Schlaf und Läufe aus deinem Garmin-Konto (über deine zentrale Datenbank). Der Lesecode bleibt nur auf diesem Gerät gespeichert.</p>
+    <div class="field"><label>Garmin-Lesecode</label><div class="row"><input type="password" id="g-code" placeholder="${gcode?'gespeichert – zum Ändern neu einfügen':'Lesecode einfügen'}" autocomplete="off" autocapitalize="off" style="flex:1"><button class="btn primary" data-a="gSave">Speichern</button></div></div>
+    <div class="small" id="gMsg" style="margin-top:10px">${gStatusText()}</div>
+    <div class="row wrap" style="margin-top:10px">${gcode?'<button class="btn" data-a="gNow">Jetzt laden</button><button class="btn danger" data-a="gOff">Trennen</button>':''}</div>
+    <p class="tiny muted" style="margin-top:10px">Brustgurt Garmin HR-200 seit ${fmtShort(STRAP_FROM)}2026 – Herzfrequenzen davor stammen vom Handgelenk und sind nur bedingt vergleichbar.</p></div>`;
+}
+function formCard(){
+  if(!G)return gcode?`<div class="card"><div class="lbl">Tagesform</div><div class="small muted" style="margin-top:6px">${gStatusText()}</div></div>`:'';
+  const hv=G.hrv.filter(x=>x.v),dl=G.daily.filter(x=>x.rhr),sl=G.sleep.filter(x=>x.sc||x.h);
+  const lastH=hv[hv.length-1],lastR=dl[dl.length-1],lastS=sl[sl.length-1];
+  const base=(arr,f,n=28)=>{const a=arr.slice(-n-1,-1).map(x=>x[f]);return a.length>=5?gm(a):NaN};
+  const bH=base(hv,'v'),bR=base(dl,'rhr');
+  let pts=0;const why=[];
+  if(lastH&&isFinite(bH)){const r=(lastH.v-bH)/bH;if(r>=.08){pts++;why.push('HRV über deinem Schnitt')}else if(r<=-.12){pts--;why.push('HRV unter deinem Schnitt')}}
+  if(lastR&&isFinite(bR)){if(lastR.rhr>=bR+4){pts--;why.push('Ruhepuls erhöht')}else if(lastR.rhr<=bR-3){pts++;why.push('Ruhepuls niedrig')}}
+  if(lastS){if((lastS.sc&&lastS.sc<60)||(lastS.h&&lastS.h<6)){pts--;why.push('wenig/schlechter Schlaf')}}
+  const lvl=pts>=1?['🟢','Bereit – Intervalle passen heute']:pts>=-1?['🟡','Normal – nach Plan trainieren']:['🔴','Eher locker – Zone 2 oder Mobility'];
+  const newest=[lastH,lastR,lastS].filter(Boolean).map(x=>x.d).sort().pop();
+  const old=newest&&daysBetween(newest,today())>3;
+  const stat=(l,v,u,sub)=>`<div><div class="lbl">${l}</div><div class="big" style="font-size:1.6rem">${v}<small>${u}</small></div><div class="tiny muted">${sub}</div></div>`;
+  return `<div class="card"><div class="row sp"><span class="lbl">Tagesform · Garmin</span><span class="tiny muted">${newest?fmtShort(newest):''}</span></div>
+    <div style="margin:8px 0 12px;font-weight:800">${lvl[0]} ${lvl[1]}</div>
+    <div class="grid g3">${stat('Ruhepuls',lastR?lastR.rhr:'–','',isFinite(bR)?`Ø 4 W ${nf(bR,0)}`:'')}${stat('HRV',lastH?lastH.v:'–','ms',isFinite(bH)?`Ø 4 W ${nf(bH,0)}`:'')}${stat('Schlaf',lastS&&lastS.sc?lastS.sc:'–','',lastS&&lastS.h?nf(lastS.h,1)+' h':'')}</div>
+    <div class="tiny muted" style="margin-top:10px">${why.length?why.join(' · ')+' · ':''}Faustregel aus deinen eigenen Werten, keine medizinische Aussage.${old?` Letzte Garmin-Daten vom ${fmtShort(newest)}.`:''}</div></div>`;
+}
+function gcorr(p){p=p.filter(([x,y])=>isFinite(x)&&isFinite(y));if(p.length<8)return null;
+  const mx=gm(p.map(a=>a[0])),my=gm(p.map(a=>a[1]));let sxy=0,sx=0,sy=0;p.forEach(([x,y])=>{sxy+=(x-mx)*(y-my);sx+=(x-mx)**2;sy+=(y-my)**2});
+  return sx&&sy?{r:sxy/Math.sqrt(sx*sy),n:p.length}:null}
+const gcTxt=(c,txt)=>c?`<div class="hitem"><div class="hbody"><b class="num">r = ${nf(c.r,2)}</b> <span class="muted small">(n = ${c.n})</span><div class="small">${txt}</div></div></div>`:`<div class="small muted" style="padding:6px 0">${txt}: noch zu wenig Daten.</div>`;
+function anaGar(r){
+  if(!gcode)return `<div class="card empty">Garmin ist noch nicht verbunden. Unter <b>Mehr → Garmin</b> den Lesecode eintragen.</div>`;
+  if(!G)return `<div class="card empty">${gStatusText()}</div>`;
+  const from=rangeStart(r),tm=G.acts.filter(x=>x.ty==='treadmill_running'&&x.min>=8&&x.hr&&x.d>=from);
+  const pt=(x,v,l)=>({t:gts(x.d),v,label:`${fmtShort(x.d)} · ${l}${x.d>=STRAP_FROM?' · Gurt':''}`});
+  const hrP=tm.map(x=>pt(x,x.hr,`Ø ${x.hr} bpm`)),mxP=tm.filter(x=>x.mx).map(x=>pt(x,x.mx,`Max ${x.mx} bpm`));
+  const effP=tm.filter(x=>x.km>0).map(x=>{const v=x.km/(x.min/60);return pt(x,v/x.hr*100,`${nf(v,1)} km/h bei Ø ${x.hr}`)});
+  const hiP=tm.map(x=>{const t=x.z.reduce((a,b)=>a+b,0);return pt(x,t?(x.z[3]+x.z[4])/t*100:0,'Zone 4+5')});
+  const wk=(arr,f)=>{const m={};arr.filter(x=>x.d>=from&&isFinite(x[f])&&x[f]!=null).forEach(x=>{(m[weekStart(x.d)]=m[weekStart(x.d)]||[]).push(x[f])});return Object.keys(m).map(w=>({t:gts(w),v:gm(m[w]),label:`KW ${isoWeek(w)}: ${nf(gm(m[w]),1)}`}))};
+  const rP=wk(G.daily,'rhr'),hP=wk(G.hrv,'v'),sP=wk(G.sleep,'sc');
+  // Zusammenhänge (wöchentlich, gesamte Garmin-Historie)
+  const W={};const add=(d,k,v)=>{if(v==null||!isFinite(v))return;const w=weekStart(d);(W[w]=W[w]||{c:0,r:[],h:[],s:[]});if(k==='c')W[w].c+=v;else W[w][k].push(v)};
+  G.acts.forEach(x=>add(x.d,'c',x.min));G.daily.forEach(x=>add(x.d,'r',x.rhr));G.hrv.forEach(x=>add(x.d,'h',x.v));G.sleep.forEach(x=>add(x.d,'s',x.sc));
+  const ws=Object.keys(W).sort().filter(w=>w>='2026-01-01'),nx=w=>addDays(w,7);
+  const A=(w,k)=>W[w]&&W[w][k].length?gm(W[w][k]):NaN;
+  const cR=gcorr(ws.map(w=>[W[w].c,A(nx(w),'r')])),cH=gcorr(ws.map(w=>[W[w].c,A(nx(w),'h')])),cS=gcorr(ws.map(w=>[W[w].c,A(nx(w),'s')])),cSl=gcorr(ws.map(w=>[A(w,'s'),W[nx(w)]?W[nx(w)].c:NaN]));
+  const hv={};G.hrv.forEach(x=>hv[x.d]=x.v);const cHi=gcorr(tm.map(x=>{const t=x.z.reduce((a,b)=>a+b,0);return [hv[x.d],t?(x.z[3]+x.z[4])/t*100:NaN]}));
+  // Fit-Lab-HIIT mit Garmin verknüpft
+  const rh={};G.daily.forEach(x=>rh[x.d]=x.rhr);
+  const hiit=S.sessions.filter(x=>x.kind==='hiit'&&x.date>=from).sort((a,b)=>b.date.localeCompare(a.date));
+  const hiitRows=hiit.map(x=>{const run=G.acts.find(a=>a.ty==='treadmill_running'&&a.d===x.date);
+    return `<tr><td>${fmtShort(x.date)}</td><td>${x.n}×${x.m} · ${nf(x.speed,1)}</td><td class="num">${run&&run.mx?run.mx:(x.hf||'–')}</td><td class="num">${hv[x.date]??'–'}</td><td class="num">${rh[addDays(x.date,1)]??'–'}</td></tr>`}).join('');
+  const strap=G.acts.find(x=>x.d>=STRAP_FROM&&x.ty==='treadmill_running');
+  const C=(t,c,note='')=>`<div class="card" style="margin-top:12px"><div class="lbl">${t}</div>${c}${note?`<div class="small muted" style="margin-top:6px">${note}</div>`:''}</div>`;
+  return `<div class="card"><div class="small muted">${gStatusText()}</div><div class="tiny muted" style="margin-top:6px">Ab ${fmtShort(STRAP_FROM)}2026 misst der Brustgurt HR-200 – ältere Werte stammen vom Handgelenk (Punkte mit „Gurt“ im Tooltip).</div></div>
+  ${C('Laufband · Ø Herzfrequenz je Lauf',lineChart(hrP,{fmt:v=>nf(v,0)}),trendText(hrP,'bpm',28,1))}
+  ${C('Laufband · Max-Herzfrequenz',lineChart(mxP,{fmt:v=>nf(v,0),color:'#b27000'}),trendText(mxP,'bpm',28,1))}
+  ${C('Laufband · Effizienz (km/h pro 100 bpm Ø HF, höher = fitter)',lineChart(effP,{fmt:v=>nf(v,1)}),trendText(effP,'',28,2)+' · Warm-up/Cool-down sind enthalten.')}
+  ${C('Laufband · Anteil Zone 4+5 (%)',lineChart(hiP,{fmt:v=>nf(v,0)+'%'}))}
+  ${C('Ruhepuls (Wochenmittel)',lineChart(rP,{fmt:v=>nf(v,0)}),trendText(rP,'bpm',28,1))}
+  ${C('HRV letzte Nacht (Wochenmittel, ms)',lineChart(hP,{fmt:v=>nf(v,0),color:'#b27000'}),trendText(hP,'ms',28,1))}
+  ${C('Schlafscore (Wochenmittel)',lineChart(sP,{fmt:v=>nf(v,0)}),trendText(sP,'',28,1))}
+  <div class="card" style="margin-top:12px"><div class="lbl">Zusammenhänge (Wochenwerte seit 2026)</div>
+    ${gcTxt(cR,'Cardio-Minuten einer Woche ↔ Ruhepuls der Folgewoche (negativ = mehr Training, niedrigerer Ruhepuls)')}
+    ${gcTxt(cH,'Cardio-Minuten ↔ HRV der Folgewoche (positiv = mehr Training, höhere HRV)')}
+    ${gcTxt(cS,'Cardio-Minuten ↔ Schlafscore der Folgewoche')}
+    ${gcTxt(cSl,'Schlafscore einer Woche ↔ Cardio-Minuten der Folgewoche (umgekehrte Richtung)')}
+    ${gcTxt(cHi,'HRV der Nacht davor ↔ Anteil Zone 4+5 im Laufbandlauf')}
+    <p class="tiny muted" style="margin-top:8px">Korrelation ≠ Ursache. Jahreszeit und Gesamtform wirken auf beides. Je Wert sind oft nur 15–45 Punkte vorhanden, also nur als Hinweis lesen.</p></div>
+  ${hiit.length?C('Deine HIIT-Einheiten & Erholung',`<table class="t"><tr><th>Tag</th><th>Format · km/h</th><th>Max HF</th><th>HRV davor</th><th>Ruhepuls Folgetag</th></tr>${hiitRows}</table>`):''}`;
+}
 function pageAna(){
   const a=ui.ana;
-  const body={over:anaOver,hiit:anaHiit,z2:anaZ2,kraft:anaKraft}[a.tab](a.range);
+  const body={over:anaOver,hiit:anaHiit,z2:anaZ2,kraft:anaKraft,gar:anaGar}[a.tab](a.range);
   return `${head('Auswertung')}
-  <div class="stack-v" style="gap:10px;margin-bottom:12px">${chips('anatab',[['over','Übersicht'],['hiit','⚡ HIIT'],['z2','🏃 Zone 2/3'],['kraft','🏋️ Kraft']],a.tab)}${rangeChips('anarange',a.range)}</div>${body}`;
+  <div class="stack-v" style="gap:10px;margin-bottom:12px">${chips('anatab',[['over','Übersicht'],['hiit','⚡ HIIT'],['z2','🏃 Zone 2/3'],['kraft','🏋️ Kraft'],['gar','❤️ Garmin']],a.tab)}${rangeChips('anarange',a.range)}</div>${body}`;
 }
 
 /* ----- Einstellungen ----- */
@@ -714,6 +826,7 @@ function pageSet(){
   const st=S.settings,hid=st.hidden||[];
   return `${head('Mehr')}<div class="stack-v">
   ${syncCard()}
+  ${garminCard()}
   <div class="card"><h2>🎯 Wochenziele &amp; Körper</h2><div class="form2" style="margin-top:12px">
     <div class="field"><label>HIIT / Woche</label><input type="number" data-set="goals.hiit" value="${st.goals.hiit}"></div>
     <div class="field"><label>Zone 2/3 min / Woche</label><input type="number" data-set="goals.z2" value="${st.goals.z2}"></div>
@@ -835,10 +948,10 @@ async function doSync(force=false){
 function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),1500)}
 function applyCfgFromHash(){
   const m=location.hash.match(/cfg=([^&]+)/);if(!m)return;
-  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};saveSync();syncState.s='idle';setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
+  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}}saveSync();syncState.s='idle';setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
   history.replaceState(null,'',location.pathname+'#/set');
 }
-document.addEventListener('visibilitychange',()=>doSync());
+document.addEventListener('visibilitychange',()=>{doSync();if(!document.hidden)gSync()});
 window.addEventListener('pagehide',()=>doSync());
 window.addEventListener('online',()=>doSync());
 setInterval(()=>{if(!document.hidden)doSync()},90000);
@@ -903,14 +1016,17 @@ const A={
     saveSync();syncState.s=syncOn()?'idle':'off';doSync();render()},
   syncLinkIn(){const v=($('#sy-link').value||'').trim();if(!v){toast('Bitte Link oder Code einfügen.');return}
     const m=v.match(/cfg=([^&\s]+)/);let ok=false;
-    if(m){try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};ok=true}}catch(e){}}
+    if(m){try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}gSync(true)}ok=true}}catch(e){}}
     else if(/^[A-Za-z0-9_-]{24,}$/.test(v)){sync.code=v;ok=true}
     if(!ok){toast('Das sieht nicht nach einem gültigen Link oder Code aus.');return}
     saveSync();syncState.s='idle';doSync();render();toast('Sync-Verbindung übernommen ✔')},
+  gSave(){const v=($('#g-code').value||'').trim();if(!v){toast('Bitte den Lesecode einfügen.');return}gcode=v;try{localStorage.setItem(GKEY,v)}catch(e){}G=null;try{localStorage.removeItem(GCACHE)}catch(e){}gState={s:'idle',msg:''};render();gSync(true)},
+  gNow(){gSync(true);render()},
+  gOff(){if(confirm('Garmin auf diesem Gerät trennen? Der Lesecode wird hier gelöscht.')){gcode='';G=null;try{localStorage.removeItem(GKEY);localStorage.removeItem(GCACHE)}catch(e){}gState={s:'off',msg:''};render()}},
   syncNow(){if(!syncOn()){toast('Erst Code eintragen und verbinden.');return}syncing=false;doSync()},
   syncGen(){const b=new Uint8Array(24);crypto.getRandomValues(b);$('#sy-code').value=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_')},
   syncLink(){if(!syncOn()){toast('Erst Verbindung speichern.');return}
-    const link=location.origin+location.pathname+'#/set?cfg='+encodeURIComponent(btoa(JSON.stringify({u:sync.url,k:sync.key,c:sync.code})));
+    const link=location.origin+location.pathname+'#/set?cfg='+encodeURIComponent(btoa(JSON.stringify({u:sync.url,k:sync.key,c:sync.code,g:gcode||undefined})));
     (navigator.clipboard?navigator.clipboard.writeText(link):Promise.reject()).then(()=>toast('Geräte-Link kopiert – auf dem anderen Gerät öffnen ✔')).catch(()=>prompt('Geräte-Link kopieren:',link))},
   syncOff(){if(confirm('Synchronisation auf diesem Gerät trennen? Lokale Daten bleiben erhalten.')){sync={url:sync.url,key:sync.key,code:''};saveSync();setSyncState('off');render()}}
 };
@@ -937,6 +1053,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 function setNavH(){const n=$('#nav');if(n&&innerWidth<900)document.documentElement.style.setProperty('--navh',n.offsetHeight+'px');else document.documentElement.style.removeProperty('--navh')}
 addEventListener('resize',setNavH);
-mergeKraftDays();applyCfgFromHash();persist();render();setNavH();doSync();
+mergeKraftDays();applyCfgFromHash();persist();render();setNavH();doSync();gSync();
 </script>
 </body></html>
