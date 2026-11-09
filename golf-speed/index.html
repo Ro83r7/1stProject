@@ -794,7 +794,7 @@ function pageDash(){
   const headRight=`<a class="btn primary ${c?'sm':''}" href="#/train">▶ Training</a>`;
   if(c){
     return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''}`,fmtDate(today()),headRight)}
-    ${syncWarn}<div class="stack-v">
+    ${draftBanner()}${syncWarn}<div class="stack-v">
       ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,true))}
       <div class="grid g2 keep2">${card('Woche',ringHtml)}${card('Serie',streakHtml)}</div>
       ${card('Nächste Einheit',nextHtml())}
@@ -807,7 +807,7 @@ function pageDash(){
     const d=dailyBest(k,'raw'),de=dailyBest(k,'e'),b=d.length?d.reduce((a,b)=>b.v>a.v?b:a):null,be=de.length?Math.max(...de.map(p=>p.v)):0;
     return `<div class="row sp">${dvChip(k)}<span class="num"><b>${b?fmt(b.v):'–'}</b> <span class="eq">${k!=='driver'&&be?'≈ '+fmt(be):''}</span> <span class="tiny muted">${b?fmtShort(b.date):''}</span></span></div>`}).join('');
   return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''} 👋`,fmtDate(today()),`<button class="btn" data-a="manual">＋ Einheit nachtragen</button>${headRight}`)}
-  ${syncWarn}<div class="grid g4" style="margin-bottom:14px">
+  ${draftBanner()}${syncWarn}<div class="grid g4" style="margin-bottom:14px">
     ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,false))}
     ${card('Diese Woche',ringHtml)}
     ${card('Wochen-Serie',streakHtml+`<div class="small muted" style="margin-top:6px">mit erreichtem Wochenziel</div>`)}
@@ -833,6 +833,18 @@ function afterDash(){
 
 /* ---------- Training ---------- */
 let G=null;
+/* Entwurf der laufenden Einheit: wird nach jedem Satz gesichert, damit nichts verloren geht,
+   wenn iOS die Seite im Hintergrund beendet oder neu lädt. */
+const DRAFT_KEY='speedlab.draft';
+function saveDraft(){try{if(G)localStorage.setItem(DRAFT_KEY,JSON.stringify({kind:G.kind,steps:G.steps,i:G.i,sets:G.sets,start:G.start,warm:G.warm,date:G.date||today()}))}catch(e){}}
+function clearDraft(){try{localStorage.removeItem(DRAFT_KEY)}catch(e){}}
+function loadDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');return d&&d.steps?d:null}catch(e){return null}}
+function draftBanner(){
+  if(G)return '';const d=loadDraft();if(!d)return '';
+  const t=new Date(d.start).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),n=d.sets.length;
+  return `<div class="note warn" style="margin-bottom:14px">⏸ <b>Unfertige Einheit</b> (gestartet ${fmtShort(d.date)}, ${t} Uhr, ${n} Satz${n===1?'':'e'} erfasst).
+    <div class="row wrap" style="margin-top:8px"><button class="btn sm primary" data-a="draftResume">Fortsetzen</button>${n?'<button class="btn sm" data-a="draftSave">Erfasste Sätze speichern</button>':''}<button class="btn sm danger" data-a="draftDrop">Verwerfen</button></div></div>`;
+}
 function dvPicker(act,cur){return `<div class="dvpick">${DEVS.map(k=>`<button class="${k} ${cur===k?'on':''}" data-a="${act}" data-v="${k}">${DEV[k].name}<div class="tiny" style="font-weight:600">${DEV[k].sub}</div></button>`).join('')}</div>`}
 function pageTrain(){
   if(G)return runnerView();
@@ -847,6 +859,7 @@ function pageTrain(){
     <div class="tiny muted" style="margin-top:6px">Trägheit relativ zum Driver. *Radar-Anzeige im Verhältnis zum eSpeed (Modellschätzung).</div>`;
   const prog=`<div style="overflow-x:auto"><table class="t"><thead><tr><th>Woche</th><th>Fokus</th><th class="r">Speed</th><th class="r">Power</th><th class="r">Mix</th></tr></thead><tbody>${WEEKS.map((wk,i)=>`<tr ${!pos.pre&&i===pos.week?'style="background:color-mix(in srgb,var(--accent) 12%,transparent)"':''}><td><b>${i+1}</b> ${wk.name}</td><td class="small muted">${wk.tip}</td>${KIND_ORDER.map(k=>`<td class="r num">${planFor(k,i,dev).length} Sätze</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   const setup=`<div class="stack-v">
+      ${draftBanner()}
       ${card('Gerät',dvPicker('pickdev',dev))}
       <div class="grid ${c?'':'g3'}" id="kinds">${kinds}</div>
       ${card('Optionen',`<div class="switch"><span>🎯 Driver-Transfer-Satz am Ende (3 Swings, misst den Übertrag)</span><input type="checkbox" id="optTransfer" ${S.settings.transfer?'checked':''}></div>
@@ -881,11 +894,11 @@ function startRun(kind){
   if(kind==='test'){for(let i=0;i<3;i++)steps.push({t:'set',...mkSet('driver','M','normal',5),test:true})}
   else{planFor(kind,pos.week,dev).forEach(s=>steps.push({t:'set',...s}));if(S.settings.transfer&&dev!=='driver')steps.push({t:'set',...mkSet('driver','M','normal',3),transfer:true})}
   steps.push({t:'finish'});
-  G={kind,steps,i:0,sets:[],resting:0,timer:null,start:Date.now(),warm:[],cur:[]};
+  G={kind,steps,i:0,sets:[],resting:0,timer:null,start:Date.now(),warm:[],cur:[],date:today()};saveDraft();
   try{navigator.wakeLock?.request('screen').then(l=>G.lock=l).catch(()=>{})}catch(e){}
   render();
 }
-function stopRun(){clearInterval(G?.timer);try{G?.lock?.release()}catch(e){};G=null}
+function stopRun(){clearDraft();clearInterval(G?.timer);try{G?.lock?.release()}catch(e){};G=null}
 function setCue(st){
   if(st.dev==='driver')return st.test?'Maximaler Test – wie ein Ernstfall-Drive. Alle Swings voll.':'Transfer: Driver, volle Absicht – nutze das neue Tempogefühl.';
   return {L:'Locker greifen, maximal schnell durch den Treffbereich. Ziel: neues Tempo-Gefühl.',M:'Referenzlast: explosiv, aber kontrolliert, voller Schwungbogen.',H:'Kraftvoll beschleunigen, Körper rotiert, Arme folgen. Nicht „drücken“.'}[st.plan||st.lvl];
@@ -939,7 +952,7 @@ function runnerView(){
   return `<div class="runner">${head2}${body}</div>`;
 }
 function advance(){
-  G.i++;G.cur=[];const nx=G.steps[G.i];
+  G.i++;G.cur=[];saveDraft();const nx=G.steps[G.i];
   if(nx&&nx.t==='set'&&G.sets.length){
     G.resting=nx.dev==='driver'?Math.max(S.settings.rest,60):S.settings.rest;
     clearInterval(G.timer);
@@ -1356,7 +1369,12 @@ const A={
   startRun(){const k=($('input[name=kind]:checked')||{}).value||suggestedKind();S.settings.transfer=$('#optTransfer').checked;persist();startRun(k)},
   startTest(){startRun('test')},
   abort(){if(confirm('Einheit abbrechen? Bisherige Sätze gehen verloren.')){stopRun();render()}},
-  warmchk(el){G.warm[+el.dataset.i]=el.checked},
+  warmchk(el){G.warm[+el.dataset.i]=el.checked;saveDraft()},
+  draftResume(){const d=loadDraft();if(!d)return;G={...d,resting:0,timer:null,cur:[]};location.hash='#/train';render()},
+  draftSave(){const d=loadDraft();if(!d||!d.sets.length)return;
+    const sess={id:uid(),created:Date.now(),date:d.date,type:d.kind==='test'?'test':'training',kind:d.kind==='test'?undefined:d.kind,sets:d.sets,rpe:null,note:'(aus unfertiger Einheit gespeichert)',pain:false};
+    const res=commitSession(sess,false);clearDraft();render();summarySheet(sess,res)},
+  draftDrop(){if(confirm('Unfertige Einheit endgültig verwerfen?')){clearDraft();render()}},
   next(){advance()},
   skipRest(){clearInterval(G.timer);G.resting=0;render()},
   skipSet(){advance()},
