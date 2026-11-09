@@ -176,63 +176,66 @@ html[data-theme="aurora"] .grid>.card:nth-child(4n+3),html[data-theme="aurora"] 
 html[data-theme="aurora"] .grid>.card:nth-child(4n+4),html[data-theme="aurora"] .stack-v>.card:nth-child(4n+4){--glow:#ff7b7b}
 html[data-theme="aurora"] .brand .logo{background:linear-gradient(135deg,#ff7b7b,#6c7bff);color:#fff}
 html[data-theme="aurora"] .note{background:rgba(255,255,255,.08)}
-/* Sorbet (hell, bunt) */
-html[data-theme="sorbet"]{
-  --bg:#fff8f1;--card:#ffffff;--card2:#f4eefc;--solid:#ffffff;--text:#241a33;--muted:#5b5170;--line:#e6dbf3;
-  --shadow:0 10px 0 -2px rgba(36,26,51,.05),0 18px 40px rgba(110,80,160,.13);
-  --accent:#6d46d6;--on-accent:#ffffff;--radius:26px;--ok:#137a3d;--warn:#7a4f00;--danger:#b3261e;
-  --c-stack:#8f5b00;--c-pure:#c93a3a;--c-driver:#1d4ed8;--c-all:#0b7488;color-scheme:light;
+/* Yeblox (Bento: warmes Grau mit dunklen, weißen, bernsteinfarbenen und violetten Kacheln) */
+html[data-theme="yeblox"]{
+  --bg:#e8e5de;--card:#ffffff;--card2:#f1eee7;--solid:#ffffff;--text:#1b1b1f;--muted:#5a574e;--line:#e0dcd1;
+  --accent:#b86e00;--on-accent:#241800;--ok:#17703d;--warn:#8a5a00;--danger:#b3261e;
+  --c-stack:#b88400;--c-pure:#c1121f;--c-driver:#2f5fd0;--c-all:#d98300;--shadow:none;--radius:22px;color-scheme:light;
 }
-html[data-theme="sorbet"] body{
-  background:
-    radial-gradient(520px 380px at 0% 0%,#ffd9e4,transparent 70%),
-    radial-gradient(520px 380px at 100% 8%,#d7e4ff,transparent 70%),
-    radial-gradient(640px 440px at 50% 100%,#d6f7e6,transparent 70%),#fff8f1;
-  background-attachment:fixed;
+html[data-theme="yeblox"] .card{border:0}
+html[data-theme="yeblox"] #nav{background:#1b1b1f;border-color:#1b1b1f}
+html[data-theme="yeblox"] #nav a{color:#b4b1a6}
+html[data-theme="yeblox"] #nav a:hover{background:#2a2a30;color:#fff}
+html[data-theme="yeblox"] #nav a.on{background:#ffb300;color:#241800}
+html[data-theme="yeblox"] .brand{color:#f4f2ec}
+html[data-theme="yeblox"] .brand .logo{background:#ffb300;color:#241800}
+html[data-theme="yeblox"] .navfoot{color:#b4b1a6}
+html[data-theme="yeblox"] .btn{border-radius:99px}
+html[data-theme="yeblox"] .btn.primary,html[data-theme="yeblox"] .chip.on{background:#1b1b1f;border-color:#1b1b1f;color:#ffb300}
+html[data-theme="yeblox"] .bar>i{background:#ffb300}
+html[data-theme="yeblox"] .card.t1{background:#1b1b1f;--text:#f4f2ec;--muted:#b4b1a6;--line:#34343a;--card2:#2a2a30;--accent:#ffb300;--c-all:#ffb300;--c-driver:#9db9ff;--ok:#6fe3a6;color:#f4f2ec}
+html[data-theme="yeblox"] .card.t1 .big{color:#ffb300}
+html[data-theme="yeblox"] .card.t3{background:#ffb300;--text:#2a1c00;--muted:#5e4200;--line:rgba(42,28,0,.22);--card2:rgba(255,255,255,.35);--accent:#2a1c00;color:#2a1c00}
+html[data-theme="yeblox"] .card.t3 .bar>i{background:#1b1b1f}
+html[data-theme="yeblox"] .card.t4{background:#2a2250;--text:#ece8ff;--muted:#c3bcf2;--line:rgba(255,255,255,.2);--card2:rgba(255,255,255,.12);--accent:#ffd166;--c-driver:#b5c8ff;color:#ece8ff}
+@media (max-width:760px){html[data-theme="yeblox"] #nav{background:#1b1b1f}}
+html[data-theme="yeblox"] body.compact #nav{background:#1b1b1f}
+/* Glow (bunte Verlaufs-Kacheln auf Dunkelblau) */
+html[data-theme="glow"]{
+  --bg:#0f1226;--card:#181c3a;--card2:#20254a;--solid:#181c3a;--text:#f1f3ff;--muted:#adb5e2;--line:#2c3262;
+  --accent:#ffc83d;--on-accent:#3a2200;--ok:#5fe3a6;--warn:#ffd24d;--danger:#ff9a9a;
+  --c-stack:#ffd23f;--c-pure:#ff8f8f;--c-driver:#9db9ff;--c-all:#ffc83d;--shadow:none;--radius:22px;color-scheme:dark;
 }
-html[data-theme="sorbet"] .card{border:2px solid #fff}
-html[data-theme="sorbet"] #nav{background:#ffffffd9;border-color:#fff}
-html[data-theme="sorbet"] .brand .logo{background:linear-gradient(135deg,#ff8a5c,#7a3fe0);color:#fff}
-/* Rainbow (hell, sehr bunt) */
-html[data-theme="rainbow"]{
-  --bg:#fff6fb;--card:#ffffff;--card2:#fff1d6;--solid:#ffffff;--text:#1f1537;--muted:#55496f;--line:#eadcf7;
-  --shadow:0 12px 30px rgba(168,85,247,.16);--accent:#7b2ff7;--on-accent:#ffffff;--radius:28px;
-  --ok:#0f7a40;--warn:#7a4f00;--danger:#b3261e;
-  --c-stack:#9a5b00;--c-pure:#d4264d;--c-driver:#3b4fe0;--c-all:#7b2ff7;
-  --rainbow:linear-gradient(120deg,#ff5a5f,#ffa63d,#ffe14d,#3ed598,#31c3ff,#7b61ff,#ff5fb3);color-scheme:light;
+html[data-theme="glow"] .card{border:0}
+html[data-theme="glow"] #nav{background:#131733;border-color:#242a55}
+html[data-theme="glow"] #nav a.on{background:linear-gradient(135deg,#ffd23f,#ff9a1f);color:#3a2200}
+html[data-theme="glow"] .brand .logo{background:linear-gradient(135deg,#ffd23f,#ff9a1f);color:#3a2200}
+html[data-theme="glow"] .btn.primary{background:linear-gradient(135deg,#ffd23f,#ff9a1f);border-color:transparent;color:#3a2200}
+html[data-theme="glow"] .card.t1{background:linear-gradient(135deg,#5b5bff,#8a5cff);--text:#ffffff;--muted:#e4e0ff;--line:rgba(255,255,255,.3);--card2:rgba(255,255,255,.18);--accent:#ffe27a;--c-all:#ffe27a;--c-driver:#ffffff;--ok:#c2ffe0;color:#fff}
+html[data-theme="glow"] .card.t2{background:linear-gradient(135deg,#ffd23f,#ff9a1f);--text:#3a2200;--muted:#6b4300;--line:rgba(58,34,0,.25);--card2:rgba(255,255,255,.35);--accent:#3a2200;color:#3a2200}
+html[data-theme="glow"] .card.t3{background:linear-gradient(135deg,#2fd9c0,#17a8d9);--text:#032e36;--muted:#0b4f5a;--line:rgba(3,46,54,.25);--card2:rgba(255,255,255,.35);--accent:#032e36;color:#032e36}
+html[data-theme="glow"] .card.t2 .bar>i,html[data-theme="glow"] .card.t3 .bar>i{background:#3a2200}
+/* Yello (schwarzer Kopf mit kräftigem Gelb, helle Creme-Karten) */
+html[data-theme="yello"]{
+  --bg:#f4f1ea;--card:#ffffff;--card2:#f4f1ea;--solid:#ffffff;--text:#16130b;--muted:#5f5a4a;--line:#e6dfce;
+  --accent:#b27000;--on-accent:#15130e;--ok:#1a7a42;--warn:#8a5a00;--danger:#b3261e;
+  --c-stack:#b88400;--c-pure:#c1121f;--c-driver:#2f5fd0;--c-all:#d98300;--shadow:none;--radius:20px;color-scheme:light;
 }
-html[data-theme="rainbow"] body{
-  background:
-    radial-gradient(520px 400px at 0% 0%,#ffd0e4,transparent 70%),
-    radial-gradient(520px 400px at 100% 0%,#cfe9ff,transparent 70%),
-    radial-gradient(560px 420px at 0% 100%,#fff0b8,transparent 70%),
-    radial-gradient(560px 420px at 100% 100%,#c9f5df,transparent 70%),#fff6fb;
-  background-attachment:fixed;
-}
-html[data-theme="rainbow"] body::before{content:"";position:fixed;inset:0 0 auto;height:6px;z-index:60;background:var(--rainbow)}
-html[data-theme="rainbow"] .card{border:3px solid transparent;background:linear-gradient(#fff,#fff) padding-box,var(--rainbow) border-box}
-html[data-theme="rainbow"] #nav{background:#ffffffe6;border-right:3px solid transparent;border-image:var(--rainbow) 1}
-html[data-theme="rainbow"] .brand .logo{background:var(--rainbow);color:#1f1537}
-html[data-theme="rainbow"] .btn.primary{background:var(--rainbow);border-color:transparent;color:#1f1537}
-html[data-theme="rainbow"] h1{background:linear-gradient(100deg,#d4264d,#8a2be2 40%,#3b4fe0 70%,#007f95);-webkit-background-clip:text;background-clip:text;color:transparent}
-/* Hawaii (hell, Wasser-, Sommer- und Strandfarben) */
-html[data-theme="hawaii"]{
-  --bg:#fff6e6;--card:rgba(255,255,255,.88);--card2:#e6f8fb;--solid:#ffffff;--text:#0b3b4f;--muted:#3f6272;--line:#c4e3ea;
-  --shadow:0 14px 34px rgba(0,150,170,.16);--accent:#0e7490;--on-accent:#ffffff;--radius:28px;
-  --ok:#0b7a50;--warn:#7a4f00;--danger:#b3261e;
-  --c-stack:#946500;--c-pure:#c2305a;--c-driver:#2f58d4;--c-all:#00798f;color-scheme:light;
-}
-html[data-theme="hawaii"] body{
-  background:
-    radial-gradient(420px 420px at 92% 0%,rgba(255,214,64,.65),transparent 70%),
-    radial-gradient(600px 420px at 0% 0%,rgba(255,150,170,.35),transparent 70%),
-    linear-gradient(180deg,#cdf3ff 0%,#e8fbf7 38%,#fff3d6 100%);
-  background-attachment:fixed;
-}
-html[data-theme="hawaii"] body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:110px;z-index:-1;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 60q150-60 300 0t300 0 300 0 300 0V120H0z' fill='%2319b5c9' fill-opacity='.28'/%3E%3Cpath d='M0 80q150-50 300 0t300 0 300 0 300 0V120H0z' fill='%233aa5e8' fill-opacity='.25'/%3E%3Cpath d='M0 100q150-35 300 0t300 0 300 0 300 0V120H0z' fill='%23ffd9a0' fill-opacity='.7'/%3E%3C/svg%3E") bottom/100% 100% no-repeat}
-html[data-theme="hawaii"] .card{border:2px solid #fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-html[data-theme="hawaii"] #nav{background:rgba(255,255,255,.80);border-color:#fff}
-html[data-theme="hawaii"] .brand .logo{background:linear-gradient(135deg,#ff8a5c,#ffd23f);color:#7a3a00}
+html[data-theme="yello"] .card{border:0}
+html[data-theme="yello"] #nav{background:#15130e;border-color:#15130e}
+html[data-theme="yello"] #nav a{color:#b9b29a}
+html[data-theme="yello"] #nav a:hover{background:#2a2619;color:#fff}
+html[data-theme="yello"] #nav a.on{background:#ffc400;color:#15130e}
+html[data-theme="yello"] .brand{color:#fff}
+html[data-theme="yello"] .brand .logo{background:#ffc400;color:#15130e}
+html[data-theme="yello"] .navfoot{color:#b9b29a}
+html[data-theme="yello"] .btn{border-radius:99px}
+html[data-theme="yello"] .btn.primary,html[data-theme="yello"] .chip.on{background:#ffc400;border-color:#ffc400;color:#15130e}
+html[data-theme="yello"] .bar>i{background:#ffc400}
+html[data-theme="yello"] .card.t1{background:#15130e;--text:#ffffff;--muted:#c4bda4;--line:#34301f;--card2:#2a2619;--accent:#ffc400;--c-all:#ffc400;--c-driver:#9db9ff;--ok:#6fe3a6;color:#fff}
+html[data-theme="yello"] .card.t1 .big{color:#ffc400}
+@media (max-width:760px){html[data-theme="yello"] #nav{background:#15130e}}
+html[data-theme="yello"] body.compact #nav{background:#15130e}
 /* Klassisch (Standardfarben, folgt Hell/Dunkel des Geräts) */
 html[data-theme="klassisch"]{
   --bg:#f3f5fb;--card:#ffffff;--card2:#f3f5fb;--solid:#ffffff;--text:#1a2033;--muted:#576078;--line:#dde2ee;
@@ -319,9 +322,10 @@ const DEV={
   driver:{name:'Driver',sub:'grau/blau',color:'var(--c-driver)'}
 };
 const DEVS=Object.keys(DEV);
-const THEMES=['aurora','sorbet','rainbow','hawaii','klassisch'];
-const THEME_NAMES={aurora:'Aurora',sorbet:'Sorbet',rainbow:'Rainbow',hawaii:'Hawaii',klassisch:'Klassisch'};
-const THEME_COLORS={aurora:'#0a0e1f',sorbet:'#fff8f1',rainbow:'#fff4fa',hawaii:'#cdf3ff'};
+const THEMES=['aurora','yeblox','glow','yello','klassisch'];
+const THEME_RENAME={sorbet:'yeblox',rainbow:'glow',hawaii:'yello'};   // alte Designs wurden ersetzt
+const THEME_NAMES={aurora:'Aurora',yeblox:'Yeblox',glow:'Glow',yello:'Yello',klassisch:'Klassisch'};
+const THEME_COLORS={aurora:'#0a0e1f',yeblox:'#e8e5de',glow:'#0f1226',yello:'#f4f1ea'};
 const LV={L:'Leicht',M:'Mittel',H:'Schwer',D:'Driver'};
 const PURE_COL=['Silber','Rot','Schwarz'];
 
@@ -348,6 +352,7 @@ function mergeState(o){
   const d=defaults();
   const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
   s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
+  if(THEME_RENAME[s.settings.theme])s.settings.theme=THEME_RENAME[s.settings.theme];
   if(!THEMES.includes(s.settings.theme))s.settings.theme='aurora';
   const dv=s.settings.equip.driver;if(dv.len===45.5&&dv.moi===2800){dv.len=45.75;dv.moi=2900}   // alte Standardwerte → TaylorMade Qi10 (45,75″, D4)
   s.settings.model={...d.settings.model,...(o.settings||{}).model};
@@ -795,11 +800,11 @@ function pageDash(){
   if(c){
     return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''}`,fmtDate(today()),headRight)}
     ${draftBanner()}${syncWarn}<div class="stack-v">
-      ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,true))}
-      <div class="grid g2 keep2">${card('Woche',ringHtml)}${card('Serie',streakHtml)}</div>
+      ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,true),{cls:'tile t1'})}
+      <div class="grid g2 keep2">${card('Woche',ringHtml,{cls:'tile t2'})}${card('Serie',streakHtml,{cls:'tile t3'})}</div>
       ${card('Nächste Einheit',nextHtml())}
       ${chart}
-      ${card('Level',lvlHtml)}
+      ${card('Level',lvlHtml,{cls:'tile t4'})}
       ${ins?card('Hinweise',`<div class="stack-v">${ins}</div>`):''}
     </div>`;
   }
@@ -808,10 +813,10 @@ function pageDash(){
     return `<div class="row sp">${dvChip(k)}<span class="num"><b>${b?fmt(b.v):'–'}</b> <span class="eq">${k!=='driver'&&be?'≈ '+fmt(be):''}</span> <span class="tiny muted">${b?fmtShort(b.date):''}</span></span></div>`}).join('');
   return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''} 👋`,fmtDate(today()),`<button class="btn" data-a="manual">＋ Einheit nachtragen</button>${headRight}`)}
   ${draftBanner()}${syncWarn}<div class="grid g4" style="margin-bottom:14px">
-    ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,false))}
-    ${card('Diese Woche',ringHtml)}
-    ${card('Wochen-Serie',streakHtml+`<div class="small muted" style="margin-top:6px">mit erreichtem Wochenziel</div>`)}
-    ${card('Level',lvlHtml)}
+    ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,false),{cls:'tile t1'})}
+    ${card('Diese Woche',ringHtml,{cls:'tile t2'})}
+    ${card('Wochen-Serie',streakHtml+`<div class="small muted" style="margin-top:6px">mit erreichtem Wochenziel</div>`,{cls:'tile t3'})}
+    ${card('Level',lvlHtml,{cls:'tile t4'})}
   </div>
   <div class="grid g21" style="margin-bottom:14px">
     ${chart}
