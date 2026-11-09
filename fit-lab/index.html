@@ -36,7 +36,14 @@ a{color:inherit}
 #nav a.on{color:var(--ink);background:var(--accent)}
 #view{padding:16px 14px 110px;max-width:760px;margin:0 auto}
 .pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.pagehead p{margin:2px 0 0}
+.pagehead{flex-wrap:nowrap;align-items:center}
+.pagehead h1{min-width:0}
+.dtag{font-weight:800;font-size:.85rem;color:var(--muted);white-space:nowrap;text-align:right}
+.pagehead input.dinput{flex:none;width:136px;min-width:0;font-weight:800;font-size:.85rem;padding:7px 8px;background:#fff;text-align:right}
+.pagehead h1{flex:1}
+input[type=date]{-webkit-appearance:none;appearance:none;min-height:36px}
+input.dinput::-webkit-calendar-picker-indicator{margin-left:2px}
+.subline{margin:-6px 0 12px}
 .grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .stack-v{display:flex;flex-direction:column;gap:12px}
 .row{display:flex;gap:10px;align-items:center}.sp{justify-content:space-between}.wrap{flex-wrap:wrap}
@@ -358,10 +365,12 @@ function progRow(label,val,goal,unit=''){
   const p=goal?Math.min(100,val/goal*100):0;
   return `<div style="margin-top:12px"><div class="row sp"><b>${label}</b><span class="num">${nf(val,0)} / ${nf(goal,0)}${unit}${val>=goal&&goal?' ✓':''}</span></div><div class="bar" style="margin-top:6px"><i style="width:${p}%"></i></div></div>`;
 }
+const dateTag=()=>`<span class="dtag">KW ${isoWeek(today())} · ${fmtDate(today())}</span>`;
+const head=(title,right=dateTag(),sub='')=>`<div class="pagehead"><h1>${title}</h1>${right}</div>${sub?`<p class="muted small subline">${sub}</p>`:''}`;
 function pageDash(){
   const w=weekStats(),g=S.settings.goals,last=sortedDesc().slice(0,5);
   const h=byKind('hiit'),bestH=h.length?Math.max(...h.map(x=>x.speed)):null;
-  return `<div class="pagehead"><div><h1>Übersicht</h1><p class="muted small">KW ${isoWeek(today())} · ${fmtDate(today())}</p></div></div>
+  return `${head('Übersicht')}
   <div class="stack-v">
     <div class="card dark">
       <div class="row sp"><span class="lbl">Diese Woche</span><span class="tag">🔥 ${weekStreak()} Wochen-Serie</span></div>
@@ -397,8 +406,7 @@ function pageCardio(){
   initCardioUI();
   const lh=lastHiit(),lz=lastZ2(ui.z2.mode),md=MODES[ui.z2.mode];
   const bike=ui.z2.mode==='bike';
-  return `<div class="pagehead"><div><h1>Cardio</h1></div>
-    <div class="field" style="width:170px"><label>Datum</label><input type="date" data-bind="date" value="${ui.date}"></div></div>
+  return `${head('Cardio',`<input type="date" class="dinput" data-bind="date" value="${ui.date}" aria-label="Datum">`)}
   <div class="stack-v">
     <div class="card dark" id="hiitcard">
       <div class="row sp"><h2>⚡ HIIT</h2><span class="tiny muted">${lh?`zuletzt ${lh.n} × ${lh.m} @ ${nf(lh.speed,1)} · ${ago(lh.date)}`:'noch keine Einheit'}</span></div>
@@ -475,8 +483,7 @@ function exRow(ex){
 function pageKraft(){
   const vis=visibleEx(),n=Object.keys(D.items).length;
   const lastK=sortedDesc().find(s=>s.kind==='kraft');
-  return `<div class="pagehead"><div><h1>Kraft</h1><p class="muted small">Übung antippen = in die Einheit aufnehmen. Gewicht kommt vom letzten Mal.</p></div>
-    <div class="field" style="width:170px"><label>Datum</label><input type="date" data-kdate value="${D.date}"></div></div>
+  return `${head('Kraft',`<input type="date" class="dinput" data-kdate value="${D.date}" aria-label="Datum">`,'Übung antippen = in die Einheit aufnehmen. Gewicht kommt vom letzten Mal.')}
   <div class="row wrap" style="margin-bottom:14px">
     ${lastK?`<button class="btn sm" data-a="likeLast">↺ Wie letztes Mal (${fmtShort(lastK.date)})</button>`:''}
     ${n?`<button class="btn sm danger" data-a="clearDraft">Auswahl leeren</button>`:''}
@@ -518,7 +525,7 @@ function pageHist(){
     rows+=`<div class="hitem"><div class="hic ${l.k?'k':''}">${l.ic}</div><div class="hbody"><b>${l.t}</b><div class="small">${l.d}</div></div>
       <div class="row" style="flex:none"><button class="btn sm" data-a="edit" data-id="${s.id}">Bearb.</button><button class="btn sm danger" data-a="del" data-id="${s.id}">✕</button></div></div>`;
   }
-  return `<div class="pagehead"><h1>Verlauf</h1></div>
+  return `${head('Verlauf')}
   <div style="margin-bottom:12px">${chips('hfilter',[['all','Alle'],['hiit','HIIT'],['z2','Zone 2/3'],['kraft','Kraft']],f,'sm')}</div>
   <div class="card">${rows||'<div class="empty">Keine Einträge.</div>'}</div>`;
 }
@@ -621,7 +628,7 @@ function anaKraft(r){
 function pageAna(){
   const a=ui.ana;
   const body={over:anaOver,hiit:anaHiit,z2:anaZ2,kraft:anaKraft}[a.tab](a.range);
-  return `<div class="pagehead"><h1>Auswertung</h1></div>
+  return `${head('Auswertung')}
   <div class="stack-v" style="gap:10px;margin-bottom:12px">${chips('anatab',[['over','Übersicht'],['hiit','⚡ HIIT'],['z2','🏃 Zone 2/3'],['kraft','🏋️ Kraft']],a.tab)}${rangeChips('anarange',a.range)}</div>${body}`;
 }
 
@@ -641,7 +648,7 @@ function syncCard(){
 }
 function pageSet(){
   const st=S.settings,hid=st.hidden||[];
-  return `<div class="pagehead"><h1>Mehr</h1></div><div class="stack-v">
+  return `${head('Mehr')}<div class="stack-v">
   ${syncCard()}
   <div class="card"><h2>🎯 Wochenziele &amp; Körper</h2><div class="form2" style="margin-top:12px">
     <div class="field"><label>HIIT / Woche</label><input type="number" data-set="goals.hiit" value="${st.goals.hiit}"></div>
