@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Speed Lab">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <meta name="theme-color" content="#0e1217">
 <title>Speed Lab – Golf Schwunggeschwindigkeit</title>
 <style>
@@ -277,7 +282,7 @@ function mergeState(o){
   const d=defaults();
   const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
   s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
-  if(!s.settings.themeV){s.settings.theme='aurora';s.settings.themeV=2}   // Aurora als neues Standarddesign
+  if(!(o.settings||{}).themeV){s.settings.theme='aurora';s.settings.themeV=2}   // Aurora als neues Standarddesign
   const dv=s.settings.equip.driver;if(dv.len===45.5&&dv.moi===2800){dv.len=45.75;dv.moi=2900}   // alte Standardwerte → TaylorMade Qi10 (45,75″, D4)
   s.settings.model={...d.settings.model,...(o.settings||{}).model};
   const ol=(o.settings||{}).loads||{};
