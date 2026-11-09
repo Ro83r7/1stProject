@@ -237,7 +237,7 @@ const defaults=()=>{
       },
       model:{k:.25,cal:1},
       loads:{stack:{L:0,M:0,H:0},pure:{L:120,M:151,H:185}}},
-    sessions:[],badges:{},questsDone:{}};
+    sessions:[],badges:{},questsDone:{},deleted:{},settingsMod:0};
   const prev=S;S=d;                              // Standardlasten brauchen die Modellformeln
   try{for(const [lv,r] of [['L',.75],['M',1],['H',1.25]])d.settings.loads.stack[lv]=nearestLoad('stack',r)}finally{S=prev}
   return d;
@@ -257,7 +257,7 @@ function load(){
   try{const raw=localStorage.getItem(KEY);if(raw){S=mergeState(JSON.parse(raw));window.S=S;return}}catch(e){console.warn(e)}
   S=defaults();window.S=S;
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – bitte Daten exportieren.')}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – bitte Daten exportieren.')}scheduleSync()}
 
 /* ---------- Einheiten ---------- */
 const MPH=1.609344;
@@ -511,7 +511,7 @@ function deltaTag(k,suffix=true){
 const isCompact=()=>{const v=S.settings.view;return v==='compact'||(v==='auto'&&innerWidth<760)};
 function head(title,sub,extra=''){
   const c=isCompact();
-  return `<div class="pagehead"><div><h1>${title}</h1>${sub?`<div class="muted ${c?'small':''}">${sub}</div>`:''}</div><div class="row wrap">${extra}<button class="btn sm ghost" data-a="toggleView" title="Ansicht wechseln">${c?'🖥 Ausführlich':'📱 Kompakt'}</button></div></div>`;
+  return `<div class="pagehead"><div><h1>${title}</h1>${sub?`<div class="muted ${c?'small':''}">${sub}</div>`:''}</div><div class="row wrap">${syncBadge()}${extra}<button class="btn sm ghost" data-a="toggleView" title="Ansicht wechseln">${c?'🖥 Ausführlich':'📱 Kompakt'}</button></div></div>`;
 }
 
 /* ---------- Charts ---------- */
@@ -903,7 +903,7 @@ function saveEditor(id){
 }
 function commitSession(sess,isEdit){
   const before=levelInfo(totalXP()).level;
-  sess.pbs=computePBs(sess);sess.xp=calcXP(sess);
+  sess.pbs=computePBs(sess);sess.xp=calcXP(sess);sess.mod=Date.now();
   if(isEdit){const i=S.sessions.findIndex(s=>s.id===sess.id);S.sessions[i]=sess}else S.sessions.push(sess);
   const fresh=checkBadges(true),qs=checkQuests(weekStart(sess.date));
   persist();
@@ -1045,6 +1045,13 @@ function pageSet(){
      <div class="tiny muted" style="margin:8px 0">eSpeed = Radar · (Länge Driver / Länge Gerät) · (Trägheit Gerät / Trägheit Driver)<sup>k</sup> · Kalibrierfaktor. Das ist eine Näherung – nicht der Algorithmus von TheStack. Voreinstellung: TaylorMade Qi10 (45,75″, Swingweight D4) – MOI ≈ 2.900 kg·cm² ist geschätzt, typische Driver liegen bei 2.700–3.000.</div>
      <button class="btn" data-a="calibrate">Aus meinen Daten kalibrieren</button>`)}
    ${card('Lasten im Überblick',equipTable())}
+   ${card('Synchronisation (Supabase)',`<div class="stack-v"><div class="form2">
+     <div class="field"><label>Projekt-URL</label><input type="text" id="sy-url" value="${esc(sync.url)}" placeholder="https://xxxx.supabase.co"></div>
+     <div class="field"><label>Public/Anon-Key</label><input type="text" id="sy-key" value="${esc(sync.key)}"></div>
+     <div class="field"><label>Sync-Code (geheim, ≥ 24 Zeichen)</label><input type="text" id="sy-code" value="${esc(sync.code)}"></div></div>
+     <div class="row wrap"><button class="btn primary" data-a="syncSave">Speichern & synchronisieren</button><button class="btn" data-a="syncGen">Code erzeugen</button><button class="btn" data-a="syncLink">🔗 Geräte-Link kopieren</button><button class="btn danger" data-a="syncOff">Trennen</button></div>
+     <div class="small" id="syncMsg">${syncMsgText()}</div>
+     <div class="tiny muted">Alle Geräte mit demselben Code teilen die Daten. Einheiten werden pro ID zusammengeführt, Löschungen und Einstellungen synchronisiert. Ansicht und Design bleiben pro Gerät. Wer den Code kennt, kann die Daten lesen – nicht weitergeben.</div></div>`)}
    ${card('Daten',`<div class="stack-v">
      <div class="row wrap"><button class="btn" data-a="exportJson">⬇ Backup (JSON)</button><button class="btn" data-a="exportCsv">⬇ CSV (alle Swings)</button><button class="btn" data-a="importJson">⬆ Import (JSON)</button></div>
      <input type="file" id="impFile" accept="application/json" style="display:none">
@@ -1054,7 +1061,7 @@ function pageSet(){
   </div>`;
 }
 function setSetting(path,val){
-  const s=S.settings;
+  const s=S.settings;if(!['view','theme'].includes(path))S.settingsMod=Date.now();
   if(path==='goal'){s.goal=val?+val:null;persist();return}
   if(path==='unit'){if(s.goal){const k=fromU(s.goal);s.unit=val;s.goal=+toU(k).toFixed(1)}else s.unit=val;persist();render();return}
   if(path.startsWith('pureW.')){const i=+path.split('.')[1],o=s.equip.pure.weights.slice();const old=o[i];o[i]=+val||old;
@@ -1085,7 +1092,7 @@ function calibrate(){
   }
   if(ratios.length<2){toast('Für die Kalibrierung braucht es mindestens 2 Einheiten mit Driver- und Stack/Pure2-Sätzen.');return}
   ratios.sort((a,b)=>a-b);const med=ratios[Math.floor(ratios.length/2)];
-  S.settings.model.cal=+Math.max(.8,Math.min(1.2,med)).toFixed(3);persist();render();
+  S.settings.model.cal=+Math.max(.8,Math.min(1.2,med)).toFixed(3);S.settingsMod=Date.now();persist();render();
   toast(`Kalibrierfaktor gesetzt: <b>${S.settings.model.cal}</b> (aus ${ratios.length} Einheiten)`);
 }
 function demoData(){
@@ -1116,6 +1123,86 @@ function demoData(){
   persist();toast('Demodaten geladen ✔');render();
 }
 
+
+/* =========================================================
+   Zentrale Synchronisation (Supabase, Zugriff per geheimem Sync-Code)
+   ========================================================= */
+const SYNC_KEY='speedlab.sync';
+const SYNC_DEFAULT={url:'',key:'',code:''};      // URL/Key des Projekts können hier fest eingetragen werden
+let sync=(()=>{try{return {...SYNC_DEFAULT,...JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')}}catch(e){return {...SYNC_DEFAULT}}})();
+const saveSync=()=>{try{localStorage.setItem(SYNC_KEY,JSON.stringify(sync))}catch(e){}};
+const syncOn=()=>!!(sync.url&&sync.key&&sync.code);
+let syncState={s:syncOn()?'idle':'off',t:0,msg:''},syncing=false,syncAgain=false,syncTimer=null;
+function syncMsgText(){
+  const t=syncState.t?new Date(syncState.t).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'';
+  return {off:'Nicht verbunden – Daten nur auf diesem Gerät.',idle:'Verbunden.',busy:'Synchronisiere …',ok:`✅ Synchronisiert (${t}).`,err:`⚠️ Fehler: ${esc(syncState.msg)}`}[syncState.s];
+}
+function syncBadge(){
+  if(!syncOn())return '';
+  const m={idle:'☁️',busy:'☁️ …',ok:'☁️ ✓',err:'☁️ ⚠'}[syncState.s]||'☁️';
+  return `<span class="tag synctag" title="${syncMsgText().replace(/<[^>]*>/g,'')}">${m}</span>`;
+}
+function setSyncState(s,msg=''){
+  syncState={s,t:s==='ok'?Date.now():syncState.t,msg};
+  $$('.synctag').forEach(el=>{el.outerHTML=syncBadge()});
+  const m=$('#syncMsg');if(m)m.innerHTML=syncMsgText();
+}
+async function rpc(fn,args){
+  const h={'Content-Type':'application/json',apikey:sync.key};
+  if(sync.key.startsWith('eyJ'))h.Authorization='Bearer '+sync.key;
+  const r=await fetch(sync.url.replace(/\/$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(args)});
+  if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,140));
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+const stable=o=>Array.isArray(o)?'['+o.map(stable).join(',')+']':o&&typeof o==='object'?'{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+stable(o[k])).join(',')+'}':JSON.stringify(o);
+function canon(o){
+  const st={...o.settings};delete st.view;delete st.theme;
+  return stable({s:[...(o.sessions||[])].sort((a,b)=>a.id<b.id?-1:1),st,b:o.badges||{},q:o.questsDone||{},d:o.deleted||{},m:o.settingsMod||0});
+}
+function mergeData(a,b){
+  if(!b||!b.sessions)return a;
+  const del={};for(const o of [a.deleted,b.deleted])for(const k in (o||{}))del[k]=Math.max(del[k]||0,o[k]);
+  const map=new Map();
+  for(const s of [...b.sessions,...a.sessions]){const p=map.get(s.id);if(!p||(s.mod||0)>=(p.mod||0))map.set(s.id,s)}
+  const sessions=[...map.values()].filter(s=>!(del[s.id]>(s.mod||0))).sort((x,y)=>x.date.localeCompare(y.date)||(x.created||0)-(y.created||0));
+  const badges={...b.badges};for(const k in (a.badges||{}))badges[k]=!badges[k]||a.badges[k]<badges[k]?a.badges[k]:badges[k];
+  const newer=(a.settingsMod||0)>=(b.settingsMod||0)?a:b;
+  const settings={...newer.settings,view:a.settings.view,theme:a.settings.theme};
+  return {...a,settings,sessions,badges,questsDone:{...b.questsDone,...a.questsDone},deleted:del,settingsMod:Math.max(a.settingsMod||0,b.settingsMod||0)};
+}
+function applyState(m){
+  S=mergeState(m);window.S=S;
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  applyTheme();checkBadges(true);
+  if(!G&&!$('#modal').classList.contains('open')&&document.activeElement?.tagName!=='INPUT')render();
+}
+async function doSync(force=false){
+  if(!syncOn())return;
+  if(syncing){syncAgain=true;return}
+  syncing=true;setSyncState('busy');
+  try{
+    const local=JSON.parse(JSON.stringify(S));
+    if(force){await rpc('speedlab_put',{p_code:sync.code,p_data:local})}
+    else{
+      const remote=await rpc('speedlab_get',{p_code:sync.code});
+      const merged=mergeData(local,remote);
+      const mj=canon(merged);
+      if(mj!==canon(local))applyState(merged);
+      if(!remote||mj!==canon(remote))await rpc('speedlab_put',{p_code:sync.code,p_data:merged});
+    }
+    setSyncState('ok');
+  }catch(e){setSyncState('err',e.message)}
+  finally{syncing=false;if(syncAgain){syncAgain=false;scheduleSync()}}
+}
+function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),1500)}
+function applyCfgFromHash(){
+  const m=location.hash.match(/cfg=([^&]+)/);if(!m)return;
+  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};saveSync();setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
+  history.replaceState(null,'',location.pathname+'#/set');
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)doSync()});
+setInterval(()=>{if(!document.hidden&&!G)doSync()},90000);
+
 /* =========================================================
    Router & Events
    ========================================================= */
@@ -1126,7 +1213,7 @@ const route=()=>(location.hash.replace(/^#\/?/,'')||'dash').split('?')[0];
 function render(){
   const r=PAGES[route()]?route():'dash';
   document.body.classList.toggle('compact',isCompact());
-  $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">Daten lokal gespeichert<br>${uLabel()} · v2</div>`;
+  $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">${syncOn()?'Zentral synchronisiert':'Daten nur lokal'}<br>${uLabel()} · v2</div>`;
   const y=scrollY;
   $('#view').innerHTML=PAGES[r]();
   AFTER[r]?.();
@@ -1148,12 +1235,12 @@ const A={
   toggleView(){S.settings.view=isCompact()?'full':'compact';persist();render()},
   manual(){editorSheet()},
   edit(el){editorSheet(S.sessions.find(s=>s.id===el.dataset.id))},
-  del(el){if(confirm('Diese Einheit wirklich löschen?')){S.sessions=S.sessions.filter(s=>s.id!==el.dataset.id);persist();render()}},
+  del(el){if(confirm('Diese Einheit wirklich löschen?')){S.deleted[el.dataset.id]=Date.now();S.sessions=S.sessions.filter(s=>s.id!==el.dataset.id);persist();render()}},
   closeModal(){closeModal()},
   addrow(){$('#e-rows').insertAdjacentHTML('beforeend',editorRow({dev:S.settings.device,lvl:'L',v:[]}))},
   rmrow(el){if($$('#e-rows .setrow').length>1)el.closest('.setrow').remove()},
   saveEdit(el){saveEditor(el.dataset.id)},
-  pickdev(el){S.settings.device=el.dataset.v;persist();render()},
+  pickdev(el){S.settings.device=el.dataset.v;S.settingsMod=Date.now();persist();render()},
   startRun(){const k=($('input[name=kind]:checked')||{}).value||suggestedKind();S.settings.transfer=$('#optTransfer').checked;persist();startRun(k)},
   startTest(){startRun('test')},
   abort(){if(confirm('Einheit abbrechen? Bisherige Sätze gehen verloren.')){stopRun();render()}},
@@ -1176,13 +1263,23 @@ const A={
     if(!sess.sets.length){toast('Keine Sätze erfasst – nichts gespeichert.');stopRun();render();return}
     const res=commitSession(sess,false);stopRun();location.hash='#/dash';render();summarySheet(sess,res);
   },
-  newBlock(){if(confirm('Neuen 4-Wochen-Block mit heutigem Datum starten?')){S.settings.programStart=today();persist();render();toast('Neuer Block gestartet')}},
+  newBlock(){if(confirm('Neuen 4-Wochen-Block mit heutigem Datum starten?')){S.settings.programStart=today();S.settingsMod=Date.now();persist();render();toast('Neuer Block gestartet')}},
   calibrate(){calibrate()},
   exportJson(){download(`speedlab-backup-${today()}.json`,JSON.stringify(S,null,1),'application/json')},
   exportCsv(){download(`speedlab-swings-${today()}.csv`,csv(),'text/csv')},
   importJson(){$('#impFile').click()},
   demo(){demoData()},
-  reset(){if(confirm('Wirklich ALLE Daten unwiderruflich löschen?')&&confirm('Letzte Rückfrage: Alles löschen?')){localStorage.removeItem(KEY);S=defaults();window.S=S;applyTheme();render();toast('Alle Daten gelöscht')}}
+  reset(){if(confirm('Wirklich ALLE Daten unwiderruflich löschen'+(syncOn()?' (auch zentral, auf allen Geräten)':'')+'?')&&confirm('Letzte Rückfrage: Alles löschen?')){
+    const del={...S.deleted};S.sessions.forEach(x=>del[x.id]=Date.now());
+    S=defaults();window.S=S;S.deleted=del;S.settingsMod=Date.now();persist();applyTheme();render();if(syncOn())doSync(true);toast('Alle Daten gelöscht')}},
+  syncSave(){sync.url=$('#sy-url').value.trim();sync.key=$('#sy-key').value.trim();sync.code=$('#sy-code').value.trim();saveSync();
+    if(sync.code&&sync.code.length<24){toast('Der Sync-Code muss mindestens 24 Zeichen haben.');return}
+    doSync();render()},
+  syncGen(){const b=new Uint8Array(24);crypto.getRandomValues(b);$('#sy-code').value=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_')},
+  syncLink(){if(!syncOn()){toast('Erst Verbindung speichern.');return}
+    const link=location.origin+location.pathname+'#/set?cfg='+encodeURIComponent(btoa(JSON.stringify({u:sync.url,k:sync.key,c:sync.code})));
+    (navigator.clipboard?navigator.clipboard.writeText(link):Promise.reject()).then(()=>toast('Geräte-Link kopiert – auf dem anderen Gerät öffnen ✔')).catch(()=>prompt('Geräte-Link kopieren:',link))},
+  syncOff(){if(confirm('Synchronisation auf diesem Gerät trennen? Lokale Daten bleiben erhalten.')){sync={url:sync.url,key:sync.key,code:''};saveSync();setSyncState('off');render()}}
 };
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||['INPUT','SELECT'].includes(el.tagName))return;const f=A[el.dataset.a];if(f){e.preventDefault();f(el,e)}});
 document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('swin'))updateSwingStats()});
@@ -1202,7 +1299,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
-load();applyTheme();checkBadges(true);persist();render();
+load();applyCfgFromHash();applyTheme();checkBadges(true);persist();render();doSync();
 </script>
 </body>
 </html>
