@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e1217">
+<title>Speed Lab – Golf Schwunggeschwindigkeit</title>
+<style>
+:root{
+  --bg:#0e1217;--card:#171d25;--card2:#1e2630;--text:#e9eef3;--muted:#8d99a6;--line:#2a3541;
+  --accent:#27c3b0;--danger:#ef5b5b;--ok:#5fd38d;--warn:#f2b84b;
+  --c-stack:#f5c400;--c-pure:#ef4a4f;--c-driver:#6ea6ff;--c-all:#27c3b0;
+  --shadow:0 2px 12px rgba(0,0,0,.35);
+}
+:root[data-theme="light"]{
+  --bg:#eef1f4;--card:#ffffff;--card2:#f3f5f8;--text:#18212b;--muted:#667380;--line:#dde3e9;
+  --accent:#0b9c8a;--danger:#d63c3c;--ok:#1f9d55;--warn:#b7791f;
+  --c-stack:#c99a00;--c-pure:#d62828;--c-driver:#2563eb;--c-all:#0b9c8a;--shadow:0 1px 6px rgba(20,30,40,.12);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#eef1f4;--card:#ffffff;--card2:#f3f5f8;--text:#18212b;--muted:#667380;--line:#dde3e9;
+    --accent:#0b9c8a;--danger:#d63c3c;--ok:#1f9d55;--warn:#b7791f;
+    --c-stack:#c99a00;--c-pure:#d62828;--c-driver:#2563eb;--c-all:#0b9c8a;--shadow:0 1px 6px rgba(20,30,40,.12);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.01em}
+h1{font-size:1.5rem}h2{font-size:1.05rem}h3{font-size:.95rem}
+.muted{color:var(--muted)}.small{font-size:.82rem}.tiny{font-size:.74rem}
+.num{font-variant-numeric:tabular-nums}
+
+#app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+#nav{position:sticky;top:0;height:100vh;padding:18px 12px;border-right:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:4px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;font-weight:800;font-size:1.05rem}
+.brand .logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#4cc9f0);display:grid;place-items:center;color:#07211e;font-size:18px}
+#nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-weight:600}
+#nav a .ic{width:22px;text-align:center;font-size:1.05rem}
+#nav a:hover{background:var(--card2);color:var(--text)}
+#nav a.on{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.navfoot{margin-top:auto;padding:10px;font-size:.78rem;color:var(--muted)}
+#view{padding:22px clamp(14px,3vw,34px) 60px;max-width:1280px;width:100%}
+body.compact #view{max-width:520px;margin:0 auto;padding-top:14px}
+body.compact h1{font-size:1.25rem}
+
+.pagehead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g21{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card>.ch{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.card>.ch .lbl{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+.big{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.big small{font-size:1rem;font-weight:600;color:var(--muted);margin-left:4px}
+.eq{color:var(--muted);font-size:.8em;font-weight:600}
+.delta{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:.85rem;padding:2px 8px;border-radius:99px}
+.delta.up{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.delta.down{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+.delta.flat{background:var(--card2);color:var(--muted)}
+
+.btn{border:1px solid var(--line);background:var(--card2);border-radius:11px;padding:9px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--text)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#06211d}
+.btn.danger{color:var(--danger)}
+.btn.lg{padding:14px 22px;font-size:1.05rem;border-radius:14px}
+.btn.sm{padding:5px 10px;font-size:.82rem;border-radius:8px}
+.btn.ghost{background:transparent}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;border-radius:99px;padding:4px 11px;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted)}
+.chip.on{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:var(--accent);color:var(--accent)}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:.74rem;font-weight:700;background:var(--card2);color:var(--muted)}
+.sd{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+
+/* Geräte-Farbschemata: Stack gelb/schwarz · Pure2 weiß/rot · Driver grau/blau */
+.dv{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:2px 9px;font-weight:700;font-size:.8rem;white-space:nowrap}
+.dv.stack{background:#f5c400;color:#14130f}
+.dv.pure{background:#ffffff;color:#c1121f;box-shadow:inset 0 0 0 1.5px #c1121f}
+.dv.driver{background:#9ca3af;color:#1b3a9c}
+.dvpick{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.dvpick button{border:2px solid transparent;border-radius:12px;padding:9px 14px;font-weight:800;cursor:pointer;opacity:.45}
+.dvpick button.on{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 35%,transparent)}
+.dvpick button.stack{background:#f5c400;color:#14130f}
+.dvpick button.pure{background:#fff;color:#c1121f;border-color:#c1121f}
+.dvpick button.driver{background:#9ca3af;color:#1b3a9c}
+
+.bar{height:8px;border-radius:99px;background:var(--card2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .5s}
+.row{display:flex;gap:10px;align-items:center}.sp{justify-content:space-between}.wrap{flex-wrap:wrap}
+.stack-v{display:flex;flex-direction:column;gap:10px}
+.empty{padding:26px 10px;text-align:center;color:var(--muted)}
+.hr{height:1px;background:var(--line);margin:12px 0}
+.ringwrap{display:flex;align-items:center;gap:14px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:6px}
+.chartbox{position:relative}
+.chartbox svg{width:100%;height:auto;display:block;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:.78rem;box-shadow:var(--shadow);white-space:nowrap;transform:translate(-50%,-110%);z-index:5;display:none}
+.axis text{fill:var(--muted);font-size:11px}
+.grid-line{stroke:var(--line);stroke-width:1}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px}
+.heat i{aspect-ratio:1;border-radius:3px;background:var(--card2);display:block;min-width:9px}
+.heat i.l1{background:color-mix(in srgb,var(--accent) 35%,var(--card2))}
+.heat i.l2{background:color-mix(in srgb,var(--accent) 65%,var(--card2))}
+.heat i.l3{background:var(--accent)}
+.heat i.today{outline:1.5px solid var(--text)}
+table.t{width:100%;border-collapse:collapse;font-size:.88rem}
+table.t th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.t td{padding:8px;border-bottom:1px solid var(--line)}
+table.t tr:last-child td{border-bottom:0}
+table.t .r{text-align:right}
+.badge{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--card2);border:1px solid var(--line)}
+.badge .bi{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.5rem;background:color-mix(in srgb,var(--warn) 22%,transparent)}
+.badge.locked{opacity:.5;filter:grayscale(1)}
+.quest{display:grid;gap:5px}
+.sess{display:grid;gap:8px}
+.setline{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.pbtag{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn);border-radius:6px;padding:1px 7px;font-size:.74rem;font-weight:800}
+.field{display:grid;gap:4px}
+.field label{font-size:.78rem;color:var(--muted);font-weight:600}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.form2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+.switch input{width:20px;height:20px;accent-color:var(--accent)}
+
+/* Runner */
+.runner{max-width:640px;margin:0 auto}
+.runner .stepcard{padding:20px;text-align:center}
+.bigstick{font-size:1.6rem;font-weight:800}
+.swgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;margin:12px 0}
+.swcell{background:var(--card2);border-radius:12px;padding:8px 6px 6px;border:1px solid var(--line)}
+.swcell .n{font-size:.68rem;color:var(--muted)}
+.swcell input{text-align:center;font-size:1.35rem;font-weight:800;padding:6px 2px!important;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0}
+.swcell .es{font-size:.74rem;color:var(--muted);opacity:.85;min-height:1.1em;font-variant-numeric:tabular-nums}
+.timer{font-size:5rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+.checklist{text-align:left;display:grid;gap:8px;margin:14px 0}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;background:var(--card2);cursor:pointer}
+.checklist input{width:20px;height:20px;margin-top:1px;accent-color:var(--accent)}
+
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto;z-index:50}
+#modal.open{display:flex}
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;width:min(760px,100%);box-shadow:0 20px 70px rgba(0,0,0,.5)}
+#toasts{position:fixed;right:14px;bottom:14px;display:grid;gap:8px;z-index:70}
+.toast{background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:10px 14px;box-shadow:var(--shadow);animation:pop .3s}
+@keyframes pop{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:80}
+.note{border-left:3px solid var(--accent);padding:8px 12px;background:var(--card2);border-radius:0 10px 10px 0;font-size:.88rem}
+.note.warn{border-color:var(--warn)}.note.bad{border-color:var(--danger)}
+details.sci summary{cursor:pointer;font-weight:700}
+details.sci ul{margin:8px 0 0;padding-left:20px;display:grid;gap:5px}
+.setrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px;align-items:end;padding:10px;border-radius:12px;background:var(--card2)}
+.setrow .wide{grid-column:1/-2}
+
+@media (max-width:1000px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g21,.g3{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+  #app{grid-template-columns:1fr}
+  #nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--line);z-index:40;gap:0}
+  #nav .brand,#nav .navfoot{display:none}
+  #nav a{flex-direction:column;gap:2px;padding:6px 2px;font-size:.62rem;flex:1;text-align:center;align-items:center}
+  #view{padding-bottom:96px}
+  .g2,.g4{grid-template-columns:minmax(0,1fr)}
+  .g4.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .big{font-size:2.1rem}
+  #toasts{bottom:78px}
+  .setrow{grid-template-columns:repeat(2,minmax(0,1fr)) auto}
+}
+body.compact #nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--line);z-index:40;gap:0}
+body.compact #nav .brand,body.compact #nav .navfoot{display:none}
+body.compact #nav a{flex-direction:column;gap:2px;padding:6px 2px;font-size:.62rem;flex:1;text-align:center;align-items:center}
+body.compact #app{grid-template-columns:1fr}
+body.compact #view{padding-bottom:96px}
+body.compact .g2,body.compact .g3,body.compact .g4,body.compact .g21{grid-template-columns:minmax(0,1fr)}
+body.compact .g4.keep2,body.compact .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.compact #toasts{bottom:78px}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="nav"></nav>
+  <main id="view"></main>
+</div>
+<div id="modal"></div>
+<div id="toasts"></div>
+<canvas id="confetti"></canvas>
+
+<script>
+'use strict';
+/* =========================================================
+   Speed Lab – Golf Schwunggeschwindigkeit  (v2)
+   Geräte: Stack (gelb/schwarz), Pure2 (weiß/rot), Driver (grau/blau)
+   Radar-Rohwert pro Swing + berechneter Driver-Äquivalent-Speed (eSpeed).
+   Intern km/h, Anzeige standardmäßig mph.  Daten: localStorage.
+   ========================================================= */
+const KEY='speedlab.v2';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ---------- Datum ---------- */
+const ymd=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const parseD=s=>new Date(s+'T12:00:00');
+const addDays=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return ymd(d)};
+const weekStart=s=>{const d=parseD(s);d.setDate(d.getDate()-((d.getDay()+6)%7));return ymd(d)};
+const diffDays=(a,b)=>Math.round((parseD(a)-parseD(b))/864e5);
+const today=()=>ymd(new Date());
+const DOW=['Mo','Di','Mi','Do','Fr','Sa','So'];
+const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const fmtDate=s=>{const d=parseD(s);return `${DOW[(d.getDay()+6)%7]}, ${d.getDate()}. ${MON[d.getMonth()]} ${d.getFullYear()}`};
+const fmtShort=s=>{const d=parseD(s);return `${d.getDate()}. ${MON[d.getMonth()]}`};
+
+/* ---------- Geräte & Stufen ---------- */
+const DEV={
+  stack:{name:'Stack',sub:'gelb/schwarz',color:'var(--c-stack)'},
+  pure:{name:'Pure2',sub:'weiß/rot',color:'var(--c-pure)'},
+  driver:{name:'Driver',sub:'grau/blau',color:'var(--c-driver)'}
+};
+const DEVS=Object.keys(DEV);
+const LV={L:'Leicht',M:'Mittel',H:'Schwer',D:'Driver'};
+const PURE_COL=['Silber','Rot','Schwarz'];
+
+/* Standardwerte (Quellen: Hersteller-/Händlerangaben, teils Schätzung – in den Einstellungen anpassbar)
+   Stack: 5 Gewichte 20/45/60/75/100 g (30 Kombinationen, 0–300 g), Länge 41,5", Leergewicht ≈ 200 g (Forum, ungefähr)
+   Pure2: Gewichte 120/151/185 g (Silber/Weiß=120, Rot=151, Schwarz=185); Länge & Leergewicht geschätzt            */
+const defaults=()=>{
+  const d={v:2,
+    settings:{name:'',unit:'mph',goal:null,weekly:3,programStart:today(),theme:'auto',view:'auto',rest:40,swings:5,transfer:true,sound:true,device:'stack',
+      equip:{
+        stack:{len:41.5,m0:200,cg:.5,wp:.95,weights:[20,45,60,75,100]},
+        pure:{len:42,m0:160,cg:.5,wp:.95,weights:[120,151,185]},
+        driver:{len:45.75,moi:2900}
+      },
+      model:{k:.25,cal:1},
+      loads:{stack:{L:0,M:0,H:0},pure:{L:120,M:151,H:185}}},
+    sessions:[],badges:{},questsDone:{}};
+  const prev=S;S=d;                              // Standardlasten brauchen die Modellformeln
+  try{for(const [lv,r] of [['L',.75],['M',1],['H',1.25]])d.settings.loads.stack[lv]=nearestLoad('stack',r)}finally{S=prev}
+  return d;
+};
+let S=null;
+function mergeState(o){
+  const d=defaults();
+  const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
+  s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
+  const dv=s.settings.equip.driver;if(dv.len===45.5&&dv.moi===2800){dv.len=45.75;dv.moi=2900}   // alte Standardwerte → TaylorMade Qi10 (45,75″, D4)
+  s.settings.model={...d.settings.model,...(o.settings||{}).model};
+  const ol=(o.settings||{}).loads||{};
+  s.settings.loads={stack:{...d.settings.loads.stack,...ol.stack},pure:{...d.settings.loads.pure,...ol.pure}};
+  return s;
+}
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){S=mergeState(JSON.parse(raw));window.S=S;return}}catch(e){console.warn(e)}
+  S=defaults();window.S=S;
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – bitte Daten exportieren.')}}
+
+/* ---------- Einheiten ---------- */
+const MPH=1.609344;
+const U=()=>S.settings.unit;
+const uLabel=()=>U()==='mph'?'mph':'km/h';
+const toU=k=>U()==='mph'?k/MPH:k;
+const fromU=v=>U()==='mph'?v*MPH:v;
+const fmt=(k,d=1)=>k==null||isNaN(k)||k===0?'–':toU(k).toFixed(d);
+const fmtSigned=(k,d=1)=>{const v=toU(k);return (v>0?'+':v<0?'−':'±')+Math.abs(v).toFixed(d)};
+
+/* ---------- Physik-Modell: eSpeed ----------
+   Trägheitsmoment um das Griffende:  I = m0·(cg·L)² + w·(wp·L)²   (Gewichte am Kopfende)
+   Annahme: gleiche „Kraftabgabe“ → Winkelgeschwindigkeit ω ∝ I^(-k)  (k≈0,25 Schätzung; 0,5 = gleiche Energie)
+   eSpeed = v_radar · (L_driver / L_gerät) · (I_gerät / I_driver)^k · Kalibrierfaktor                           */
+const IN=0.0254;
+const eqp=dev=>S.settings.equip[dev];
+function inertia(dev,w){
+  const e=eqp(dev);if(dev==='driver')return e.moi/1e4;
+  const L=e.len*IN;return (e.m0/1000)*(e.cg*L)**2+(w/1000)*(e.wp*L)**2;
+}
+function eFactor(dev,w,cal=true){
+  if(dev==='driver')return 1;
+  const d=eqp('driver'),s=eqp(dev);
+  return (d.len/s.len)*Math.pow(inertia(dev,w)/inertia('driver',0),S.settings.model.k)*(cal?S.settings.model.cal:1);
+}
+const eSpeed=(dev,w,v)=>v*eFactor(dev,w);
+const inertiaRatio=(dev,w)=>inertia(dev,w)/inertia('driver',0);
+function loadOptions(dev){
+  if(dev==='driver')return [{w:0,combo:[]}];
+  const ws=eqp(dev).weights;
+  if(dev==='pure')return ws.map(w=>({w,combo:[w]}));
+  const best=new Map();
+  for(let m=0;m<(1<<ws.length);m++){
+    const combo=ws.filter((_,i)=>m&(1<<i)),sum=combo.reduce((a,b)=>a+b,0);
+    if(!best.has(sum)||best.get(sum).length>combo.length)best.set(sum,combo);
+  }
+  return [...best].map(([w,combo])=>({w,combo})).sort((a,b)=>a.w-b.w);
+}
+function nearestLoad(dev,ratio){
+  const e=eqp(dev),L=e.len*IN,target=ratio*inertia('driver',0);
+  const w=(target-(e.m0/1000)*(e.cg*L)**2)/((e.wp*L)**2)*1000;
+  return loadOptions(dev).reduce((a,b)=>Math.abs(b.w-w)<Math.abs(a.w-w)?b:a).w;
+}
+function comboOf(dev,w){const o=loadOptions(dev).find(x=>x.w===w);return o&&o.combo.length>1?` (${o.combo.join('+')})`:''}
+function loadLabel(dev,lv,w){
+  if(dev==='driver')return 'Driver';
+  if(dev==='pure'){const i=eqp('pure').weights.indexOf(w);return `${PURE_COL[i]||'–'} ${w} g`}
+  return `${w} g${comboOf('stack',w)}`;
+}
+const loadFor=(dev,lv)=>dev==='driver'?0:S.settings.loads[dev][lv]||0;
+const dvChip=(dev,txt)=>`<span class="dv ${dev}">${txt??DEV[dev].name}</span>`;
+
+/* ---------- Sätze ---------- */
+function normSet(x){
+  const v=(x.v||[]).filter(n=>n>0);
+  return {dev:x.dev,lvl:x.lvl,w:x.w||0,side:x.side||'normal',swings:Math.max(+x.swings||0,v.length),v,
+    max:v.length?Math.max(...v):(x.max||0),avg:v.length?v.reduce((a,b)=>a+b,0)/v.length:(x.avg||0)};
+}
+const emaxOf=x=>x.max*eFactor(x.dev,x.w);
+const swingsOf=s=>s.sets.reduce((a,b)=>a+(+b.swings||0),0);
+
+/* ---------- Programm ---------- */
+const KINDS={
+  speed:{name:'Speed-Tag',desc:'Fokus Überschnelligkeit (viele leichte Sätze)',L:3,M:2,H:1},
+  power:{name:'Power-Tag',desc:'Fokus Kraft & Beschleunigung (mehr schwere Sätze)',L:2,M:2,H:2},
+  mix:{name:'Mix-Tag',desc:'Ausgewogen, mittleres Volumen',L:2,M:2,H:1}
+};
+const KIND_ORDER=['speed','power','mix'];
+const WEEKS=[
+  {name:'Einführung',mul:.67,tip:'Technik & Gewöhnung. Volle Absicht, aber noch nicht ans Limit gehen.'},
+  {name:'Aufbau',mul:1,tip:'Volles Standardvolumen. Qualität vor Quantität.'},
+  {name:'Peak',mul:1.33,tip:'Höchstes Volumen im Block – auf Erholung & Schlaf achten.'},
+  {name:'Deload / Test',mul:.5,tip:'Reduziertes Volumen. Am Ende Speed-Test durchführen.'}
+];
+function programPos(d=today()){
+  const days=diffDays(d,S.settings.programStart);
+  if(days<0)return {block:0,week:0,abs:0,pre:true};
+  const w=Math.floor(days/7);return {block:Math.floor(w/4)+1,week:w%4,abs:w};
+}
+function mkSet(dev,lv,side,swings){
+  return dev==='driver'?{dev,lvl:'D',plan:lv,w:0,side,swings}:{dev,lvl:lv,plan:lv,w:loadFor(dev,lv),side,swings};
+}
+function planFor(kind,week,dev=S.settings.device){
+  const k=KINDS[kind],sets=[];
+  for(const lv of ['L','M','H']){
+    const n=Math.max(1,Math.round(k[lv]*WEEKS[week].mul));
+    for(let i=0;i<n;i++)sets.push(mkSet(dev,lv,i%2?'gegen':'normal',S.settings.swings));
+  }
+  return sets;
+}
+const sideName=s=>s==='gegen'?'Gegenseite (schwache Seite)':'Normale Seite';
+function sessionsInWeek(ws){return S.sessions.filter(s=>weekStart(s.date)===ws)}
+function suggestedKind(){
+  const n=sessionsInWeek(weekStart(today())).filter(s=>s.type==='training').length;
+  return KIND_ORDER[n%3];
+}
+function estMinutes(sets){return Math.round((sets.length*(S.settings.swings*5+S.settings.rest)+300)/60)}
+
+/* ---------- Auswertung ---------- */
+function allSets(){
+  const out=[];
+  for(const s of S.sessions)for(const x of s.sets)if(x.max>0)out.push({...x,date:s.date,t:+parseD(s.date),sid:s.id,type:s.type,emax:emaxOf(x)});
+  return out;
+}
+/* key: 'all' | 'stack' | 'pure' | 'driver';  basis: 'e' (eSpeed) | 'raw' (Radar) */
+function dailyBest(key,basis='e',sets=allSets()){
+  const m=new Map();
+  for(const x of sets){if(key!=='all'&&x.dev!==key)continue;
+    const v=basis==='e'?x.emax:x.max;m.set(x.date,Math.max(m.get(x.date)||0,v))}
+  return [...m].map(([date,v])=>({date,t:+parseD(date),v})).sort((a,b)=>a.t-b.t);
+}
+function regress(pts){
+  if(pts.length<3)return null;
+  const x0=pts[0].t,xs=pts.map(p=>(p.t-x0)/864e5),ys=pts.map(p=>p.v),n=pts.length;
+  const mx=xs.reduce((a,b)=>a+b)/n,my=ys.reduce((a,b)=>a+b)/n;
+  let sxx=0,sxy=0;for(let i=0;i<n;i++){sxx+=(xs[i]-mx)**2;sxy+=(xs[i]-mx)*(ys[i]-my)}
+  if(!sxx)return null;const slope=sxy/sxx;return {slope,icpt:my-slope*mx,x0};
+}
+function movAvg(pts,k=3){return pts.map((p,i)=>{const sl=pts.slice(Math.max(0,i-k+1),i+1);return {...p,v:sl.reduce((a,b)=>a+b.v,0)/sl.length}})}
+function rangeFilter(pts,r){
+  if(r==='ALL')return pts;const days={W4:28,W12:84,Y:365}[r]||84,cut=addDays(today(),-days);
+  return pts.filter(p=>p.date>=cut);
+}
+function eStats(){
+  const d=dailyBest('all','e');if(!d.length)return null;
+  const t=today(),recent=d.filter(p=>diffDays(t,p.date)<=28);
+  const cur=recent.length?Math.max(...recent.map(p=>p.v)):d[d.length-1].v;
+  const base=Math.max(...d.filter(p=>diffDays(p.date,d[0].date)<=14).map(p=>p.v));
+  const drv=dailyBest('driver','raw');
+  return {cur,base,pb:Math.max(...d.map(p=>p.v)),n:d.length,drvBest:drv.length?Math.max(...drv.map(p=>p.v)):0};
+}
+function weekStreaks(){
+  const target=S.settings.weekly,counts=new Map();
+  for(const s of S.sessions)counts.set(weekStart(s.date),(counts.get(weekStart(s.date))||0)+1);
+  if(!counts.size)return {cur:0,best:0};
+  const first=[...counts.keys()].sort()[0],thisW=weekStart(today());
+  let best=0,run=0;
+  for(let w=first;w<=thisW;w=addDays(w,7)){
+    if((counts.get(w)||0)>=target){run++;best=Math.max(best,run)}else if(w!==thisW)run=0;
+  }
+  let cur=0;
+  for(let w=thisW;w>=first;w=addDays(w,-7)){if((counts.get(w)||0)>=target)cur++;else if(w!==thisW)break}
+  return {cur,best};
+}
+const sessionsThisWeek=()=>sessionsInWeek(weekStart(today()));
+
+/* ---------- Gamification ---------- */
+const TITLES=['Range-Rookie','Hobby-Schwinger','Clubmitglied','Single-Handicapper','Scratch-Spieler','Tour-Rookie','Tour-Pro','Major-Sieger','Hall of Famer','Legende'];
+function levelInfo(xp){
+  let level=1,need=400;
+  while(xp>=need){xp-=need;level++;need=Math.round(need*1.2)}
+  return {level,into:xp,need,title:TITLES[Math.min(TITLES.length-1,Math.floor((level-1)/3))]};
+}
+const totalXP=()=>S.sessions.reduce((a,s)=>a+(s.xp||0),0)+Object.keys(S.questsDone).length*60;
+const pbKey=x=>x.dev==='driver'?'driver':x.dev+':'+x.w;
+const pbLabel=k=>k==='E'?'eSpeed':k==='driver'?'Driver':`${DEV[k.split(':')[0]].name} ${k.split(':')[1]} g`;
+function computePBs(sess){
+  const prior=S.sessions.filter(s=>s.id!==sess.id&&(s.date<sess.date||(s.date===sess.date&&(s.created||0)<(sess.created||0))));
+  const pbs=[],groups=new Map();
+  for(const x of sess.sets)if(x.max>0){const k=pbKey(x);groups.set(k,Math.max(groups.get(k)||0,x.max))}
+  for(const [k,mine] of groups){
+    const before=Math.max(0,...prior.flatMap(s=>s.sets.filter(x=>pbKey(x)===k).map(x=>x.max||0)));
+    if(before&&mine>before+1e-4)pbs.push({key:k,val:mine,prev:before});
+  }
+  const mineE=Math.max(0,...sess.sets.map(x=>x.max>0?emaxOf(x):0));
+  const beforeE=Math.max(0,...prior.flatMap(s=>s.sets.map(x=>x.max>0?emaxOf(x):0)));
+  if(mineE&&beforeE&&mineE>beforeE+1e-4)pbs.push({key:'E',val:mineE,prev:beforeE});
+  return pbs;
+}
+function calcXP(sess){
+  let xp=sess.type==='test'?80:100;
+  xp+=swingsOf(sess);
+  if(new Set(sess.sets.filter(x=>x.dev!=='driver').map(x=>x.lvl)).size>=3)xp+=40;
+  xp+=(sess.pbs||[]).length*60;
+  if(sess.rpe)xp+=10;
+  return xp;
+}
+function weeklyQuests(ws=weekStart(today())){
+  const ss=sessionsInWeek(ws),sw=ss.reduce((a,s)=>a+swingsOf(s),0),t=S.settings.weekly;
+  return [
+    {id:'q-sess-'+ws,icon:'📅',name:`${t} Einheiten absolvieren`,cur:ss.length,max:t},
+    {id:'q-sw-'+ws,icon:'💥',name:`${t*25} Swings sammeln`,cur:sw,max:t*25},
+    {id:'q-pb-'+ws,icon:'🏆',name:'Einen neuen Bestwert aufstellen',cur:ss.some(s=>(s.pbs||[]).length)?1:0,max:1}
+  ];
+}
+function badgeCtx(){
+  const es=eStats(),n=S.sessions.length,sw=S.sessions.reduce((a,s)=>a+swingsOf(s),0);
+  const gainPct=es&&es.base?(es.cur-es.base)/es.base*100:0,goalK=S.settings.goal?fromU(S.settings.goal):null;
+  return {n,sw,streak:weekStreaks().best,tests:S.sessions.filter(s=>s.type==='test').length,
+    pbs:S.sessions.reduce((a,s)=>a+(s.pbs||[]).length,0),gainPct,
+    allLv:S.sessions.some(s=>new Set(s.sets.filter(x=>x.dev!=='driver').map(x=>x.lvl)).size>=3),
+    devs:new Set(S.sessions.flatMap(s=>s.sets.map(x=>x.dev))).size,
+    goal:!!(goalK&&es&&es.pb>=goalK),block:programPos().abs>=4&&n>=8};
+}
+const BADGES=[
+  {id:'first',i:'⛳',n:'Erster Abschlag',d:'Erste Einheit gespeichert',t:c=>c.n>=1},
+  {id:'n10',i:'🔟',n:'Routine',d:'10 Einheiten',t:c=>c.n>=10},
+  {id:'n25',i:'🥉',n:'Dauerbrenner',d:'25 Einheiten',t:c=>c.n>=25},
+  {id:'n50',i:'🥈',n:'Halbzeit-Held',d:'50 Einheiten',t:c=>c.n>=50},
+  {id:'n100',i:'🥇',n:'Centurion',d:'100 Einheiten',t:c=>c.n>=100},
+  {id:'sw500',i:'💪',n:'Swing-Maschine',d:'500 Swings',t:c=>c.sw>=500},
+  {id:'sw2500',i:'🔥',n:'Feuerwerk',d:'2.500 Swings',t:c=>c.sw>=2500},
+  {id:'sw10000',i:'🚀',n:'Raketenantrieb',d:'10.000 Swings',t:c=>c.sw>=10000},
+  {id:'st2',i:'📈',n:'Dranbleiber',d:'2 Wochen in Folge Wochenziel',t:c=>c.streak>=2},
+  {id:'st4',i:'🔁',n:'Gewohnheitstier',d:'4 Wochen in Folge Wochenziel',t:c=>c.streak>=4},
+  {id:'st12',i:'🧱',n:'Eiserner Wille',d:'12 Wochen in Folge Wochenziel',t:c=>c.streak>=12},
+  {id:'test1',i:'🎯',n:'Messstation',d:'Ersten Speed-Test absolviert',t:c=>c.tests>=1},
+  {id:'test4',i:'📊',n:'Datenfreund',d:'4 Speed-Tests absolviert',t:c=>c.tests>=4},
+  {id:'pb1',i:'⚡',n:'Neuer Rekord',d:'Ersten Bestwert aufgestellt',t:c=>c.pbs>=1},
+  {id:'pb10',i:'🏅',n:'Rekordjäger',d:'10 Bestwerte aufgestellt',t:c=>c.pbs>=10},
+  {id:'g2',i:'🌱',n:'Auf dem Weg',d:'+2 % eSpeed ggü. Start',t:c=>c.gainPct>=2},
+  {id:'g5',i:'🌿',n:'Sichtbar schneller',d:'+5 % eSpeed ggü. Start',t:c=>c.gainPct>=5},
+  {id:'g10',i:'🌳',n:'Speed-Monster',d:'+10 % eSpeed ggü. Start',t:c=>c.gainPct>=10},
+  {id:'all',i:'🎛️',n:'Allrounder',d:'Leicht, Mittel & Schwer in einer Einheit',t:c=>c.allLv},
+  {id:'devs',i:'🧰',n:'Werkzeugkasten',d:'Stack, Pure2 und Driver genutzt',t:c=>c.devs>=3},
+  {id:'block',i:'🗓️',n:'Block abgeschlossen',d:'4-Wochen-Block mit ≥ 8 Einheiten',t:c=>c.block},
+  {id:'goal',i:'👑',n:'Ziel erreicht',d:'Dein Speed-Ziel geknackt',t:c=>c.goal}
+];
+function checkBadges(silent){
+  const c=badgeCtx(),fresh=[];
+  for(const b of BADGES)if(!S.badges[b.id]&&b.t(c)){S.badges[b.id]=today();fresh.push(b)}
+  if(!silent)fresh.forEach(b=>toast(`${b.i} Neues Abzeichen: <b>${b.n}</b>`));
+  return fresh;
+}
+function checkQuests(ws){
+  const done=[];
+  for(const q of weeklyQuests(ws))if(q.cur>=q.max&&!S.questsDone[q.id]){S.questsDone[q.id]=today();done.push(q)}
+  return done;
+}
+
+/* ---------- UI Helfer ---------- */
+function toast(html,ms=4200){
+  const el=document.createElement('div');el.className='toast';el.innerHTML=html;$('#toasts').appendChild(el);setTimeout(()=>el.remove(),ms);
+}
+function openModal(html){const m=$('#modal');m.innerHTML=`<div class="sheet">${html}</div>`;m.classList.add('open')}
+function closeModal(){const m=$('#modal');m.classList.remove('open');m.innerHTML=''}
+$('#modal').addEventListener('mousedown',e=>{if(e.target.id==='modal')closeModal()});
+const card=(title,body,{right='',cls='',id=''}={})=>`<section class="card ${cls}" ${id?`id="${id}"`:''}><div class="ch"><span class="lbl">${title}</span>${right}</div>${body}</section>`;
+function ring(pct,center,sub,color='var(--accent)',size=108){
+  const r=44,c=2*Math.PI*r,p=Math.max(0,Math.min(1,pct));
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--card2)" stroke-width="10"/>
+  <circle cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${c*p} ${c}" transform="rotate(-90 50 50)"/>
+  <text x="50" y="${sub?50:55}" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="800">${center}</text>
+  ${sub?`<text x="50" y="68" text-anchor="middle" fill="var(--muted)" font-size="10">${sub}</text>`:''}</svg>`;
+}
+function deltaTag(k,suffix=true){
+  if(k==null||isNaN(k))return '';
+  const c=Math.abs(toU(k))<.05?'flat':k>0?'up':'down';
+  return `<span class="delta ${c}">${c==='up'?'▲':c==='down'?'▼':'●'} ${fmtSigned(k)}${suffix?' '+uLabel():''}</span>`;
+}
+const isCompact=()=>{const v=S.settings.view;return v==='compact'||(v==='auto'&&innerWidth<760)};
+function head(title,sub,extra=''){
+  const c=isCompact();
+  return `<div class="pagehead"><div><h1>${title}</h1>${sub?`<div class="muted ${c?'small':''}">${sub}</div>`:''}</div><div class="row wrap">${extra}<button class="btn sm ghost" data-a="toggleView" title="Ansicht wechseln">${c?'🖥 Ausführlich':'📱 Kompakt'}</button></div></div>`;
+}
+
+/* ---------- Charts ---------- */
+const niceStep=r=>{const e=Math.pow(10,Math.floor(Math.log10(r))),f=r/e;return (f<=1?1:f<=2?2:f<=5?5:10)*e};
+function niceTicks(min,max,n=5){
+  if(min===max){min-=1;max+=1}
+  const step=niceStep((max-min)/n),a=Math.floor(min/step)*step,out=[];
+  for(let v=a;v<=max+step*.999;v+=step)out.push(+v.toFixed(6));
+  return out;
+}
+function lineChart(el,{series,goal,H=270}){
+  const W=720,m={l:44,r:14,t:14,b:28};
+  const all=series.flatMap(s=>s.pts);
+  if(!all.length){el.innerHTML='<div class="empty">Noch keine Messwerte im gewählten Zeitraum.</div>';return}
+  let t0=Math.min(...all.map(p=>p.t)),t1=Math.max(...all.map(p=>p.t));
+  if(t0===t1){t0-=864e5*3;t1+=864e5*3}else{const pd=(t1-t0)*.03;t0-=pd;t1+=pd}
+  let vs=all.map(p=>toU(p.v));
+  if(goal){const g=toU(goal);if(g<=Math.max(...vs)*1.08)vs.push(g)}
+  const lo=Math.min(...vs),hi=Math.max(...vs),pad=(hi-lo||2)*.12;
+  const ticks=niceTicks(lo-pad,hi+pad,4),ymin=ticks[0],ymax=ticks[ticks.length-1];
+  const X=t=>m.l+(t-t0)/(t1-t0)*(W-m.l-m.r),Y=v=>m.t+(1-(toU(v)-ymin)/(ymax-ymin))*(H-m.t-m.b);
+  let g='';
+  for(const tk of ticks){const y=m.t+(1-(tk-ymin)/(ymax-ymin))*(H-m.t-m.b);
+    g+=`<line class="grid-line" x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}"/><text x="${m.l-8}" y="${y+4}" text-anchor="end">${+tk.toFixed(1)}</text>`}
+  const nx=5;for(let i=0;i<nx;i++){const t=t0+(t1-t0)*i/(nx-1),d=new Date(t);
+    g+=`<text x="${X(t)}" y="${H-8}" text-anchor="${i===0?'start':i===nx-1?'end':'middle'}">${d.getDate()}. ${MON[d.getMonth()]}</text>`}
+  if(goal&&toU(goal)>=ymin&&toU(goal)<=ymax)
+    g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="var(--warn)" stroke-dasharray="5 4"/><text x="${W-m.r}" y="${Y(goal)-5}" text-anchor="end" fill="var(--warn)" font-size="11">Ziel ${+toU(goal).toFixed(1)}</text>`;
+  const hit=[];
+  for(const s of series){
+    const P=s.pts.map(p=>[X(p.t),Y(p.v)]);
+    if(s.trend){const r=regress(s.pts);if(r){const a=s.pts[0].t,b=s.pts[s.pts.length-1].t;
+      const ya=r.icpt+r.slope*(a-r.x0)/864e5,yb=r.icpt+r.slope*(b-r.x0)/864e5;
+      g+=`<line x1="${X(a)}" y1="${Y(ya)}" x2="${X(b)}" y2="${Y(yb)}" stroke="${s.color}" stroke-width="1.5" stroke-dasharray="2 5" opacity=".8"/>`}}
+    if(s.ma){const mp=movAvg(s.pts,3).map(p=>`${X(p.t)},${Y(p.v)}`).join(' ');
+      g+=`<polyline points="${mp}" fill="none" stroke="${s.color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+      g+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.8" fill="${s.color}" opacity=".45"/>`).join('')}
+    else{
+      if(P.length>1)g+=`<polyline points="${P.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linejoin="round"/>`;
+      g+=P.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.6" fill="var(--card)" stroke="${s.color}" stroke-width="2"/>`).join('');
+    }
+    s.pts.forEach((p,i)=>hit.push({x:P[i][0],y:P[i][1],s:s.name,c:s.color,v:p.v,d:p.date}));
+  }
+  el.innerHTML=`<div class="chartbox"><svg viewBox="0 0 ${W} ${H}" class="axis" role="img" aria-label="Liniendiagramm"><g>${g}</g><line id="gl" y1="${m.t}" y2="${H-m.b}" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0"/></svg><div class="tip"></div></div>`;
+  const svg=$('svg',el),tip=$('.tip',el),gl=$('#gl',el);
+  const move=e=>{
+    const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W,py=(e.clientY-r.top)/r.height*H;
+    let best=null,bd=1e9;for(const h of hit){const d=Math.abs(h.x-px)*1.5+Math.abs(h.y-py)*.3;if(d<bd){bd=d;best=h}}
+    if(!best)return;
+    tip.style.display='block';tip.style.left=(best.x/W*100)+'%';tip.style.top=(best.y/H*100)+'%';
+    tip.innerHTML=`<b style="color:${best.c}">${esc(best.s)}</b><br>${fmt(best.v)} ${uLabel()} · ${fmtShort(best.d)}`;
+    gl.setAttribute('x1',best.x);gl.setAttribute('x2',best.x);gl.setAttribute('opacity',.6);
+  };
+  svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);
+  svg.addEventListener('pointerleave',()=>{tip.style.display='none';gl.setAttribute('opacity',0)});
+}
+function barChart(el,{cats,stacks,H=200,fmtV=v=>v}){
+  const W=720,m={l:38,r:8,t:10,b:26};
+  const tot=cats.map((_,i)=>stacks.reduce((a,s)=>a+(s.vals[i]||0),0)),mx=Math.max(1,...tot);
+  const ticks=niceTicks(0,mx,3),ymax=ticks[ticks.length-1],bw=(W-m.l-m.r)/cats.length;
+  let g='';
+  for(const tk of ticks){const y=m.t+(1-tk/ymax)*(H-m.t-m.b);g+=`<line class="grid-line" x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}"/><text x="${m.l-6}" y="${y+4}" text-anchor="end">${tk}</text>`}
+  cats.forEach((c,i)=>{
+    let y=H-m.b;const x=m.l+i*bw+bw*.18;
+    stacks.forEach(s=>{const v=s.vals[i]||0;if(!v)return;const h=v/ymax*(H-m.t-m.b);y-=h;
+      g+=`<rect x="${x}" y="${y}" width="${bw*.64}" height="${Math.max(h,0)}" rx="2" fill="${s.color}"><title>${esc(c)} · ${esc(s.name)}: ${fmtV(v)}</title></rect>`});
+    if(cats.length<=14||i%2===0)g+=`<text x="${x+bw*.32}" y="${H-8}" text-anchor="middle">${esc(c)}</text>`;
+  });
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" class="axis" style="width:100%;height:auto">${g}</svg>`;
+}
+function heatmap(weeks=20){
+  const end=weekStart(today()),start=addDays(end,-7*(weeks-1)),vol=new Map();
+  for(const s of S.sessions)vol.set(s.date,(vol.get(s.date)||0)+swingsOf(s));
+  let h='';
+  for(let i=0;i<weeks*7;i++){
+    const d=addDays(start,i);if(d>today()){h+='<i style="opacity:.25"></i>';continue}
+    const v=vol.get(d)||0,l=v?v<30?1:v<60?2:3:0;
+    h+=`<i class="${l?'l'+l:''} ${d===today()?'today':''}" title="${fmtDate(d)}: ${v} Swings"></i>`;
+  }
+  return `<div class="heat" style="grid-template-columns:repeat(${weeks},1fr)">${h}</div>
+  <div class="legend"><span>weniger</span><span class="heat" style="grid-template-rows:1fr;grid-auto-flow:column;gap:3px"><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i></span><span>mehr Swings</span></div>`;
+}
+function volChart(el,n){
+  const thisW=weekStart(today()),ws=[];
+  for(let i=n-1;i>=0;i--)ws.push(addDays(thisW,-7*i));
+  const stacks=DEVS.map(k=>({name:DEV[k].name,color:DEV[k].color,vals:ws.map(w=>sessionsInWeek(w).reduce((a,s)=>a+s.sets.filter(x=>x.dev===k).reduce((b,x)=>b+(+x.swings||0),0),0))}));
+  barChart(el,{cats:ws.map(w=>{const d=parseD(w);return `${d.getDate()}.${d.getMonth()+1}.`}),stacks,H:n<=6?170:200,fmtV:v=>v+' Swings'});
+}
+const legendDev=()=>`<div class="legend">${DEVS.map(k=>`<span><span class="sd" style="background:${DEV[k].color}"></span>${DEV[k].name}</span>`).join('')}</div>`;
+
+/* ---------- Confetti & Sound ---------- */
+function confetti(){
+  const cv=$('#confetti'),ctx=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#27c3b0','#4cc9f0','#f5c400','#ef4a4f','#7ddb7a','#ffffff'];
+  const ps=Array.from({length:140},()=>({x:innerWidth/2,y:innerHeight*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-3,s:4+Math.random()*6,c:cols[Math.random()*6|0],r:Math.random()*6,vr:(Math.random()-.5)*.4}));
+  let f=0;(function step(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);ctx.restore()});
+    if(++f<150)requestAnimationFrame(step);else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+let actx;
+function beep(freq=880,dur=.18){
+  if(!S.settings.sound)return;
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=freq;o.connect(g);g.connect(actx.destination);
+    g.gain.setValueAtTime(.15,actx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+dur);o.start();o.stop(actx.currentTime+dur)}catch(e){}
+}
+
+/* =========================================================
+   Seiten
+   ========================================================= */
+const ui={range:'W12',metric:['all'],basis:'e',anaRange:'W12',anaMetric:['all','stack','pure','driver'],anaBasis:'e',anaMode:'best',histFilter:'all'};
+const metricName=k=>k==='all'?'eSpeed (alle Geräte)':DEV[k].name;
+const metricColor=k=>k==='all'?'var(--c-all)':DEV[k].color;
+
+function chipsRange(act,cur){return `<div class="chips">${[['W4','4 W'],['W12','12 W'],['Y','1 J'],['ALL','Alle']].map(([k,l])=>`<button class="chip ${cur===k?'on':''}" data-a="${act}" data-v="${k}">${l}</button>`).join('')}</div>`}
+function chipsMetric(act,list,basis){
+  return `<div class="chips">${['all',...DEVS].filter(k=>!(k==='all'&&basis==='raw')).map(k=>`<button class="chip ${list.includes(k)?'on':''}" data-a="${act}" data-v="${k}"><span class="sd" style="background:${metricColor(k)}"></span>${k==='all'?'Alle':DEV[k].name}</button>`).join('')}</div>`;
+}
+function chipsBasis(act,cur){return `<div class="chips"><button class="chip ${cur==='e'?'on':''}" data-a="${act}" data-v="e">eSpeed</button><button class="chip ${cur==='raw'?'on':''}" data-a="${act}" data-v="raw">Radar</button></div>`}
+
+function insights(){
+  const out=[],pos=programPos(),t=today();
+  if(!S.sessions.length)return [{k:'',t:'Willkommen! Starte mit einem <b>Speed-Test</b> (Driver, 3 Sätze) – das ist dein Ausgangswert. Danach folgt der 4-Wochen-Block.'}];
+  const last=[...S.sessions].sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0))[0];
+  if(diffDays(t,last.date)<1)out.push({k:'warn',t:'Heute schon trainiert – für die Schnelligkeit zählt Erholung (≥ 24–48 h Pause).'});
+  const lastTest=S.sessions.filter(s=>s.type==='test').map(s=>s.date).sort().pop();
+  if(!lastTest&&S.sessions.length>=3)out.push({k:'warn',t:'Noch kein Speed-Test – ohne Testwert lässt sich der Fortschritt nicht sauber messen.'});
+  else if(lastTest&&diffDays(t,lastTest)>=28)out.push({k:'warn',t:`Letzter Speed-Test vor ${diffDays(t,lastTest)} Tagen – Zeit für einen neuen.`});
+  if(!pos.pre&&pos.week===3)out.push({k:'',t:'<b>Deload-Woche:</b> Volumen halbiert. Nutze sie zur Erholung und beende sie mit einem Speed-Test.'});
+  if(S.sessions.filter(s=>s.pain&&diffDays(t,s.date)<=14).length)out.push({k:'bad',t:'Beschwerden in den letzten 14 Tagen gemeldet: Intensität/Volumen reduzieren, ggf. abklären lassen.'});
+  const d=dailyBest('all','e');
+  if(d.length>=4){
+    const r=regress(rangeFilter(d,'W12'));
+    if(r){const per30=r.slope*30;out.push({k:per30>0.05?'':'warn',t:per30>0.05?`Trend (12 Wo.): <b>${fmtSigned(per30)} ${uLabel()}</b> eSpeed pro 30 Tage.`:'eSpeed stagniert. Prüfe Schlaf, Lasten und ergänze Kraft/Mobilität.'})}
+  }
+  const q=weeklyQuests()[0];
+  if(q.cur<q.max){const dl=diffDays(addDays(weekStart(t),6),t)+1;out.push({k:'',t:`Wochenziel: noch <b>${q.max-q.cur}</b> Einheit${q.max-q.cur>1?'en':''} in ${dl} Tag${dl>1?'en':''}.`})}
+  return out.slice(0,isCompact()?2:4);
+}
+const greet=()=>{const h=new Date().getHours();return h<11?'Guten Morgen':h<18?'Hallo':'Guten Abend'};
+
+function heroHtml(es,compact){
+  const goalK=S.settings.goal?fromU(S.settings.goal):null;
+  if(!es)return `<div class="empty" style="padding:6px 0">Noch kein Messwert.<br><a class="btn sm primary" style="margin-top:10px" href="#/train">Speed-Test starten</a></div>`;
+  const gain=es.cur-es.base,prog=goalK&&goalK>es.base?Math.max(0,Math.min(1,(es.cur-es.base)/(goalK-es.base))):null;
+  const dr=regress(rangeFilter(dailyBest('all','e'),'W12'));
+  let eta='';if(goalK&&es.cur<goalK&&dr&&dr.slope>.002){const days=(goalK-es.cur)/dr.slope;if(days<900)eta=`Prognose: Ziel ca. ${fmtShort(addDays(today(),Math.round(days)))}`}
+  return `<div class="row sp wrap" style="align-items:flex-end"><div><div class="big num">${fmt(es.cur)}<small>${uLabel()} eSpeed</small></div>
+      <div class="row wrap" style="margin-top:6px">${deltaTag(gain)} <span class="muted small">seit Start (${fmt(es.base)})</span></div></div>
+      <div style="text-align:right"><div class="eq">Driver real (Radar)</div><div class="num" style="font-size:1.35rem;font-weight:800;color:var(--c-driver)">${es.drvBest?fmt(es.drvBest):'–'}</div></div></div>
+    ${compact?'':`<div class="small muted" style="margin-top:8px">Bestwert eSpeed: <b class="num" style="color:var(--text)">${fmt(es.pb)}</b> · ${es.n} Messtage</div>`}
+    ${goalK?`<div style="margin-top:10px"><div class="row sp tiny muted"><span>Ziel ${fmt(goalK)} ${uLabel()}</span><span>${prog!=null?Math.round(prog*100)+' %':''}</span></div><div class="bar" style="margin-top:4px"><i style="width:${(prog||0)*100}%"></i></div>${eta?`<div class="tiny muted" style="margin-top:4px">${eta}</div>`:''}</div>`:'<div class="tiny muted" style="margin-top:10px">Setze in den Einstellungen ein Ziel.</div>'}`;
+}
+function nextHtml(){
+  const pos=programPos(),kind=suggestedKind(),dev=S.settings.device,plan=planFor(kind,pos.week,dev);
+  return `<div class="row sp wrap"><div><h2>${KINDS[kind].name} · ${plan.length} Sätze</h2><div class="small muted">${KINDS[kind].desc}</div></div><a class="btn primary" href="#/train">▶ Training</a></div>
+    <div class="row wrap" style="margin-top:10px;gap:6px">${dvChip(dev,DEV[dev].name)}${['L','M','H'].map(k=>`<span class="tag">${plan.filter(p=>p.plan===k).length} × ${LV[k]}</span>`).join('')}<span class="tag">≈ ${estMinutes(plan)} Min</span><span class="tag">${plan.length*S.settings.swings} Swings</span></div>`;
+}
+function pageDash(){
+  const c=isCompact(),es=eStats(),pos=programPos(),sw=sessionsThisWeek(),target=S.settings.weekly,st=weekStreaks();
+  const xp=totalXP(),li=levelInfo(xp);
+  const ringHtml=`<div class="ringwrap">${ring(sw.length/target,`${sw.length}/${target}`,'Einheiten',sw.length>=target?'var(--ok)':'var(--accent)',c?84:108)}
+    <div class="small"><div><b>${sw.reduce((a,s)=>a+swingsOf(s),0)}</b> Swings</div><div class="muted">${pos.pre?'–':`Wo ${pos.week+1}/4 · ${WEEKS[pos.week].name}`}</div></div></div>`;
+  const streakHtml=`<div class="big num">${st.cur}<small>${st.cur===1?'Wo.':'Wochen'}</small></div><div class="small muted" style="margin-top:6px">Serie · Rekord ${st.best}</div>`;
+  const lvlHtml=`<div class="big num">${li.level}<small>${esc(li.title)}</small></div>
+    <div class="bar" style="margin:10px 0 4px"><i style="width:${li.into/li.need*100}%"></i></div>
+    <div class="row sp tiny muted"><span>${li.into} / ${li.need} XP</span><span>Gesamt ${xp}</span></div>`;
+  const ins=insights().map(i=>`<div class="note ${i.k}">${i.t}</div>`).join('');
+  const quests=weeklyQuests().map(q=>`<div class="quest"><div class="row sp small"><span>${q.icon} ${q.name}</span><b class="num">${Math.min(q.cur,q.max)}/${q.max}${S.questsDone[q.id]?' ✅':''}</b></div><div class="bar"><i style="width:${Math.min(1,q.cur/q.max)*100}%;${q.cur>=q.max?'background:var(--ok)':''}"></i></div></div>`).join('');
+  const chart=card('Verlauf',`<div class="row sp wrap" style="margin-bottom:8px">${chipsRange('range',ui.range)}${chipsBasis('basis',ui.basis)}</div><div style="margin-bottom:8px">${chipsMetric('metric',ui.metric,ui.basis)}</div><div id="trendChart"></div>`,{right:`<a class="small" style="color:var(--accent)" href="#/ana">Mehr →</a>`});
+  const headRight=`<a class="btn primary ${c?'sm':''}" href="#/train">▶ Training</a>`;
+  if(c){
+    return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''}`,fmtDate(today()),headRight)}
+    <div class="stack-v">
+      ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,true))}
+      <div class="grid g2 keep2">${card('Woche',ringHtml)}${card('Serie',streakHtml)}</div>
+      ${card('Nächste Einheit',nextHtml())}
+      ${chart}
+      ${card('Level',lvlHtml)}
+      ${ins?card('Hinweise',`<div class="stack-v">${ins}</div>`):''}
+    </div>`;
+  }
+  const pbRows=DEVS.map(k=>{
+    const d=dailyBest(k,'raw'),de=dailyBest(k,'e'),b=d.length?d.reduce((a,b)=>b.v>a.v?b:a):null,be=de.length?Math.max(...de.map(p=>p.v)):0;
+    return `<div class="row sp">${dvChip(k)}<span class="num"><b>${b?fmt(b.v):'–'}</b> <span class="eq">${k!=='driver'&&be?'≈ '+fmt(be):''}</span> <span class="tiny muted">${b?fmtShort(b.date):''}</span></span></div>`}).join('');
+  return `${head(`${greet()}${S.settings.name?', '+esc(S.settings.name):''} 👋`,fmtDate(today()),`<button class="btn" data-a="manual">＋ Einheit nachtragen</button>${headRight}`)}
+  <div class="grid g4" style="margin-bottom:14px">
+    ${card('Driver-Äquivalent (eSpeed)',heroHtml(es,false))}
+    ${card('Diese Woche',ringHtml)}
+    ${card('Wochen-Serie',streakHtml+`<div class="small muted" style="margin-top:6px">mit erreichtem Wochenziel</div>`)}
+    ${card('Level',lvlHtml)}
+  </div>
+  <div class="grid g21" style="margin-bottom:14px">
+    ${chart}
+    <div class="stack-v">${card('Nächste Einheit',nextHtml())}${card('Hinweise',`<div class="stack-v">${ins}</div>`)}</div>
+  </div>
+  <div class="grid g3" style="margin-bottom:14px">
+    ${card('Bestwerte · Radar',`<div class="stack-v">${pbRows}</div><div class="tiny muted" style="margin-top:8px">Großer Wert = Radar, kleiner Wert = äquivalenter Driver-Speed.</div>`)}
+    ${card('Wochenquests',`<div class="stack-v">${quests}</div><div class="tiny muted" style="margin-top:10px">Jede Quest = +60 XP</div>`)}
+    ${card('Swings pro Woche',`<div id="volChart"></div>${legendDev()}`)}
+  </div>
+  ${card('Konstanz · letzte 20 Wochen',heatmap(20))}`;
+}
+function afterDash(){
+  const c=isCompact(),k=ui.basis==='raw'?ui.metric.filter(x=>x!=='all'):ui.metric,keys=k.length?k:['driver'];
+  const series=keys.map(m=>({name:metricName(m)+(ui.basis==='raw'?' (Radar)':''),color:metricColor(m),pts:rangeFilter(dailyBest(m,ui.basis),ui.range),ma:keys.length===1,trend:keys.length===1}));
+  lineChart($('#trendChart'),{series,goal:ui.basis==='e'&&keys.length===1&&keys[0]==='all'&&S.settings.goal?fromU(S.settings.goal):null,H:c?210:270});
+  if($('#volChart'))volChart($('#volChart'),12);
+}
+
+/* ---------- Training ---------- */
+let G=null;
+function dvPicker(act,cur){return `<div class="dvpick">${DEVS.map(k=>`<button class="${k} ${cur===k?'on':''}" data-a="${act}" data-v="${k}">${DEV[k].name}<div class="tiny" style="font-weight:600">${DEV[k].sub}</div></button>`).join('')}</div>`}
+function pageTrain(){
+  if(G)return runnerView();
+  const pos=programPos(),sk=suggestedKind(),w=WEEKS[pos.week],dev=S.settings.device,c=isCompact();
+  const kinds=KIND_ORDER.map(k=>{const p=planFor(k,pos.week,dev);
+    return `<label class="card" style="cursor:pointer;display:block;${k===sk?'border-color:var(--accent)':''}"><div class="row sp"><div class="row"><input type="radio" name="kind" value="${k}" ${k===sk?'checked':''} style="accent-color:var(--accent);width:18px;height:18px"><h2>${KINDS[k].name}</h2></div>${k===sk?'<span class="tag" style="color:var(--accent)">Empfohlen</span>':''}</div>
+    <div class="small muted" style="margin:6px 0 10px">${KINDS[k].desc}</div>
+    <div class="row wrap" style="gap:6px">${['L','M','H'].map(s=>`<span class="tag">${p.filter(x=>x.plan===s).length}× ${LV[s]}</span>`).join('')}<span class="tag">≈ ${estMinutes(p)} Min</span></div></label>`}).join('');
+  const loads=dev==='driver'?'<div class="small muted">Alle Sätze mit dem eigenen Driver.</div>':
+    `<table class="t"><thead><tr><th>Stufe</th><th>Gewicht</th><th class="r">Trägheit</th><th class="r">Ziel-Radar*</th></tr></thead><tbody>${['L','M','H'].map(lv=>{const wt=loadFor(dev,lv),r=inertiaRatio(dev,wt);
+      return `<tr><td>${LV[lv]}</td><td>${loadLabel(dev,lv,wt)}</td><td class="r num">${Math.round(r*100)} %</td><td class="r num">${eFactor(dev,wt)?'≈ '+(1/eFactor(dev,wt)*100).toFixed(0)+' % eSpeed':''}</td></tr>`}).join('')}</tbody></table>
+    <div class="tiny muted" style="margin-top:6px">Trägheit relativ zum Driver. *Radar-Anzeige im Verhältnis zum eSpeed (Modellschätzung).</div>`;
+  const prog=`<div style="overflow-x:auto"><table class="t"><thead><tr><th>Woche</th><th>Fokus</th><th class="r">Speed</th><th class="r">Power</th><th class="r">Mix</th></tr></thead><tbody>${WEEKS.map((wk,i)=>`<tr ${!pos.pre&&i===pos.week?'style="background:color-mix(in srgb,var(--accent) 12%,transparent)"':''}><td><b>${i+1}</b> ${wk.name}</td><td class="small muted">${wk.tip}</td>${KIND_ORDER.map(k=>`<td class="r num">${planFor(k,i,dev).length} Sätze</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const setup=`<div class="stack-v">
+      ${card('Gerät',dvPicker('pickdev',dev))}
+      <div class="grid ${c?'':'g3'}" id="kinds">${kinds}</div>
+      ${card('Optionen',`<div class="switch"><span>🎯 Driver-Transfer-Satz am Ende (3 Swings, misst den Übertrag)</span><input type="checkbox" id="optTransfer" ${S.settings.transfer?'checked':''}></div>
+        <div class="hr"></div>
+        <div class="row wrap"><button class="btn primary lg" data-a="startRun">▶ Einheit starten</button><button class="btn lg" data-a="startTest">🎯 Speed-Test (Driver)</button></div>`)}
+      ${card('Lasten dieser Einheit',loads)}</div>`;
+  const side=`<div class="stack-v">${card('4-Wochen-Block',prog)}${scienceCard()}</div>`;
+  return `${head('Training',pos.pre?'Programm startet bald':`Block ${pos.block} · Woche ${pos.week+1} – ${w.name}`)}
+  ${c?`<div class="stack-v">${setup}${side}</div>`:`<div class="grid g21" style="align-items:start">${setup}${side}</div>`}`;
+}
+function scienceCard(){
+  return card('Trainingsprinzipien',`<details class="sci" ${isCompact()?'':'open'}><summary>Wie das Programm aufgebaut ist</summary><ul class="small">
+    <li><b>Overspeed + Overload:</b> Leichte (unter Driver-Trägheit) und schwere Lasten im Wechsel – Studien zu Over-/Underload-Training zeigen nach ca. 6–12 Wochen meist einige Prozent mehr Schlägerkopfgeschwindigkeit (individuell sehr unterschiedlich).</li>
+    <li><b>Maximale Absicht:</b> Jeder Swing so schnell wie möglich – das Programm lebt von Tempo, nicht von Ermüdung.</li>
+    <li><b>Kurze Sätze, volle Erholung:</b> ${S.settings.swings} Swings pro Satz, ${S.settings.rest} s Pause.</li>
+    <li><b>Beide Seiten:</b> Wechsel zwischen normaler und Gegenseite für Symmetrie.</li>
+    <li><b>Frequenz:</b> 3 Einheiten/Woche mit ≥ 24–48 h Abstand, je 10–15 Min.</li>
+    <li><b>Periodisierung:</b> 3 Wochen Steigerung, 1 Woche Deload mit Speed-Test. Gewichte im Block konstant halten.</li>
+    <li><b>eSpeed:</b> Der Radar-Wert wird mit Länge und Trägheit des Geräts auf einen Driver-Wert umgerechnet (Modellschätzung, in den Einstellungen kalibrierbar).</li>
+    <li><b>Ergänzung:</b> 2×/Woche Kraft (Kniebeuge/Kreuzheben, Rotations- & Sprungkraft) und Mobilität.</li>
+    <li class="muted">Bei Schmerzen abbrechen. Dies ersetzt keine ärztliche oder trainerische Beratung.</li></ul></details>`);
+}
+const WARM=[
+  ['Schultern & Brustwirbelsäule mobilisieren','10× Arm-Kreisen, 10× Thorax-Rotation im Vierfüßler'],
+  ['Hüftöffner','Tiefer Ausfallschritt mit Rotation, je Seite 5×'],
+  ['Aktivierung','10 Glute-Bridges & 10 Rotationen mit Band/Stick, locker'],
+  ['Langsame Swings','8 Swings bei ca. 50 % Tempo, beide Seiten'],
+  ['Steigerung','3 Swings bei ca. 75 % Tempo']
+];
+function startRun(kind){
+  const pos=programPos(),dev=S.settings.device,steps=[{t:'warm'}];
+  if(kind==='test'){for(let i=0;i<3;i++)steps.push({t:'set',...mkSet('driver','M','normal',5),test:true})}
+  else{planFor(kind,pos.week,dev).forEach(s=>steps.push({t:'set',...s}));if(S.settings.transfer&&dev!=='driver')steps.push({t:'set',...mkSet('driver','M','normal',3),transfer:true})}
+  steps.push({t:'finish'});
+  G={kind,steps,i:0,sets:[],resting:0,timer:null,start:Date.now(),warm:[],cur:[]};
+  try{navigator.wakeLock?.request('screen').then(l=>G.lock=l).catch(()=>{})}catch(e){}
+  render();
+}
+function stopRun(){clearInterval(G?.timer);try{G?.lock?.release()}catch(e){};G=null}
+function setCue(st){
+  if(st.dev==='driver')return st.test?'Maximaler Test – wie ein Ernstfall-Drive. Alle Swings voll.':'Transfer: Driver, volle Absicht – nutze das neue Tempogefühl.';
+  return {L:'Locker greifen, maximal schnell durch den Treffbereich. Ziel: neues Tempo-Gefühl.',M:'Referenzlast: explosiv, aber kontrolliert, voller Schwungbogen.',H:'Kraftvoll beschleunigen, Körper rotiert, Arme folgen. Nicht „drücken“.'}[st.plan||st.lvl];
+}
+function swingCells(st){
+  return Array.from({length:st.swings},(_,i)=>`<div class="swcell"><div class="n">Swing ${i+1}</div><input type="number" step="0.1" inputmode="decimal" class="swin" data-i="${i}" value="${G.cur[i]??''}" placeholder="–"><div class="es" id="es${i}"></div></div>`).join('');
+}
+function updateSwingStats(){
+  const st=G.steps[G.i];if(!st||st.t!=='set')return;
+  const vals=$$('.swin').map(el=>parseFloat(el.value)),ok=vals.filter(v=>v>0);
+  G.cur=vals.map(v=>isNaN(v)?'':v);
+  vals.forEach((v,i)=>{const el=$('#es'+i);if(el)el.textContent=v>0&&st.dev!=='driver'?'≈ '+toU(eSpeed(st.dev,st.w,fromU(v))).toFixed(1):''});
+  const s=$('#runSum');
+  if(s)s.innerHTML=ok.length?`Bester Swing: <b>${Math.max(...ok).toFixed(1)}</b> ${uLabel()}${st.dev!=='driver'?` <span class="eq">≈ ${toU(eSpeed(st.dev,st.w,fromU(Math.max(...ok)))).toFixed(1)} Driver-Speed</span>`:''}`:'&nbsp;';
+}
+function runnerView(){
+  const st=G.steps[G.i],total=G.steps.filter(x=>x.t==='set').length;
+  const head2=`<div class="row sp small muted" style="margin-bottom:6px"><span>${G.kind==='test'?'Speed-Test':KINDS[G.kind].name}</span><button class="btn sm ghost danger" data-a="abort">Abbrechen</button></div>
+    <div class="bar" style="margin-bottom:14px"><i style="width:${G.i/(G.steps.length-1)*100}%"></i></div>`;
+  let body='';
+  if(G.resting>0){
+    const nx=G.steps[G.i];
+    body=`<div class="card stepcard"><div class="muted">Pause</div><div class="timer" id="restNum">${G.resting}</div><div class="muted">Sekunden · ruhig atmen, Schultern lösen</div>
+      <div class="hr"></div><div class="small muted">Als Nächstes</div>${nx.t==='set'?`<div style="margin-top:6px">${dvChip(nx.dev,loadLabel(nx.dev,nx.lvl,nx.w))} · ${nx.swings} Swings · ${sideName(nx.side)}</div>`:''}
+      <button class="btn primary lg" style="margin-top:16px" data-a="skipRest">Weiter ▸</button></div>`;
+  }else if(st.t==='warm'){
+    body=`<div class="card stepcard"><h2>🔥 Aufwärmen (≈ 5 Min)</h2><div class="muted small">Ohne Aufwärmen keine Maximalgeschwindigkeit – schützt auch Schulter & Rücken.</div>
+      <div class="checklist">${WARM.map((w,i)=>`<label><input type="checkbox" data-a="warmchk" data-i="${i}" ${G.warm[i]?'checked':''}><span><b>${w[0]}</b><br><span class="small muted">${w[1]}</span></span></label>`).join('')}</div>
+      <button class="btn primary lg" data-a="next">Los geht's ▸</button></div>`;
+  }else if(st.t==='set'){
+    const idx=G.steps.slice(0,G.i+1).filter(x=>x.t==='set').length;
+    const col=DEV[st.dev].color;
+    const lvTxt=st.dev==='driver'?'Driver':`${LV[st.lvl]} · ${loadLabel(st.dev,st.lvl,st.w)}`;
+    body=`<div class="card stepcard" style="border-top:4px solid ${col}"><div class="muted small">Satz ${idx} von ${total}</div>
+      <div style="margin:8px 0">${dvPicker('setdev',st.dev)}</div>
+      <div class="bigstick" style="margin:6px 0">${lvTxt}</div>
+      <div class="row wrap" style="justify-content:center;gap:6px"><span class="tag">${sideName(st.side)}</span><span class="tag">${st.swings} Swings</span>${st.dev!=='driver'?`<span class="tag">Trägheit ${Math.round(inertiaRatio(st.dev,st.w)*100)} % Driver</span>`:''}</div>
+      <div class="note" style="margin:12px 0;text-align:left">${setCue(st)}</div>
+      <div class="tiny muted">Radar-Wert pro Swing (${uLabel()})${st.dev!=='driver'?' – darunter der Driver-Äquivalent-Speed':''}</div>
+      <div class="swgrid">${swingCells(st)}</div>
+      <div class="small" id="runSum">&nbsp;</div>
+      <div class="row" style="justify-content:center;margin-top:16px"><button class="btn lg" data-a="skipSet">Ohne Messung</button><button class="btn primary lg" data-a="saveSet">Satz fertig ✓</button></div></div>`;
+  }else{
+    const sw=G.sets.reduce((a,b)=>a+b.swings,0);
+    body=`<div class="card stepcard"><h2>🎉 Geschafft!</h2><div class="muted">${G.sets.length} Sätze · ${sw} Swings · ${Math.max(1,Math.round((Date.now()-G.start)/60000))} Min</div>
+      <div class="field" style="margin-top:16px;text-align:left"><label>Anstrengung (RPE): <b id="rpeV">6</b>/10</label><input type="range" id="rpe" min="1" max="10" value="6" oninput="document.getElementById('rpeV').textContent=this.value"></div>
+      <label class="switch" style="text-align:left"><span>Schmerzen / Beschwerden (Schulter, Rücken, Ellbogen …)</span><input type="checkbox" id="pain"></label>
+      <div class="field" style="text-align:left"><label>Notiz</label><textarea id="note" rows="2" placeholder="Gefühl, Bedingungen, Besonderheiten …"></textarea></div>
+      <button class="btn primary lg" style="margin-top:14px" data-a="finishRun">Einheit speichern</button></div>`;
+  }
+  return `<div class="runner">${head2}${body}</div>`;
+}
+function advance(){
+  G.i++;G.cur=[];const nx=G.steps[G.i];
+  if(nx&&nx.t==='set'&&G.sets.length){
+    G.resting=nx.dev==='driver'?Math.max(S.settings.rest,60):S.settings.rest;
+    clearInterval(G.timer);
+    G.timer=setInterval(()=>{G.resting--;const el=$('#restNum');if(el)el.textContent=Math.max(G.resting,0);
+      if(G.resting<=3&&G.resting>0)beep(660,.08);
+      if(G.resting<=0){clearInterval(G.timer);beep(980,.3);G.resting=0;render()}},1000);
+  }
+  render();
+}
+
+/* ---------- Verlauf ---------- */
+function setLine(x,compact){
+  const e=x.dev!=='driver'&&x.max?emaxOf(x):0;
+  const vals=(x.v&&x.v.length?x.v:[x.max]).map(v=>fmt(v)).join(' · ');
+  if(compact)return `<div class="setline">${dvChip(x.dev,x.dev==='driver'?'Driver':`${LV[x.lvl]} ${x.w} g`)}<span class="num"><b>${fmt(x.max)}</b> ${e?`<span class="eq">≈ ${fmt(e)}</span>`:''}</span></div>`;
+  return `<div class="setline">${dvChip(x.dev,x.dev==='driver'?'Driver':`${LV[x.lvl]} · ${loadLabel(x.dev,x.lvl,x.w)}`)}<span class="tiny muted">${x.side==='gegen'?'Gegenseite':'normal'} · ${x.swings}×</span>
+    <span class="num small">${vals}</span>${e?`<span class="eq num">≈ ${fmt(e)}</span>`:''}</div>`;
+}
+function pageHist(){
+  const f=ui.histFilter,c=isCompact();
+  const list=[...S.sessions].filter(s=>f==='all'||s.type===f).sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
+  const items=list.map(s=>`<section class="card sess"><div class="row sp wrap"><div><b>${c?fmtShort(s.date):fmtDate(s.date)}</b> <span class="tag">${s.type==='test'?'Speed-Test':s.type==='free'?'Frei':(KINDS[s.kind]?.name||'Training')}</span> ${(s.pbs||[]).map(p=>`<span class="pbtag">🏆 ${pbLabel(p.key)}</span>`).join(' ')}${s.pain?' <span class="tag" style="color:var(--danger)">⚠</span>':''}</div>
+    <div class="row"><span class="tag num">+${s.xp||0} XP</span><button class="btn sm" data-a="edit" data-id="${s.id}">✎</button>${c?'':`<button class="btn sm danger" data-a="del" data-id="${s.id}">Löschen</button>`}</div></div>
+    ${s.sets.map(x=>setLine(x,c)).join('')}
+    <div class="small muted">${swingsOf(s)} Swings${s.rpe?` · RPE ${s.rpe}`:''}${s.note?` · „${esc(s.note)}“`:''}</div></section>`).join('');
+  return `${head('Verlauf',`${S.sessions.length} Einheiten · ${S.sessions.reduce((a,s)=>a+swingsOf(s),0)} Swings`,`<button class="btn primary sm" data-a="manual">＋ Nachtragen</button>`)}
+  <div class="chips" style="margin-bottom:12px">${[['all','Alle'],['training','Training'],['test','Tests'],['free','Frei']].map(([k,l])=>`<button class="chip ${f===k?'on':''}" data-a="hfilter" data-v="${k}">${l}</button>`).join('')}</div>
+  <div class="stack-v">${items||'<div class="card empty">Noch keine Einheiten. Starte dein erstes Training oder trage eine Einheit nach.</div>'}</div>`;
+}
+function loadSelect(dev,sel){
+  if(dev==='driver')return '<option value="0">–</option>';
+  return loadOptions(dev).map(o=>`<option value="${o.w}" ${o.w===sel?'selected':''}>${loadLabel(dev,'',o.w)}</option>`).join('');
+}
+function editorRow(x){
+  const dev=x.dev||'stack',lv=x.lvl||'L',w=x.w||loadFor(dev,lv);
+  return `<div class="setrow">
+    <div class="field"><label>Gerät</label><select class="r-dev" data-a="rdev">${DEVS.map(k=>`<option value="${k}" ${dev===k?'selected':''}>${DEV[k].name}</option>`).join('')}</select></div>
+    <div class="field"><label>Gewicht</label><select class="r-w">${loadSelect(dev,w)}</select></div>
+    <div class="field"><label>Stufe</label><select class="r-lv">${['L','M','H'].map(k=>`<option value="${k}" ${lv===k?'selected':''}>${LV[k]}</option>`).join('')}</select></div>
+    <div class="field"><label>Seite</label><select class="r-side"><option value="normal" ${x.side!=='gegen'?'selected':''}>Normal</option><option value="gegen" ${x.side==='gegen'?'selected':''}>Gegenseite</option></select></div>
+    <button class="btn sm danger" data-a="rmrow" title="Satz löschen">✕</button>
+    <div class="field wide"><label>Radar-Werte pro Swing (${uLabel()}, durch Leerzeichen getrennt)</label><input type="text" class="r-v" inputmode="decimal" value="${(x.v||[]).map(v=>toU(v).toFixed(1)).join(' ')}" placeholder="z. B. 98,4 99,1 100,3 97,8 99,6"></div></div>`;
+}
+function editorSheet(sess){
+  const s=sess||{id:null,date:today(),type:'free',sets:[{dev:S.settings.device,lvl:'L',v:[],side:'normal'}],rpe:'',note:'',pain:false};
+  openModal(`<div class="row sp" style="margin-bottom:12px"><h2>${sess?'Einheit bearbeiten':'Einheit nachtragen'}</h2><button class="btn sm ghost" data-a="closeModal">✕</button></div>
+  <div class="form2"><div class="field"><label>Datum</label><input type="date" id="e-date" value="${s.date}" max="${today()}"></div>
+  <div class="field"><label>Art</label><select id="e-type"><option value="free" ${s.type==='free'?'selected':''}>Freies Training</option><option value="training" ${s.type==='training'?'selected':''}>Programm-Training</option><option value="test" ${s.type==='test'?'selected':''}>Speed-Test</option></select></div>
+  <div class="field"><label>RPE (1–10)</label><input type="number" id="e-rpe" min="1" max="10" value="${s.rpe||''}"></div></div>
+  <div class="hr"></div><div class="stack-v" id="e-rows">${s.sets.map(editorRow).join('')}</div>
+  <button class="btn sm" style="margin-top:10px" data-a="addrow">＋ Satz hinzufügen</button>
+  <div class="field" style="margin-top:14px"><label>Notiz</label><textarea id="e-note" rows="2">${esc(s.note||'')}</textarea></div>
+  <label class="switch"><span>Beschwerden</span><input type="checkbox" id="e-pain" ${s.pain?'checked':''}></label>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="closeModal">Abbrechen</button><button class="btn primary" data-a="saveEdit" data-id="${s.id||''}">Speichern</button></div>`);
+}
+const parseVals=t=>t.replace(/,/g,'.').split(/[\s;]+/).map(parseFloat).filter(n=>n>0);
+function saveEditor(id){
+  const sets=$$('#e-rows .setrow').map(r=>{
+    const dev=$('.r-dev',r).value,v=parseVals($('.r-v',r).value).map(fromU);
+    const lv=dev==='driver'?'D':$('.r-lv',r).value;
+    return normSet({dev,lvl:lv,w:dev==='driver'?0:+$('.r-w',r).value,side:$('.r-side',r).value,swings:v.length,v});
+  }).filter(x=>x.swings>0);
+  if(!sets.length){toast('Bitte mindestens einen Satz mit Messwerten eintragen.');return}
+  const old=id?S.sessions.find(s=>s.id===id):null;
+  const sess={id:old?.id||uid(),created:old?.created||Date.now(),date:$('#e-date').value||today(),type:$('#e-type').value,kind:old?.kind,
+    sets,rpe:+$('#e-rpe').value||null,note:$('#e-note').value.trim(),pain:$('#e-pain').checked};
+  commitSession(sess,!!old);closeModal();render();
+}
+function commitSession(sess,isEdit){
+  const before=levelInfo(totalXP()).level;
+  sess.pbs=computePBs(sess);sess.xp=calcXP(sess);
+  if(isEdit){const i=S.sessions.findIndex(s=>s.id===sess.id);S.sessions[i]=sess}else S.sessions.push(sess);
+  const fresh=checkBadges(true),qs=checkQuests(weekStart(sess.date));
+  persist();
+  const after=levelInfo(totalXP());
+  return {fresh,qs,levelUp:after.level>before?after:null};
+}
+function summarySheet(sess,res){
+  const li=levelInfo(totalXP());
+  openModal(`<div style="text-align:center"><div style="font-size:3rem">${(sess.pbs.length||res.levelUp)?'🏆':'✅'}</div><h2>Einheit gespeichert</h2>
+  <div class="big num" style="margin:8px 0">+${sess.xp} <small>XP</small></div>
+  ${sess.pbs.map(p=>`<div class="note" style="margin:6px 0;text-align:left">🏆 <b>Neuer Bestwert ${pbLabel(p.key)}:</b> ${fmt(p.val)} ${uLabel()} (vorher ${fmt(p.prev)}, ${fmtSigned(p.val-p.prev)})</div>`).join('')}
+  ${res.levelUp?`<div class="note" style="margin:6px 0;text-align:left">⭐ <b>Level ${res.levelUp.level}</b> – ${esc(res.levelUp.title)}!</div>`:''}
+  ${res.qs.map(q=>`<div class="note" style="margin:6px 0;text-align:left">${q.icon} Quest erledigt: ${q.name} (+60 XP)</div>`).join('')}
+  ${res.fresh.map(b=>`<div class="note" style="margin:6px 0;text-align:left">${b.i} Abzeichen: <b>${b.n}</b> – ${b.d}</div>`).join('')}
+  <div class="bar" style="margin:14px 0 4px"><i style="width:${li.into/li.need*100}%"></i></div><div class="tiny muted">Level ${li.level} · ${li.into}/${li.need} XP</div>
+  <button class="btn primary lg" style="margin-top:16px" data-a="closeModal">Weiter</button></div>`);
+  if(sess.pbs.length||res.levelUp||res.fresh.length)confetti();
+}
+
+/* ---------- Auswertung ---------- */
+function pageAna(){
+  const c=isCompact(),sets=allSets();
+  const ctl=`<div class="row sp wrap" style="margin-bottom:8px">${chipsRange('anarange',ui.anaRange)}${chipsBasis('anabasis',ui.anaBasis)}</div>
+    <div class="row sp wrap" style="margin-bottom:8px">${chipsMetric('anametric',ui.anaMetric,ui.anaBasis)}
+    <div class="chips"><button class="chip ${ui.anaMode==='best'?'on':''}" data-a="anamode" data-v="best">Tagesbestwert</button><button class="chip ${ui.anaMode==='ma'?'on':''}" data-a="anamode" data-v="ma">Gleitender Ø</button></div></div><div id="anaChart"></div>`;
+  const rows=['all',...DEVS].map(k=>{
+    const d=dailyBest(k,ui.anaBasis,sets),rd=rangeFilter(d,ui.anaRange);
+    const label=k==='all'?'<span class="tag">Alle (eSpeed)</span>':dvChip(k);
+    if(!d.length)return `<tr><td>${label}</td><td colspan="5" class="muted small">Keine Daten</td></tr>`;
+    const best=d.reduce((a,b)=>b.v>a.v?b:a),r=regress(rd),cnt=sets.filter(x=>k==='all'||x.dev===k).length;
+    const avg=rd.length?rd.reduce((a,b)=>a+b.v,0)/rd.length:null;
+    return `<tr><td>${label}</td><td class="r num"><b>${fmt(best.v)}</b><div class="tiny muted">${fmtShort(best.date)}</div></td><td class="r num">${fmt(avg)}</td><td class="r num">${rd.length}</td><td class="r num">${cnt}</td><td class="r num">${r?deltaTag(r.slope*30,false):'<span class="muted">–</span>'}</td></tr>`}).join('');
+  const stats=card(`Kennzahlen (${ui.anaBasis==='e'?'eSpeed':'Radar'})`,`<div style="overflow-x:auto"><table class="t"><thead><tr><th>Gerät</th><th class="r">Bestwert</th><th class="r">Ø Zeitraum</th><th class="r">Tage</th><th class="r">Sätze</th><th class="r">Trend/30 T</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+  if(c)return `${head('Auswertung','Trends & Bestwerte')}<div class="stack-v">${card('Verlauf',ctl)}${stats}${card('Swings pro Woche',`<div id="anaVol"></div>${legendDev()}`)}</div>`;
+
+  /* Last-Profil */
+  const cut=addDays(today(),-42),groups=new Map();
+  for(const x of sets.filter(x=>x.date>=cut)){const k=x.dev+':'+x.w,g=groups.get(k)||{dev:x.dev,w:x.w,lvl:x.lvl,max:0,emax:0,n:0};g.max=Math.max(g.max,x.max);g.emax=Math.max(g.emax,x.emax);g.n+=x.swings;groups.set(k,g)}
+  const prof=[...groups.values()].sort((a,b)=>a.dev.localeCompare(b.dev)||a.w-b.w);
+  const pmax=Math.max(1,...prof.map(p=>p.max));
+  const profHtml=prof.length?prof.map(p=>`<div class="stack-v" style="gap:3px"><div class="row sp small"><span>${dvChip(p.dev,p.dev==='driver'?'Driver':`${LV[p.lvl]} ${p.w} g`)} <span class="muted tiny">${p.dev!=='driver'?Math.round(inertiaRatio(p.dev,p.w)*100)+' % Trägheit':''}</span></span><b class="num">${fmt(p.max)} ${p.dev!=='driver'?`<span class="eq">≈ ${fmt(p.emax)}</span>`:''}</b></div><div class="bar"><i style="width:${p.max/pmax*100}%;background:${DEV[p.dev].color}"></i></div></div>`).join(''):'<div class="empty">Keine Daten in den letzten 6 Wochen.</div>';
+  /* Transfer-Check */
+  const dr=sets.filter(x=>x.dev==='driver'&&x.date>=cut),ot=sets.filter(x=>x.dev!=='driver'&&x.date>=cut);
+  let tc='<div class="muted small">Für den Transfer-Check werden Driver-Messungen und Stack/Pure2-Sätze aus den letzten 6 Wochen benötigt.</div>';
+  if(dr.length&&ot.length){const d=Math.max(...dr.map(x=>x.max)),e=Math.max(...ot.map(x=>x.emax)),r=d/e;
+    tc=`<div class="row sp"><span>Driver real (Bestwert)</span><b class="num">${fmt(d)}</b></div><div class="row sp"><span>Bester eSpeed (Stack/Pure2)</span><b class="num">${fmt(e)}</b></div>
+      <div class="hr"></div><div class="small">Verhältnis real/eSpeed: <b>${(r*100).toFixed(1)} %</b>. ${Math.abs(r-1)<.02?'Das Modell passt gut.':r<1?'Das Modell überschätzt dich – Kalibrierung in den Einstellungen.':'Das Modell unterschätzt dich – Kalibrierung in den Einstellungen.'}</div>`}
+  /* Blöcke */
+  const blocks=new Map();
+  for(const x of sets){const w=Math.floor(diffDays(x.date,S.settings.programStart)/7),b=w<0?0:Math.floor(w/4)+1;
+    const o=blocks.get(b)||{n:new Set(),sw:0,E:0,D:0};o.n.add(x.sid);o.sw+=+x.swings||0;o.E=Math.max(o.E,x.emax);if(x.dev==='driver')o.D=Math.max(o.D,x.max);blocks.set(b,o)}
+  const bl=[...blocks].sort((a,b)=>a[0]-b[0]).map(([b,o])=>`<tr><td>${b?'Block '+b:'Vor Programm'}</td><td class="r num">${o.n.size}</td><td class="r num">${o.sw}</td><td class="r num">${fmt(o.E)}</td><td class="r num">${fmt(o.D)}</td></tr>`).join('');
+  const wd=[0,0,0,0,0,0,0];S.sessions.forEach(s=>wd[(parseD(s.date).getDay()+6)%7]++);const wmax=Math.max(1,...wd);
+  const wdHtml=`<div class="row" style="align-items:flex-end;height:90px;gap:8px">${wd.map((n,i)=>`<div style="flex:1;text-align:center"><div style="height:${n/wmax*64}px;min-height:${n?4:1}px;background:var(--accent);border-radius:4px 4px 0 0;opacity:${n?1:.2}"></div><div class="tiny muted">${DOW[i]}<br><b>${n}</b></div></div>`).join('')}</div>`;
+  const dm=new Map();dailyBest('all','e',sets).forEach(p=>{const k=p.date.slice(0,7);(dm.get(k)||dm.set(k,[]).get(k)).push(p.v)});
+  const mrows=[...dm].sort().slice(-12).map(([k,a])=>`<tr><td>${MON[+k.slice(5)-1]} ${k.slice(0,4)}</td><td class="r num">${a.length}</td><td class="r num">${fmt(a.reduce((x,y)=>x+y)/a.length)}</td><td class="r num"><b>${fmt(Math.max(...a))}</b></td></tr>`).join('');
+  const rp=S.sessions.filter(s=>s.rpe),avgRpe=rp.length?(rp.reduce((a,s)=>a+s.rpe,0)/rp.length).toFixed(1):'–';
+  return `${head('Auswertung','Trends, Bestwerte und Vergleiche')}
+  ${card('Geschwindigkeitsverlauf',ctl)}
+  <div class="grid g2" style="margin:14px 0">${stats}${card('Last-Profil · 6 Wochen',`<div class="stack-v">${profHtml}</div>`)}</div>
+  <div class="grid g3" style="margin-bottom:14px">
+   ${card('Wochenvolumen · Swings',`<div id="anaVol"></div>${legendDev()}`)}
+   ${card('Transfer-Check',tc)}
+   ${card('Trainingstage',`${wdHtml}<div class="hr"></div><div class="small muted">Ø RPE: <b style="color:var(--text)">${avgRpe}</b> · Einheiten: <b style="color:var(--text)">${S.sessions.length}</b></div>`)}
+  </div>
+  <div class="grid g2">
+   ${card('Blockvergleich',`<div style="overflow-x:auto"><table class="t"><thead><tr><th>Block</th><th class="r">Einh.</th><th class="r">Swings</th><th class="r">eSpeed</th><th class="r">Driver real</th></tr></thead><tbody>${bl||'<tr><td colspan="5" class="muted">Keine Daten</td></tr>'}</tbody></table></div>`)}
+   ${card('eSpeed nach Monat',`<div style="overflow-x:auto"><table class="t"><thead><tr><th>Monat</th><th class="r">Tage</th><th class="r">Ø</th><th class="r">Best</th></tr></thead><tbody>${mrows||'<tr><td colspan="4" class="muted">Keine Daten</td></tr>'}</tbody></table></div>`)}
+  </div>`;
+}
+function afterAna(){
+  const keys=(ui.anaBasis==='raw'?ui.anaMetric.filter(x=>x!=='all'):ui.anaMetric);
+  const ks=keys.length?keys:['driver'];
+  const series=ks.map(k=>({name:metricName(k)+(ui.anaBasis==='raw'?' (Radar)':''),color:metricColor(k),pts:rangeFilter(dailyBest(k,ui.anaBasis),ui.anaRange),ma:ui.anaMode==='ma',trend:ks.length===1}));
+  lineChart($('#anaChart'),{series,goal:ui.anaBasis==='e'&&ks.length===1&&ks[0]==='all'&&S.settings.goal?fromU(S.settings.goal):null,H:isCompact()?220:300});
+  volChart($('#anaVol'),ui.anaRange==='W4'?4:ui.anaRange==='ALL'?26:12);
+}
+
+/* ---------- Erfolge ---------- */
+function pageAch(){
+  const xp=totalXP(),li=levelInfo(xp),st=weekStreaks(),got=Object.keys(S.badges).length,c=isCompact();
+  const bd=BADGES.map(b=>{const d=S.badges[b.id];return `<div class="badge ${d?'':'locked'}"><div class="bi">${b.i}</div><div><b>${b.n}</b><div class="small muted">${b.d}</div><div class="tiny" style="color:var(--ok)">${d?'Erreicht am '+fmtShort(d):'Noch gesperrt'}</div></div></div>`}).join('');
+  const quests=weeklyQuests().map(q=>`<div class="quest"><div class="row sp"><span>${q.icon} ${q.name}</span><b class="num">${Math.min(q.cur,q.max)}/${q.max}${S.questsDone[q.id]?' ✅':''}</b></div><div class="bar"><i style="width:${Math.min(1,q.cur/q.max)*100}%"></i></div></div>`).join('');
+  const titles=TITLES.map((t,i)=>`<div class="row sp small" style="${Math.floor((li.level-1)/3)===i?'color:var(--accent);font-weight:700':'color:var(--muted)'}"><span>Level ${i*3+1}–${i*3+3}</span><span>${t}</span></div>`).join('');
+  return `${head('Erfolge',`${got} von ${BADGES.length} Abzeichen`)}
+  <div class="grid g3" style="margin-bottom:14px">
+    ${card('Level',`<div class="big num">${li.level}<small>${esc(li.title)}</small></div><div class="bar" style="margin:10px 0 4px"><i style="width:${li.into/li.need*100}%"></i></div><div class="tiny muted">${li.into} / ${li.need} XP bis Level ${li.level+1} · Gesamt ${xp} XP</div>`)}
+    ${card('Serie',`<div class="big num">${st.cur}<small>Wochen</small></div><div class="small muted" style="margin-top:6px">Rekord: ${st.best} · Ziel: ${S.settings.weekly} Einheiten/Woche</div>`)}
+    ${card('Wochenquests',`<div class="stack-v">${quests}</div>`)}
+  </div>
+  <div class="grid g21"><div>${card('Abzeichen',`<div class="grid g2 keep2" style="${c?'grid-template-columns:minmax(0,1fr)':''}">${bd}</div>`)}</div>
+  <div class="stack-v">${card('Titel',`<div class="stack-v" style="gap:6px">${titles}</div>`)}
+  ${card('So gibt es XP',`<ul class="small" style="margin:0;padding-left:18px;display:grid;gap:4px"><li>Einheit: <b>100 XP</b> (Test: 80)</li><li>Jeder Swing: <b>+1 XP</b></li><li>Leicht, Mittel & Schwer genutzt: <b>+40 XP</b></li><li>Neuer Bestwert (je Gewicht/eSpeed): <b>+60 XP</b></li><li>RPE eingetragen: <b>+10 XP</b></li><li>Wochenquest: <b>+60 XP</b></li></ul>`)}</div></div>`;
+}
+
+/* ---------- Einstellungen ---------- */
+function equipTable(){
+  const rows=[];
+  for(const dev of ['stack','pure'])for(const lv of ['L','M','H']){
+    const w=loadFor(dev,lv);rows.push(`<tr><td>${dvChip(dev)}</td><td>${LV[lv]}</td><td>${loadLabel(dev,lv,w)}</td><td class="r num">${Math.round(inertiaRatio(dev,w)*100)} %</td><td class="r num">×${eFactor(dev,w).toFixed(3)}</td></tr>`)}
+  return `<div style="overflow-x:auto"><table class="t"><thead><tr><th>Gerät</th><th>Stufe</th><th>Gewicht</th><th class="r">Trägheit vs. Driver</th><th class="r">Radar → eSpeed</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+function pageSet(){
+  const s=S.settings,e=s.equip;
+  const loadSel=(dev,lv)=>`<div class="field"><label>${LV[lv]}${dev==='pure'?' ('+PURE_COL[['L','M','H'].indexOf(lv)]+')':''}</label><select data-set="loads.${dev}.${lv}">${loadOptions(dev).map(o=>`<option value="${o.w}" ${o.w===s.loads[dev][lv]?'selected':''}>${loadLabel(dev,lv,o.w)}</option>`).join('')}</select></div>`;
+  return `${head('Einstellungen','Alle Daten liegen lokal in deinem Browser')}
+  <div class="grid g2">
+   ${card('Profil & Ziel',`<div class="form2">
+     <div class="field"><label>Name</label><input type="text" data-set="name" value="${esc(s.name)}"></div>
+     <div class="field"><label>Einheit</label><select data-set="unit"><option value="mph" ${s.unit==='mph'?'selected':''}>mph</option><option value="kmh" ${s.unit==='kmh'?'selected':''}>km/h</option></select></div>
+     <div class="field"><label>Ziel eSpeed (${uLabel()})</label><input type="number" step="0.1" data-set="goal" value="${s.goal||''}" placeholder="z. B. ${U()==='mph'?'105':'170'}"></div>
+     <div class="field"><label>Wochenziel (Einheiten)</label><select data-set="weekly">${[2,3,4,5].map(n=>`<option ${s.weekly===n?'selected':''}>${n}</option>`).join('')}</select></div>
+     <div class="field"><label>Design</label><select data-set="theme"><option value="auto" ${s.theme==='auto'?'selected':''}>Automatisch</option><option value="dark" ${s.theme==='dark'?'selected':''}>Dunkel</option><option value="light" ${s.theme==='light'?'selected':''}>Hell</option></select></div>
+     <div class="field"><label>Ansicht</label><select data-set="view"><option value="auto" ${s.view==='auto'?'selected':''}>Automatisch (Handy = kompakt)</option><option value="compact" ${s.view==='compact'?'selected':''}>Immer kompakt</option><option value="full" ${s.view==='full'?'selected':''}>Immer ausführlich</option></select></div>
+   </div>`)}
+   ${card('Standardgerät & Programm',`<div class="stack-v">${dvPicker('pickdev',s.device)}<div class="form2">
+     <div class="field"><label>Blockstart (Woche 1)</label><input type="date" data-set="programStart" value="${s.programStart}"></div>
+     <div class="field"><label>Swings pro Satz</label><input type="number" min="3" max="10" data-set="swings" value="${s.swings}"></div>
+     <div class="field"><label>Pause zwischen Sätzen (s)</label><input type="number" min="15" max="120" data-set="rest" value="${s.rest}"></div></div>
+     <label class="switch"><span>Driver-Transfer-Satz standardmäßig</span><input type="checkbox" data-set="transfer" ${s.transfer?'checked':''}></label>
+     <label class="switch"><span>Signaltöne in der Pause</span><input type="checkbox" data-set="sound" ${s.sound?'checked':''}></label>
+     <button class="btn" data-a="newBlock">Neuen Block heute starten</button></div>`)}
+   ${card('Gewichte: Stack System (gelb/schwarz)',`<div class="form2">${['L','M','H'].map(lv=>loadSel('stack',lv)).join('')}</div>
+     <div class="tiny muted" style="margin:8px 0">Stack: 5 Gewichte (20/45/60/75/100 g), kombinierbar auf 0–300 g (Herstellerangabe: 30 Kombinationen). Vorschlag: Leicht ≈ 75 %, Mittel ≈ 100 %, Schwer ≈ 125 % der Driver-Trägheit.</div>
+     <details class="sci"><summary>Gerätedaten (Länge, Leergewicht)</summary><div class="form2" style="margin-top:8px">
+      <div class="field"><label>Länge (Zoll)</label><input type="number" step="0.1" data-set="equip.stack.len" value="${e.stack.len}"></div>
+      <div class="field"><label>Leergewicht (g)</label><input type="number" data-set="equip.stack.m0" value="${e.stack.m0}"></div>
+      <div class="field"><label>Einzelgewichte (g, Komma)</label><input type="text" data-set="equip.stack.weights" value="${e.stack.weights.join(',')}"></div></div></details>`)}
+   ${card('Gewichte: Pure2 Swing Speed Trainer (weiß/rot)',`<div class="form2">${['L','M','H'].map((lv,i)=>`<div class="field"><label>${LV[lv]} (${PURE_COL[i]}) – g</label><input type="number" data-set="pureW.${i}" value="${e.pure.weights[i]}"></div>`).join('')}</div>
+     <div class="tiny muted" style="margin:8px 0">Pure2: Weiß/Silber ≈ 120 g, Rot ≈ 151 g, Schwarz ≈ 185 g (Händlerangaben). Länge & Leergewicht des Trainers sind <b>geschätzt</b> – bitte nachmessen.</div>
+     <details class="sci"><summary>Gerätedaten (Länge, Leergewicht)</summary><div class="form2" style="margin-top:8px">
+      <div class="field"><label>Länge (Zoll)</label><input type="number" step="0.1" data-set="equip.pure.len" value="${e.pure.len}"></div>
+      <div class="field"><label>Leergewicht (g)</label><input type="number" data-set="equip.pure.m0" value="${e.pure.m0}"></div></div></details>`)}
+   ${card('Driver & eSpeed-Modell',`<div class="form2">
+     <div class="field"><label>Driver-Länge (Zoll)</label><input type="number" step="0.1" data-set="equip.driver.len" value="${e.driver.len}"></div>
+     <div class="field"><label>Driver-MOI (kg·cm², Griffende)</label><input type="number" data-set="equip.driver.moi" value="${e.driver.moi}"></div>
+     <div class="field"><label>Lastexponent k</label><input type="number" step="0.01" min="0.05" max="0.6" data-set="model.k" value="${s.model.k}"></div>
+     <div class="field"><label>Kalibrierfaktor</label><input type="number" step="0.001" data-set="model.cal" value="${s.model.cal}"></div></div>
+     <div class="tiny muted" style="margin:8px 0">eSpeed = Radar · (Länge Driver / Länge Gerät) · (Trägheit Gerät / Trägheit Driver)<sup>k</sup> · Kalibrierfaktor. Das ist eine Näherung – nicht der Algorithmus von TheStack. Voreinstellung: TaylorMade Qi10 (45,75″, Swingweight D4) – MOI ≈ 2.900 kg·cm² ist geschätzt, typische Driver liegen bei 2.700–3.000.</div>
+     <button class="btn" data-a="calibrate">Aus meinen Daten kalibrieren</button>`)}
+   ${card('Lasten im Überblick',equipTable())}
+   ${card('Daten',`<div class="stack-v">
+     <div class="row wrap"><button class="btn" data-a="exportJson">⬇ Backup (JSON)</button><button class="btn" data-a="exportCsv">⬇ CSV (alle Swings)</button><button class="btn" data-a="importJson">⬆ Import (JSON)</button></div>
+     <input type="file" id="impFile" accept="application/json" style="display:none">
+     <div class="tiny muted">Daten nur in diesem Browser. Regelmäßig ein Backup machen – auf dem iPhone und am Mac sind es getrennte Speicher; per Export/Import kannst du sie abgleichen.</div>
+     <div class="hr"></div>
+     <div class="row wrap"><button class="btn" data-a="demo">Demodaten laden</button><button class="btn danger" data-a="reset">Alles löschen</button></div></div>`)}
+  </div>`;
+}
+function setSetting(path,val){
+  const s=S.settings;
+  if(path==='goal'){s.goal=val?+val:null;persist();return}
+  if(path==='unit'){if(s.goal){const k=fromU(s.goal);s.unit=val;s.goal=+toU(k).toFixed(1)}else s.unit=val;persist();render();return}
+  if(path.startsWith('pureW.')){const i=+path.split('.')[1],o=s.equip.pure.weights.slice();const old=o[i];o[i]=+val||old;
+    ['L','M','H'].forEach((lv,j)=>{if(s.loads.pure[lv]===old&&j===i)s.loads.pure[lv]=o[i]});s.equip.pure.weights=o;
+    ['L','M','H'].forEach((lv,j)=>s.loads.pure[lv]=o[j]);persist();render();return}
+  if(path.startsWith('loads.')){const [,dev,lv]=path.split('.');s.loads[dev][lv]=+val;persist();render();return}
+  if(path==='equip.stack.weights'){const ws=String(val).split(/[,;\s]+/).map(Number).filter(n=>n>0).slice(0,8);if(ws.length){s.equip.stack.weights=ws;
+    ['L','M','H'].forEach(lv=>{s.loads.stack[lv]=nearestLoad('stack',{L:.75,M:1,H:1.25}[lv])})}persist();render();return}
+  if(path.startsWith('equip.')||path.startsWith('model.')){const p=path.split('.');const tgt=p[0]==='equip'?s.equip[p[1]]:s.model;const key=p[p.length-1];const n=parseFloat(val);if(n>0)tgt[key]=n;persist();render();return}
+  if(['weekly','swings','rest'].includes(path))s[path]=+val;else s[path]=val;
+  if(path==='theme')applyTheme();
+  persist();
+  if(['weekly','programStart','view','swings','rest'].includes(path))render();
+}
+function applyTheme(){const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function csv(){
+  const rows=[['Datum','Art','Geraet','Stufe','Gewicht_g','Seite','Swing_Nr','Radar_mph','eSpeed_mph','Radar_kmh','eSpeed_kmh','RPE','Notiz']];
+  [...S.sessions].sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>s.sets.forEach(x=>(x.v&&x.v.length?x.v:[x.max]).forEach((v,i)=>{
+    const f=eFactor(x.dev,x.w);rows.push([s.date,s.type,DEV[x.dev].name,x.lvl,x.w,x.side,i+1,(v/MPH).toFixed(1),(v*f/MPH).toFixed(1),v.toFixed(1),(v*f).toFixed(1),s.rpe||'',(s.note||'').replace(/"/g,'""')])})));
+  return rows.map(r=>r.map(c=>/[",;\n]/.test(String(c))?`"${c}"`:c).join(';')).join('\n');
+}
+function calibrate(){
+  const ratios=[];
+  for(const s of S.sessions){
+    const d=s.sets.filter(x=>x.dev==='driver'&&x.max>0).map(x=>x.max),o=s.sets.filter(x=>x.dev!=='driver'&&x.max>0).map(x=>x.max*eFactor(x.dev,x.w,false));
+    if(d.length&&o.length)ratios.push(Math.max(...d)/Math.max(...o));
+  }
+  if(ratios.length<2){toast('Für die Kalibrierung braucht es mindestens 2 Einheiten mit Driver- und Stack/Pure2-Sätzen.');return}
+  ratios.sort((a,b)=>a-b);const med=ratios[Math.floor(ratios.length/2)];
+  S.settings.model.cal=+Math.max(.8,Math.min(1.2,med)).toFixed(3);persist();render();
+  toast(`Kalibrierfaktor gesetzt: <b>${S.settings.model.cal}</b> (aus ${ratios.length} Einheiten)`);
+}
+function demoData(){
+  if(S.sessions.length&&!confirm('Demodaten zu den vorhandenen Daten hinzufügen?'))return;
+  const start=addDays(today(),-84);S.settings.programStart=start;if(!S.settings.goal)S.settings.goal=+toU(176).toFixed(1);
+  let n=0;const r=(a,b)=>a+Math.random()*(b-a);
+  const mkSwings=(dev,w,target,cnt)=>{const f=eFactor(dev,w);return Array.from({length:cnt},()=>+(((target-r(0,5))/f)).toFixed(2))};
+  for(let w=0;w<12;w++){
+    [0,2,4].forEach((dd,ix)=>{
+      const day=addDays(weekStart(addDays(start,w*7)),dd);
+      if(day>today()||Math.random()<.12)return;
+      const wk=w%4,kind=KIND_ORDER[ix%3],base=153+w*.8+r(-1,1);
+      const dev=(w+ix)%4===3?'pure':'stack';
+      const isTest=(wk===3&&ix===2)||(w===0&&ix===0);
+      let sets=[];
+      if(isTest)sets=[0,1,2].map(()=>({dev:'driver',lvl:'D',w:0,side:'normal',swings:5,v:mkSwings('driver',0,base,5)}));
+      else{
+        sets=planFor(kind,wk,dev).map(p=>{const f={L:1.03,M:1,H:.96}[p.plan];return {dev,lvl:p.lvl,w:p.w,side:p.side,swings:p.swings,v:mkSwings(dev,p.w,base*f+r(-1,1.5),p.swings)}});
+        sets.push({dev:'driver',lvl:'D',w:0,side:'normal',swings:3,v:mkSwings('driver',0,base-1+r(-1.5,1.5),3)});
+      }
+      const sess={id:uid()+n++,created:+parseD(day)+n,date:day,type:isTest?'test':'training',kind,sets:sets.map(normSet),rpe:Math.round(r(5,8)),note:'',pain:false,demo:true};
+      S.sessions.push(sess);
+    });
+  }
+  S.sessions.sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+  S.sessions.forEach(s=>{s.pbs=computePBs(s);s.xp=calcXP(s)});
+  checkBadges(true);for(let w=weekStart(start);w<weekStart(today());w=addDays(w,7))checkQuests(w);
+  persist();toast('Demodaten geladen ✔');render();
+}
+
+/* =========================================================
+   Router & Events
+   ========================================================= */
+const NAV=[['dash','🏠','Übersicht'],['train','🏌️','Training'],['hist','📒','Verlauf'],['ana','📊','Auswertung'],['ach','🏆','Erfolge'],['set','⚙️','Einstellungen']];
+const PAGES={dash:pageDash,train:pageTrain,hist:pageHist,ana:pageAna,ach:pageAch,set:pageSet};
+const AFTER={dash:afterDash,ana:afterAna};
+const route=()=>(location.hash.replace(/^#\/?/,'')||'dash').split('?')[0];
+function render(){
+  const r=PAGES[route()]?route():'dash';
+  document.body.classList.toggle('compact',isCompact());
+  $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">Daten lokal gespeichert<br>${uLabel()} · v2</div>`;
+  const y=scrollY;
+  $('#view').innerHTML=PAGES[r]();
+  AFTER[r]?.();
+  if(G&&r==='train')updateSwingStats();
+  scrollTo(0,y);
+}
+window.addEventListener('hashchange',()=>{window.scrollTo(0,0);render()});
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.settings.view==='auto'&&!G&&document.body.classList.contains('compact')!==isCompact())render()},200)});
+
+const A={
+  range(el){ui.range=el.dataset.v;render()},
+  basis(el){ui.basis=el.dataset.v;if(ui.basis==='raw')ui.metric=ui.metric.filter(x=>x!=='all');if(!ui.metric.length)ui.metric=[ui.basis==='raw'?'driver':'all'];render()},
+  metric(el){const v=el.dataset.v,i=ui.metric.indexOf(v);if(i>=0){if(ui.metric.length>1)ui.metric.splice(i,1)}else ui.metric.push(v);render()},
+  anarange(el){ui.anaRange=el.dataset.v;render()},
+  anabasis(el){ui.anaBasis=el.dataset.v;if(!ui.anaMetric.filter(x=>ui.anaBasis==='e'||x!=='all').length)ui.anaMetric=['driver'];render()},
+  anametric(el){const v=el.dataset.v,i=ui.anaMetric.indexOf(v);if(i>=0){if(ui.anaMetric.length>1)ui.anaMetric.splice(i,1)}else ui.anaMetric.push(v);render()},
+  anamode(el){ui.anaMode=el.dataset.v;render()},
+  hfilter(el){ui.histFilter=el.dataset.v;render()},
+  toggleView(){S.settings.view=isCompact()?'full':'compact';persist();render()},
+  manual(){editorSheet()},
+  edit(el){editorSheet(S.sessions.find(s=>s.id===el.dataset.id))},
+  del(el){if(confirm('Diese Einheit wirklich löschen?')){S.sessions=S.sessions.filter(s=>s.id!==el.dataset.id);persist();render()}},
+  closeModal(){closeModal()},
+  addrow(){$('#e-rows').insertAdjacentHTML('beforeend',editorRow({dev:S.settings.device,lvl:'L',v:[]}))},
+  rmrow(el){if($$('#e-rows .setrow').length>1)el.closest('.setrow').remove()},
+  saveEdit(el){saveEditor(el.dataset.id)},
+  pickdev(el){S.settings.device=el.dataset.v;persist();render()},
+  startRun(){const k=($('input[name=kind]:checked')||{}).value||suggestedKind();S.settings.transfer=$('#optTransfer').checked;persist();startRun(k)},
+  startTest(){startRun('test')},
+  abort(){if(confirm('Einheit abbrechen? Bisherige Sätze gehen verloren.')){stopRun();render()}},
+  warmchk(el){G.warm[+el.dataset.i]=el.checked},
+  next(){advance()},
+  skipRest(){clearInterval(G.timer);G.resting=0;render()},
+  skipSet(){advance()},
+  setdev(el){const st=G.steps[G.i],dev=el.dataset.v;st.dev=dev;
+    if(dev==='driver'){st.lvl='D';st.w=0}else{const lv=st.plan&&'LMH'.includes(st.plan)?st.plan:'L';st.lvl=lv;st.w=loadFor(dev,lv)}render()},
+  saveSet(){
+    const st=G.steps[G.i],vals=$$('.swin').map(el=>parseFloat(el.value)).filter(v=>v>0);
+    if(!vals.length){toast('Bitte mindestens einen Swing eintragen – oder „Ohne Messung“ wählen.');return}
+    if(vals.some(v=>toU(1)*0+v<10||v>400)){toast('Ein Wert wirkt unplausibel – bitte prüfen.');return}
+    G.sets.push(normSet({dev:st.dev,lvl:st.lvl,w:st.w,side:st.side,swings:st.swings,v:vals.map(fromU)}));
+    beep(740,.12);advance();
+  },
+  finishRun(){
+    const sess={id:uid(),created:Date.now(),date:today(),type:G.kind==='test'?'test':'training',kind:G.kind==='test'?undefined:G.kind,
+      sets:G.sets,rpe:+$('#rpe').value,note:$('#note').value.trim(),pain:$('#pain').checked,dur:Math.round((Date.now()-G.start)/1000)};
+    if(!sess.sets.length){toast('Keine Sätze erfasst – nichts gespeichert.');stopRun();render();return}
+    const res=commitSession(sess,false);stopRun();location.hash='#/dash';render();summarySheet(sess,res);
+  },
+  newBlock(){if(confirm('Neuen 4-Wochen-Block mit heutigem Datum starten?')){S.settings.programStart=today();persist();render();toast('Neuer Block gestartet')}},
+  calibrate(){calibrate()},
+  exportJson(){download(`speedlab-backup-${today()}.json`,JSON.stringify(S,null,1),'application/json')},
+  exportCsv(){download(`speedlab-swings-${today()}.csv`,csv(),'text/csv')},
+  importJson(){$('#impFile').click()},
+  demo(){demoData()},
+  reset(){if(confirm('Wirklich ALLE Daten unwiderruflich löschen?')&&confirm('Letzte Rückfrage: Alles löschen?')){localStorage.removeItem(KEY);S=defaults();window.S=S;applyTheme();render();toast('Alle Daten gelöscht')}}
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||['INPUT','SELECT'].includes(el.tagName))return;const f=A[el.dataset.a];if(f){e.preventDefault();f(el,e)}});
+document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('swin'))updateSwingStats()});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.a==='warmchk')A.warmchk(t);
+  else if(t.dataset.a==='rdev'){const row=t.closest('.setrow');$('.r-w',row).innerHTML=loadSelect(t.value,loadFor(t.value,$('.r-lv',row).value));
+    if(t.value!=='driver')$('.r-w',row).value=loadFor(t.value,$('.r-lv',row).value)}
+  else if(t.classList.contains('r-lv')){const row=t.closest('.setrow'),dev=$('.r-dev',row).value;if(dev!=='driver')$('.r-w',row).value=loadFor(dev,t.value)}
+  else if(t.dataset.set){setSetting(t.dataset.set,t.type==='checkbox'?t.checked:t.value)}
+  else if(t.id==='impFile'&&t.files[0]){
+    const fr=new FileReader();fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o.sessions)throw 0;
+      if(!confirm(`Import ersetzt vorhandene Daten (${o.sessions.length} Einheiten). Fortfahren?`))return;
+      S=mergeState(o);window.S=S;persist();applyTheme();render();toast('Import erfolgreich ✔')}catch(err){toast('Datei ungültig.')}};
+    fr.readAsText(t.files[0]);
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+load();applyTheme();checkBadges(true);persist();render();
+</script>
+</body>
+</html>
