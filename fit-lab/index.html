@@ -630,6 +630,8 @@ function syncCard(){
   return `<div class="card"><h2>☁️ Zentrale Synchronisation</h2>
     <p class="small muted">Alle Geräte mit demselben Sync-Code teilen die Daten (Supabase). Der Code ist dein Schlüssel – nicht weitergeben.</p>
     <div class="note ${syncOn()?'':'warn'}" id="syncMsg" style="margin:10px 0">${syncMsgText()}</div>
+    <div class="field" style="margin-bottom:12px"><label>Geräte-Link oder Code einfügen</label><div class="row"><input type="text" id="sy-link" placeholder="Link hier einfügen" autocomplete="off" autocapitalize="off" style="flex:1"><button class="btn primary" data-a="syncLinkIn">Übernehmen</button></div>
+      <span class="tiny muted">Tipp: Die Home-Bildschirm-App hat einen eigenen Speicher – den Link einmal dort einfügen.</span></div>
     <div class="stack-v" style="gap:10px">
       <div class="field"><label>Supabase-URL</label><input type="text" id="sy-url" value="${esc(sync.url)}"></div>
       <div class="field"><label>Publishable Key</label><input type="text" id="sy-key" value="${esc(sync.key)}"></div>
@@ -827,6 +829,12 @@ const A={
   syncSave(){sync.url=$('#sy-url').value.trim();sync.key=$('#sy-key').value.trim();sync.code=$('#sy-code').value.trim();
     if(sync.code&&sync.code.length<24){toast('Der Sync-Code muss mindestens 24 Zeichen haben.');return}
     saveSync();syncState.s=syncOn()?'idle':'off';doSync();render()},
+  syncLinkIn(){const v=($('#sy-link').value||'').trim();if(!v){toast('Bitte Link oder Code einfügen.');return}
+    const m=v.match(/cfg=([^&\s]+)/);let ok=false;
+    if(m){try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};ok=true}}catch(e){}}
+    else if(/^[A-Za-z0-9_-]{24,}$/.test(v)){sync.code=v;ok=true}
+    if(!ok){toast('Das sieht nicht nach einem gültigen Link oder Code aus.');return}
+    saveSync();syncState.s='idle';doSync();render();toast('Sync-Verbindung übernommen ✔')},
   syncNow(){if(!syncOn()){toast('Erst Code eintragen und verbinden.');return}syncing=false;doSync()},
   syncGen(){const b=new Uint8Array(24);crypto.getRandomValues(b);$('#sy-code').value=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_')},
   syncLink(){if(!syncOn()){toast('Erst Verbindung speichern.');return}
