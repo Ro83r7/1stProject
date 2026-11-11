@@ -1,0 +1,39 @@
+/* Eigene Strich-Piktogramme (24×24, stroke = currentColor) */
+(function(){
+const P={
+home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+plan:'<rect x="3" y="5" width="18" height="16" rx="4"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',
+log:'<path d="M4 20v-9M10 20V5M16 20v-6M21 20H3"/>',
+flag:'<path d="M5 21V4"/><path d="M5 5h13l-3 4 3 4H5"/>',
+chat:'<path d="M20 12a8 8 0 0 1-11.7 7L4 20l1.1-4.2A8 8 0 1 1 20 12z"/><path d="M9 11h6M9 14h4"/>',
+swim:'<circle cx="17" cy="6" r="2"/><path d="m4 12.5 5.5-3.5 3.5 2 3-2.5"/><path d="M2 16.5c1.7 0 1.7-1.5 3.5-1.5S7.2 16.500 9 16.500s1.700-1.500 3.500-1.500 1.700 1.500 3.500 1.500 1.700-1.500 3.500-1.500 1.700 1.500 3.500 1.500"/><path d="M2 20.5c1.700 0 1.700-1.500 3.500-1.500S7.200 20.500 9 20.500s1.700-1.500 3.500-1.500 1.700 1.500 3.500 1.500 1.700-1.500 3.500-1.500 1.700 1.500 3.500 1.500"/>',
+bike:'<circle cx="5.500" cy="16.500" r="3.500"/><circle cx="18.500" cy="16.500" r="3.500"/><path d="M5.500 16.500 9 8h5.500l4 8.500M9 8H7M14.500 8l-3.500 8.500H5.500"/>',
+run:'<circle cx="14.500" cy="4.500" r="2"/><path d="m8 21 3-5.500-2.500-2.500 1.500-5 4.500 1.500 2.500 3"/><path d="m5 12 4-3.500M13 16l3 5"/>',
+strength:'<path d="M6.500 7v10M17.500 7v10M3.500 9.500v5M20.500 9.500v5M6.500 12h11"/>',
+mobility:'<circle cx="12" cy="4.500" r="2"/><path d="M12 7.500V14M4.500 10c3 1 5.500 1.500 7.500 1.500s4.500-.5 7.500-1.500M12 14l-3.500 6.500M12 14l3.500 6.500"/>',
+brick:'<path d="M4 8h13l-3.500-3.500M20 16H7l3.500 3.500"/>',
+other:'<circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/>',
+target:'<circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="4"/><path d="m11 13 9-9M16 4h4v4"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',
+check:'<path d="m5 12.500 4.500 4.500L19 7.500"/>',
+trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M18.700 5.300l-2.100 2.100M7.400 16.600l-2.100 2.100"/>',
+flame:'<path d="M12 3c1 3.500 5 5.500 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1.500 1 2 1.800 2.200C10.500 8 11 5.500 12 3z"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+route:'<circle cx="6" cy="18" r="2.500"/><circle cx="18" cy="6" r="2.500"/><path d="M8.500 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.500"/>',
+heart:'<path d="M12 20s-8-4.800-8-10.500A4.500 4.500 0 0 1 12 7a4.500 4.500 0 0 1 8 2.500C20 15.200 12 20 12 20z"/>',
+trophy:'<path d="M8 4h8v6a4 4 0 0 1-8 0zM8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 14v4M8 21h8M10 18h4"/>',
+send:'<path d="m4 12 16-8-6 17-2.500-7z"/>',
+x:'<path d="m6 6 12 12M18 6 6 18"/>',
+download:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+upload:'<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
+watch:'<rect x="7" y="6" width="10" height="12" rx="3"/><path d="m9 6 .7-3h4.600L15 6M9 18l.7 3h4.600L15 18M12 10v2.500l1.500 1"/>',
+moon:'<path d="M20 14.500A8.500 8.500 0 0 1 9.500 4a8.500 8.500 0 1 0 10.500 10.500z"/>',
+sparkle:'<path d="m12 3 1.800 5.200L19 10l-5.200 1.800L12 17l-1.800-5.200L5 10l5.200-1.800zM19 16l.8 2.200L22 19l-2.200.8L19 22l-.8-2.200L16 19l2.200-.8z"/>',
+user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+chev:'<path d="m9 6 6 6-6 6"/>',
+insta:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.200" cy="6.800" r=".6"/>',
+cal:'<rect x="3" y="5" width="18" height="16" rx="4"/><path d="M3 10h18M8 3v4M16 3v4"/>'
+};
+window.IC=(n,s=22,cls='')=>`<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]||''}</svg>`;
+})();

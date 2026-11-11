@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TriLab">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fbf8ff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#130e22" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Lena's TriLab – Triathlon-Training, Tracking und Fragen an Lena.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+<title>Lena's TriLab</title>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">L</span><span>Lena's <b>TriLab</b></span></div>
+  <button class="iconbtn" data-a="settings" aria-label="Einstellungen" id="gear"></button>
+</header>
+<main id="view" aria-live="polite"></main>
+<nav id="nav" aria-label="Hauptnavigation"></nav>
+<div id="sheet" class="sheet" hidden>
+  <div class="scrim" data-a="closeSheet"></div>
+  <div class="panel" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<noscript><p style="padding:24px">Bitte JavaScript aktivieren.</p></noscript>
+<script src="config.js"></script>
+<script src="content.js"></script>
+<script src="icons.js"></script>
+<script src="sync.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
