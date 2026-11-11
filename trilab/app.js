@@ -33,11 +33,13 @@ const W=()=>live(S.workouts),R=()=>live(S.races);
 function removeRec(arr,id){const i=arr.findIndex(x=>x.id===id);if(i<0)return;if(Sync.active){arr[i].del=true;arr[i].u=Date.now();arr[i].d=1}else arr.splice(i,1)}
 
 /* ---------- Theme ---------- */
-const THEMES=[['dark','Aurora Dunkel'],['light','Hell'],['auto','Auto']];
-function applyTheme(){const t=S.ui.theme||'dark';document.documentElement.dataset.theme=t;
-  const dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches);
+const THEMES=[['glow','Glow','linear-gradient(135deg,#5b5bff,#ffd23f)'],['aurora','Aurora','linear-gradient(135deg,#1fcfb5,#9a6bff)'],['light','Hell','linear-gradient(135deg,#ff7eb6,#8b6bff)']];
+const themeOf=()=>{const t=S.ui.theme;return t==='dark'?'aurora':THEMES.some(x=>x[0]===t)?t:'glow'};
+const themeBar=()=>`<div class="themes" role="group" aria-label="Design">Design<div class="row">${THEMES.map(([k,n,sw])=>`<button type="button" data-a="theme" data-id="${k}" aria-pressed="${themeOf()===k}"><i style="--sw:${sw}"></i>${n}</button>`).join('')}</div></div>`;
+function applyTheme(){const t=themeOf();document.documentElement.dataset.theme=t;
+  const dark=t!=='light';
   document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.remove());
-  const m=document.createElement('meta');m.name='theme-color';m.content=dark?'#080c15':'#fbf8ff';document.head.appendChild(m)}
+  const m=document.createElement('meta');m.name='theme-color';m.content=t==='glow'?'#0f1226':dark?'#080c15':'#fbf8ff';document.head.appendChild(m)}
 applyTheme();
 /* ---------- UI helpers ---------- */
 const sdot=(sp,sm)=>`<span class="sdot ${sm?'sm':''}" style="--c:${SP[sp].col}">${IC(sp,sm?18:22)}</span>`;
@@ -125,7 +127,7 @@ function celebrate(a,title){
 }
 function levelCard(link){
   const xp=xpTotal(),L=levelInfo(xp);
-  return `<${link?'a href="#/achv"':'div'} class="card row" style="gap:14px;text-decoration:none;color:inherit"><div class="lvlbadge">${L.lvl}</div><div class="grow"><div class="row sp"><b>${esc(L.rank)}</b><span class="small muted num">${L.rest} / ${L.need} XP</span></div><div class="bar" style="margin-top:6px"><i style="width:${L.rest/L.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">Noch ${L.need-L.rest} XP bis Level ${L.lvl+1}</div></div>${link?`<span class="muted">${IC('chev',18)}</span>`:''}</${link?'a':'div'}>`;
+  return `<${link?'a href="#/achv"':'div'} class="card row${link?' t-t':''}" style="gap:14px;text-decoration:none;color:inherit"><div class="lvlbadge">${L.lvl}</div><div class="grow"><div class="row sp"><b>${esc(L.rank)}</b><span class="small muted num">${L.rest} / ${L.need} XP</span></div><div class="bar" style="margin-top:6px"><i style="width:${L.rest/L.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">Noch ${L.need-L.rest} XP bis Level ${L.lvl+1}</div></div>${link?`<span class="muted">${IC('chev',18)}</span>`:''}</${link?'a':'div'}>`;
 }
 function questsCard(){
   const ws=weeksMap().get(iso(weekStart(new Date())))||[];
@@ -153,7 +155,7 @@ function vHome(){
   return `<div class="pagehead"><h1>${hi}${name}</h1></div><div class="stack">
   <div class="card hero"><div class="row"><span style="position:relative;z-index:1">${IC('target',26)}</span>
     <div style="position:relative;z-index:1"><div class="lbl" style="color:rgba(255,255,255,.8)">Road to</div><h2 style="font-size:1.25rem">${esc(g.n)}</h2><div class="small muted">${esc(g.sub)}</div></div></div></div>
-  <div class="card"><div class="row" style="gap:18px">
+  <div class="card t-o"><div class="row" style="gap:18px">
     <div class="ring"><svg width="132" height="132" viewBox="0 0 132 132"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--g1)"/><stop offset="1" style="stop-color:var(--g2)"/></linearGradient></defs>
       <circle cx="66" cy="66" r="${R0}" fill="none" stroke="var(--card2)" stroke-width="14"/>
       <circle cx="66" cy="66" r="${R0}" fill="none" stroke="url(#rg)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}"/></svg>
@@ -249,7 +251,7 @@ function vAchv(){
   const xp=xpTotal(),L=levelInfo(xp),B=badgeList(),got=B.filter(x=>x.ok).length,st=weekStreak(),ds=streak();
   return `<div class="pagehead"><div><a href="#/home" class="small" style="text-decoration:none;font-weight:700">‹ Zurück</a><h1>Erfolge</h1></div><span class="tag">${got} / ${B.length}</span></div><div class="stack">
   <div class="card hero"><div class="row" style="position:relative;z-index:1;gap:16px"><div class="lvlbadge big2">${L.lvl}</div><div class="grow"><h2 style="font-size:1.3rem">${esc(L.rank)}</h2><div class="small muted num">${xp} XP gesamt</div><div class="bar" style="margin-top:8px;background:rgba(255,255,255,.22);--c:#fff"><i style="width:${L.rest/L.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">${L.rest} / ${L.need} XP bis Level ${L.lvl+1}</div></div></div></div>
-  <div class="grid2"><div class="card"><div class="lbl">Tage-Streak</div><div class="big num">${ds}<small>Tage</small></div></div><div class="card"><div class="lbl">Wochen-Serie</div><div class="big num">${st}<small>Wochen</small></div></div></div>
+  <div class="grid2"><div class="card t-o"><div class="lbl">Tage-Streak</div><div class="big num">${ds}<small>Tage</small></div></div><div class="card t-t"><div class="lbl">Wochen-Serie</div><div class="big num">${st}<small>Wochen</small></div></div></div>
   ${questsCard()}
   <div><h2 style="margin-bottom:10px">Abzeichen</h2><div class="badges">${B.map(x=>`<div class="badge ${x.ok?'':'locked'}"><span class="bi">${IC(x.ic,26)}</span><b>${esc(x.n)}</b><span class="tiny muted">${esc(x.d)}</span></div>`).join('')}</div></div>
   <div class="card"><div class="lbl" style="margin-bottom:8px">So gibt es XP</div><ul class="small" style="margin:0;padding-left:18px;display:grid;gap:4px">
@@ -261,7 +263,7 @@ function vAchv(){
 const VIEWS={achv:vAchv,home:vHome,plan:vPlan,log:vLog,races:vRaces,ask:vAsk};
 function render(){
   const r=route();
-  $('#view').innerHTML=VIEWS[r]();
+  $('#view').innerHTML=VIEWS[r]()+themeBar();
   $('#nav').innerHTML=ROUTES.map(([k,n,i])=>`<a href="#/${k}" class="${k===r?'on':''}">${IC(i,22)}${n}</a>`).join('');
   $('#gear').innerHTML=IC('gear',20);
   $('#lvlpill').innerHTML=`${IC('flame',16)}Lv ${levelInfo(xpTotal()).lvl}`;
@@ -374,7 +376,7 @@ function settings(step){
     <div class="field"><label for="s-name">Vorname</label><input type="text" id="s-name" maxlength="40" value="${esc(P.name)}"></div>
     <div class="field"><label for="s-goal">Ziel</label><select id="s-goal">${Object.entries(C.goals).map(([k,v])=>`<option value="${k}" ${k===P.goal?'selected':''}>${esc(v.n)} – ${esc(v.sub)}</option>`).join('')}</select></div>
     <button class="btn sm" data-a="saveProfile">Profil speichern</button></div>
-  <div class="card stack" style="gap:10px;box-shadow:none;background:var(--card2)"><div class="lbl">Design</div><div class="chips">${THEMES.map(([k,n])=>`<button class="chip ${(S.ui.theme||'dark')===k?'on':''}" data-a="theme" data-id="${k}">${n}</button>`).join('')}</div></div>
+  <div class="card stack" style="gap:10px;box-shadow:none;background:var(--card2)"><div class="lbl">Design</div>${themeBar().replace('margin-top:26px','')}</div>
   <div class="card stack" style="gap:10px;box-shadow:none;background:var(--card2)"><div class="lbl">Konto &amp; Sync</div>${acct}</div>
   <div class="card stack" style="gap:8px;box-shadow:none;background:var(--card2)"><div class="row"><span class="sdot sm" style="--c:#25b6e8">${IC('watch',18)}</span><div class="lbl">Garmin (optional)</div></div>
     ${CFG.garmin?`<p class="small muted">Verbinde dein Garmin-Konto, damit Aktivitäten automatisch im Log landen.</p><button class="btn sm" data-a="garmin">Mit Garmin verbinden</button>`:`<p class="small muted">Direkte Garmin-Anbindung folgt. Bis dahin: In Garmin Connect eine Aktivität öffnen → ⋯ → <i>Exportieren als GPX/TCX</i> und im Tab „Training“ über „GPX/TCX“ importieren.</p>`}</div>
@@ -397,7 +399,7 @@ async function importJson(f){
 /* ---------- Aktionen ---------- */
 const A={
   closeSheet,settings:()=>settings(),
-  theme:t=>{S.ui.theme=t.dataset.id;save(true);applyTheme();document.querySelectorAll('[data-a=theme]').forEach(c=>c.classList.toggle('on',c===t))},
+  theme:t=>{S.ui.theme=t.dataset.id;save(true);applyTheme();document.querySelectorAll('[data-a=theme]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.id===t.dataset.id))},
   session:t=>openSession(t.dataset.id,t.dataset.date),
   logPlan:t=>{const s=C.sessions[t.dataset.id];openWorkout(null,{sport:s.sp,dur:s.min,plan:t.dataset.id,source:'plan',date:t.dataset.date&&t.dataset.date<=today()?t.dataset.date:today()})},
   goal:t=>{S.profile.goal=t.dataset.id;S.profileTouched=1;save();Sync.active&&Sync.saveProfile(S.profile);render()},
