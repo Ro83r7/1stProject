@@ -82,6 +82,7 @@ create table public.questions (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references public.profiles(id) on delete cascade,
   text        text not null check (char_length(text) between 3 and 500),
+  lang        text not null default 'de' check (lang in ('de','en')),   -- Sprache der Frage (FAQ je Sprache)
   answer      text check (char_length(answer) <= 4000),
   is_public   boolean not null default false,
   created_at  timestamptz not null default now(),
@@ -109,7 +110,7 @@ create policy q_insert on public.questions for insert with check (user_id = auth
 create policy q_answer on public.questions for update using (public.is_admin()) with check (public.is_admin());
 
 create view public.public_faq as
-  select id, text, answer, answered_at from public.questions where is_public and answer is not null;   -- ohne Autor
+  select id, text, answer, lang, answered_at from public.questions where is_public and answer is not null;   -- ohne Autor
 grant select on public.public_faq to anon, authenticated;
 
 -- Garmin (optional): Status der Verknüpfung. Tokens liegen NICHT hier, sondern nur serverseitig (Edge Function / Vault).

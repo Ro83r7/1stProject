@@ -19,6 +19,11 @@ offline-first, Supabase als Backend) – aber mit echten Logins statt Sync-Code,
 - `sync.js` – Login (E-Mail-Code) und Sync. `supabase.sql` – Schema inkl. Row-Level-Security.
 - `sw.js`, `manifest.webmanifest` – Offline + „Zum Home-Bildschirm“.
 
+## Zweisprachig (Deutsch / English)
+- Umschalter: Knopf **DE/EN** oben rechts, außerdem unten auf jeder Seite und in den Einstellungen. Erststart: Sprache des Geräts (Deutsch → DE, sonst EN); die Auswahl wird gespeichert.
+- Deutsch ist die Quellsprache im Code. Englisch kommt aus `i18n.en.js`: `content` (Einheiten, Tipps, FAQ, Produkte – gleiche Struktur wie `content.js`) und `dict` (Oberflächentexte, Zahlen als `{n}`). Neue deutsche Texte in `app.js` brauchen einen Eintrag in `dict`, sonst erscheinen sie auch im englischen Modus deutsch (zum Prüfen: `window.__trMiss` in der Browser-Konsole).
+- Datum, Dezimalzahlen und Euro-Beträge folgen der Sprache. Ask Lena: Fragen speichern die Sprache (`questions.lang`), die öffentliche FAQ wird je Sprache angezeigt; Lena sieht im Posteingang ein DE/EN-Kennzeichen und antwortet in der Sprache der Frage.
+
 ## Lokal ausprobieren
 ```
 cd trilab && python3 -m http.server 8000   # dann http://localhost:8000
