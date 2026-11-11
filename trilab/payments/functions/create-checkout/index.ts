@@ -17,10 +17,10 @@ Deno.serve(async (req) => {
     const { data: { user } } = await sb.auth.getUser(token);
     if (!user) return json(401, { error: 'login_required' });
 
-    const { product, qty = 1 } = await req.json();
+    const { product } = await req.json();
     const { data: p } = await sb.from('products').select('*').eq('id', product).eq('active', true).maybeSingle();
     if (!p) return json(404, { error: 'unknown_product' });
-    const q = p.requires_shipping ? Math.min(Math.max(Number(qty) | 0, 1), 10) : 1;
+    const q = 1;
 
     if (p.once) {
       const { count } = await sb.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('product_id', p.id).in('status', ['paid', 'fulfilled']);
@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
       client_reference_id: order.id,
       metadata: { order_id: order.id },
       line_items: [{ quantity: q, price_data: { currency: 'eur', unit_amount: p.amount_cents, product_data: { name: p.name } } }],
-      ...(p.requires_shipping ? {
-        shipping_address_collection: { allowed_countries: ['DE', 'AT'] },
-        shipping_options: [{ shipping_rate_data: { type: 'fixed_amount', fixed_amount: { amount: 490, currency: 'eur' }, display_name: 'Standardversand' } }],
-      } : {}),
+      // Kleinunternehmerin (§ 19 UStG): keine Umsatzsteuer ausweisen, Stripe Tax NICHT aktivieren. Hinweis auf Belegen: im Dashboard unter Rechnungs-/Beleg-Einstellungen als Fußzeile.
+      // Digitale Leistung: ausdrückliche Zustimmung zum Erlöschen des Widerrufsrechts per Checkout-Zustimmungstext
+      consent_collection: { terms_of_service: 'required' },
+      custom_text: { terms_of_service_acceptance: { message: 'Ich akzeptiere die AGB und verlange ausdrücklich den sofortigen Beginn der Leistung; mein Widerrufsrecht erlischt mit vollständiger Erbringung bzw. Bereitstellung. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.' } },
       // Zahlarten (Karte, Apple/Google Pay, PayPal, SEPA, Klarna …) werden im Stripe-Dashboard aktiviert – nicht hier im Code.
       success_url: `${SITE}/trilab/#/shop`,
       cancel_url: `${SITE}/trilab/#/shop`,
