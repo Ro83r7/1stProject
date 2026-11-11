@@ -4,7 +4,13 @@
 window.TRILAB_CONFIG = {
   supabaseUrl: '',          // z. B. https://xxxx.supabase.co
   supabaseKey: '',          // "anon"/publishable key (darf öffentlich sein, Schutz läuft über RLS)
-  garmin: false,            // true, sobald die Garmin-Edge-Function live ist (siehe README)
+  garmin: false,
+  /* Shop / Bezahlung. Beides leer = Demo-Kasse (Zahlung wird nur simuliert, nichts wird abgebucht).
+     Stufe 1 (ohne Backend): paymentLinks: { 'plan-personal': 'https://buy.stripe.com/…' }  (Stripe Payment Links)
+     Stufe 2 (mit Supabase):  checkoutEndpoint: 'https://xxxx.supabase.co/functions/v1/create-checkout'
+     Siehe payments/README.md */
+  paymentLinks: {},
+  checkoutEndpoint: '',            // true, sobald die Garmin-Edge-Function live ist (siehe README)
   instagram: 'https://www.instagram.com/lenaasang',
   linktree: 'https://linktr.ee/lenaasang'
 };

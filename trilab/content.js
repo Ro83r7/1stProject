@@ -130,6 +130,25 @@ tips: [
  'Mobility ist kein Bonus. Zehn Minuten am Tag halten dich verletzungsfrei.',
  'Trainingstagebuch führen: Wie hast du dich gefühlt? Das erklärt später fast jede Formkurve.'
 ],
+shopCats: {
+  training: { n:'Training',  ic:'plan',   col:'#7c5cff' },
+  beratung: { n:'Beratung',  ic:'chat',   col:'#25b6e8' },
+  service:  { n:'Service',   ic:'watch',  col:'#22c39a' },
+  fan:      { n:'Fanware',   ic:'bag',    col:'#ff5c9d' },
+  support:  { n:'Support',   ic:'heart',  col:'#f2b600' }
+},
+// Platzhalter-Produkte/-Preise (Cent, brutto). kind: service | digital | physical | support. once: nur einmal kaufbar.
+products: [
+  { id:'plan-personal', cat:'training', kind:'service', n:'Persönlicher Trainingsplan', d:'Individueller 8-Wochen-Plan nach deinem Fragebogen (Ziel, Zeit, Level). Lieferung in ca. 5 Werktagen.', price:4900 },
+  { id:'plan-3m', cat:'training', kind:'service', n:'Coaching-Paket 3 Monate', d:'Persönlicher Plan, wöchentliche Anpassung und Feedback zu deinem Log.', price:9900 },
+  { id:'consult-30', cat:'beratung', kind:'service', n:'Beratungsgespräch · 30 min', d:'Videocall mit Lena: Wettkampfplanung, Material, Ernährung oder dein Trainingsplan.', price:3900 },
+  { id:'ask-express', cat:'beratung', kind:'service', n:'Ask Lena Express', d:'Ausführliche Antwort auf deine Frage innerhalb von 48 Stunden.', price:490 },
+  { id:'garmin-setup', cat:'service', kind:'digital', once:true, n:'Garmin-Anbindung', d:'Verbindet dein Garmin-Konto mit TriLab – Aktivitäten landen automatisch im Log.', price:1900 },
+  { id:'cap', cat:'fan', kind:'physical', n:'TriLab Cap', d:'Leichte Laufcap mit gesticktem Logo. Einheitsgröße.', price:2490 },
+  { id:'bottle', cat:'fan', kind:'physical', n:'Trinkflasche 750 ml', d:'Rad-Trinkflasche im TriLab-Design.', price:1490 },
+  { id:'stickers', cat:'fan', kind:'physical', n:'Sticker-Set', d:'5 wetterfeste Sticker für Rad, Helm und Laptop.', price:450 },
+  { id:'coffee', cat:'support', kind:'support', n:'Kaffee für Lena', d:'Danke fürs kostenlose Training – ein kleiner Support für neue Inhalte.', price:300 }
+],
 faq: [
  { id:'f1', text:'Ich bin Einsteiger – wie starte ich?', answer:'Wähle im Plan „Sprint-Distanz“, starte mit 3 Einheiten pro Woche und steigere erst nach 2–3 Wochen. (Beispieltext – Lena ersetzt ihn im Admin-Bereich.)' },
  { id:'f2', text:'Was esse ich am Wettkampftag?', answer:'Frühstück 2–3 h vor dem Start, vertraut und kohlenhydratreich. Nichts Neues am Renntag. (Beispieltext)' },
