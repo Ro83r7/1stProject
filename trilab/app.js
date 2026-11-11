@@ -47,7 +47,7 @@ function sheet(html){$('#sheetBody').innerHTML=html;$('#sheet').hidden=false;$('
 function closeSheet(){$('#sheet').hidden=true}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
 const ROUTES=[['home','Heute','home'],['plan','Plan','plan'],['log','Log','log'],['races','Rennen','flag'],['ask','Ask Lena','chat']];
-const route=()=>{const r=(location.hash.replace('#/','')||'home');return ROUTES.some(x=>x[0]===r)?r:'home'};
+const route=()=>{const r=(location.hash.replace('#/','')||'home');return r==='achv'||ROUTES.some(x=>x[0]===r)?r:'home'};
 
 /* ---------- Plan-Helfer ---------- */
 const plan=()=>C.plans[S.profile.goal]||C.plans.olympic;
@@ -61,6 +61,76 @@ function streak(){
   if(!days.has(iso(d)))d=addDays(d,-1);
   while(days.has(iso(d))){n++;d=addDays(d,-1)}
   return n;
+}
+
+
+/* ---------- Gamification: XP, Level, Abzeichen, Wochenquests (alles aus den Einträgen berechnet → sync-sicher) ---------- */
+const RANKS=['Rookie','Splash-Starter','Pedal-Pusher','Run-Rebel','Triathlet:in','Brick-Boss','Iron-Mind','Legende'];
+const needXP=n=>100+40*n;
+function levelInfo(xp){let lvl=1,rest=xp;while(rest>=needXP(lvl)){rest-=needXP(lvl);lvl++}return {lvl,rest,need:needXP(lvl),rank:RANKS[Math.min(RANKS.length-1,Math.floor((lvl-1)/2))]}}
+const wxp=w=>Math.round(30+Math.min(w.dur,180)*.6+(w.rpe>=7?10:0)+(w.source==='plan'?15:0));
+function raceInfo(){
+  const done=R().filter(r=>r.date<=today()&&totalOf(r)).sort((a,b)=>a.date.localeCompare(b.date));
+  return done.map((r,i)=>{const t=totalOf(r),prior=done.slice(0,i).filter(x=>x.type===r.type).map(totalOf),pb=prior.length>0&&t<Math.min(...prior);return {r,pb,xp:100+(pb?50:0)}});
+}
+function weeksMap(){const m=new Map();W().forEach(w=>{const k=iso(weekStart(pd(w.date)));(m.get(k)||m.set(k,[]).get(k)).push(w)});return m}
+const QUESTS=[
+ {id:'tri',n:'Dreikampf',d:'Schwimmen, Rad und Laufen in einer Woche',ic:'brick',max:3,p:ws=>['swim','bike','run'].filter(k=>ws.some(w=>w.sport===k)).length},
+ {id:'days',n:'Dranbleiben',d:'An 4 verschiedenen Tagen trainieren',ic:'flame',max:4,p:ws=>new Set(ws.map(w=>w.date)).size},
+ {id:'stab',n:'Stabil bleiben',d:'Kraft und Mobility in einer Woche',ic:'mobility',max:2,p:ws=>['strength','mobility'].filter(k=>ws.some(w=>w.sport===k)).length}
+];
+const questProg=(q,ws)=>Math.min(q.max,q.p(ws));
+function questKeys(){const s=new Set();for(const [k,ws] of weeksMap())for(const q of QUESTS)if(questProg(q,ws)>=q.max)s.add(k+':'+q.id);return s}
+function weekStreak(){
+  const m=weeksMap(),ok=k=>(m.get(k)||[]).length&&new Set(m.get(k).map(w=>w.date)).size>=3;
+  let d=weekStart(new Date());if(!ok(iso(d)))d=addDays(d,-7);let n=0;while(ok(iso(d))){n++;d=addDays(d,-7)}return n;
+}
+function xpTotal(){return W().reduce((t,w)=>t+wxp(w),0)+20*new Set(W().map(w=>w.date)).size+raceInfo().reduce((t,x)=>t+x.xp,0)+60*questKeys().size}
+function badgeList(){
+  const ws=W(),days=new Set(ws.map(w=>w.date)).size,cnt=k=>ws.filter(w=>w.sport===k).length,km=k=>sum(ws.filter(w=>w.sport===k),'dist');
+  const mx=(k)=>Math.max(0,...ws.filter(w=>w.sport===k).map(w=>w.dur)),qk=questKeys(),tri=[...qk].filter(x=>x.endsWith(':tri')).length,ri=raceInfo(),st=weekStreak();
+  const B=(id,ic,n,d,ok)=>({id,ic,n,d,ok});
+  return [
+   B('d1','target','Erster Schritt','Erstes Training geloggt',days>=1),B('d10','flame','10 Trainingstage','An 10 Tagen trainiert',days>=10),B('d25','sparkle','25 Trainingstage','An 25 Tagen trainiert',days>=25),
+   B('d50','heart','50 Trainingstage','An 50 Tagen trainiert',days>=50),B('d100','trophy','100 Trainingstage','An 100 Tagen trainiert',days>=100),
+   B('sw10','swim','Wasserratte','10 × Schwimmen',cnt('swim')>=10),B('bk10','bike','Pedal-Power','10 × Rad',cnt('bike')>=10),B('rn10','run','Läuferherz','10 × Laufen',cnt('run')>=10),
+   B('st10','strength','Kraftpaket','10 × Kraft',cnt('strength')>=10),B('mo10','mobility','Beweglich','10 × Mobility',cnt('mobility')>=10),
+   B('br1','brick','Koppel-Premiere','Erstes Koppeltraining',cnt('brick')>=1),B('br10','brick','Brick-Boss','10 × Koppeltraining',cnt('brick')>=10),
+   B('tri1','brick','Dreikampf','Alle drei Disziplinen in einer Woche',tri>=1),B('tri4','sparkle','Triathlon-Woche ×4','4 Dreikampf-Wochen',tri>=4),
+   B('lr90','run','Langer Atem','Lauf ≥ 90 min',mx('run')>=90),B('lb180','bike','Langstrecke','Radausfahrt ≥ 3 h',mx('bike')>=180),
+   B('sw10k','swim','10 km Wasser','10 km geschwommen',km('swim')>=10),B('bk500','route','500 km Rad','500 km Rad gefahren',km('bike')>=500),B('rn100','route','100 km Laufen','100 km gelaufen',km('run')>=100),
+   B('r1','flag','Startnummer','Erstes Rennen mit Ergebnis',ri.length>=1),B('rpb','trophy','Bestzeit','Neue Bestzeit über eine Distanz',ri.some(x=>x.pb)),
+   B('w4','flame','4 Wochen Serie','4 Wochen in Folge ≥ 3 Trainingstage',st>=4),B('w12','trophy','12 Wochen Serie','12 Wochen in Folge ≥ 3 Trainingstage',st>=12),
+   B('q10','check','Quest-Jäger:in','10 Wochenquests erledigt',qk.size>=10)
+  ];
+}
+const snap=()=>{const xp=xpTotal();return {xp,lv:levelInfo(xp).lvl,b:badgeList().filter(x=>x.ok).map(x=>x.id),q:[...questKeys()]}};
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  const c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90';c.width=innerWidth;c.height=innerHeight;document.body.appendChild(c);
+  const g=c.getContext('2d'),cols=['#27d6b4','#4f8cff','#9a6bff','#ff6fae','#ffb84d'],P=Array.from({length:90},()=>({x:innerWidth/2,y:innerHeight*.55,vx:(Math.random()-.5)*14,vy:-Math.random()*15-4,s:5+Math.random()*6,c:cols[Math.random()*5|0],r:Math.random()*6}));
+  let f=0;(function step(){g.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.45;p.x+=p.vx;p.y+=p.vy;p.r+=.2;g.fillStyle=p.c;g.save();g.translate(p.x,p.y);g.rotate(p.r);g.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);g.restore()});if(++f<100)requestAnimationFrame(step);else c.remove()})();
+}
+function celebrate(a,title){
+  const b=snap(),gain=b.xp-a.xp,nb=badgeList().filter(x=>x.ok&&!a.b.includes(x.id)),nq=b.q.filter(k=>!a.q.includes(k)).map(k=>QUESTS.find(q=>q.id===k.split(':')[1])),up=b.lv>a.lv,li=levelInfo(b.xp);
+  const big=up||nb.length||nq.length;
+  sheet(`<div class="stack" style="text-align:center"><div class="sdot" style="--c:#7b7cff;width:64px;height:64px;border-radius:22px;margin:0 auto">${IC(big?'trophy':'check',32)}</div><h2>${esc(title)}</h2>
+   <div class="big num">+${gain}<small>XP</small></div>
+   ${up?`<div class="note-line">${IC('sparkle',20)}<span><b>Level ${li.lvl}</b> – ${esc(li.rank)}!</span></div>`:''}
+   ${nq.map(q=>`<div class="note-line">${IC(q.ic,20)}<span>Quest erledigt: <b>${esc(q.n)}</b> (+60 XP)</span></div>`).join('')}
+   ${nb.map(x=>`<div class="note-line">${IC(x.ic,20)}<span>Neues Abzeichen: <b>${esc(x.n)}</b></span></div>`).join('')}
+   <div><div class="bar"><i style="width:${li.rest/li.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">Level ${li.lvl} · ${li.rest}/${li.need} XP</div></div>
+   <button class="btn primary block" data-a="closeSheet">Weiter</button></div>`);
+  if(big||gain>=60)confetti();
+}
+function levelCard(link){
+  const xp=xpTotal(),L=levelInfo(xp);
+  return `<${link?'a href="#/achv"':'div'} class="card row" style="gap:14px;text-decoration:none;color:inherit"><div class="lvlbadge">${L.lvl}</div><div class="grow"><div class="row sp"><b>${esc(L.rank)}</b><span class="small muted num">${L.rest} / ${L.need} XP</span></div><div class="bar" style="margin-top:6px"><i style="width:${L.rest/L.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">Noch ${L.need-L.rest} XP bis Level ${L.lvl+1}</div></div>${link?`<span class="muted">${IC('chev',18)}</span>`:''}</${link?'a':'div'}>`;
+}
+function questsCard(){
+  const ws=weeksMap().get(iso(weekStart(new Date())))||[];
+  return `<div class="card"><div class="row sp" style="margin-bottom:10px"><div class="lbl">Wochenquests</div><span class="tag">+60 XP je Quest</span></div><div class="stack" style="gap:12px">${QUESTS.map(q=>{const p=questProg(q,ws),done=p>=q.max;
+    return `<div class="row"><span class="sdot sm" style="--c:${done?'var(--ok)':'#7b7cff'}">${IC(done?'check':q.ic,18)}</span><div class="grow"><div class="row sp"><b class="small">${q.n}</b><span class="tiny muted num">${p}/${q.max}</span></div><div class="bar" style="margin-top:4px;--c:${done?'var(--ok)':'var(--violet)'}"><i style="width:${p/q.max*100}%"></i></div><div class="tiny muted" style="margin-top:2px">${q.d}</div></div></div>`}).join('')}</div></div>`;
 }
 
 /* ---------- Views ---------- */
@@ -90,10 +160,12 @@ function vHome(){
       <div class="mid"><div><div class="big num" style="font-size:1.6rem">${fmtH(mins)}<small>h</small></div><div class="tiny muted">von ${fmtH(target)} h</div></div></div></div>
     <div class="grow stack" style="gap:10px"><div><div class="lbl">Diese Woche</div><div class="small muted">${wk.length} Einheit${wk.length===1?'':'en'} geloggt</div></div>
       <div class="row small" style="color:var(--pink);font-weight:800">${IC('flame',20)}${st} Tag${st===1?'':'e'} in Folge</div></div></div></div>
+  ${levelCard(true)}
   <div><div class="row sp" style="margin-bottom:8px"><h2>Heute im Plan</h2><a href="#/plan" class="small" style="font-weight:700;text-decoration:none">Woche ansehen</a></div>
     <div class="stack" style="gap:10px">${todays.length?todays.map(id=>sessionCard(id,today())).join(''):`<div class="rest">${IC('moon',20)} Ruhetag – Erholung gehört zum Training.</div>`}</div></div>
   ${next?`<a href="#/races" class="card row" style="text-decoration:none;color:inherit">${sdot('brick')}<div class="grow"><div class="lbl">Nächster Wettkampf</div><b>${esc(next.name)}</b><div class="small muted">${fmtDate(next.date)}</div></div><div class="big num" style="font-size:1.6rem">${days}<small>${days===1?'Tag':'Tage'}</small></div></a>`:''}
   <div class="card"><div class="lbl" style="margin-bottom:10px">Woche nach Sportart</div>${by.length?`<div class="stack" style="gap:10px">${by.map(([k,m])=>`<div class="row">${sdot(k,1)}<div class="grow"><div class="bar" style="--c:${SP[k].col}"><i style="width:${m/mx*100}%"></i></div></div><b class="small num" style="min-width:56px;text-align:right">${fmtMin(m)}</b></div>`).join('')}</div>`:'<p class="muted small">Noch nichts geloggt – los geht’s!</p>'}</div>
+  ${questsCard()}
   <div class="card row" style="align-items:flex-start">${IC('sparkle',22)}<div><div class="lbl">Tipp des Tages</div><p style="margin-top:4px">${esc(tip)}</p></div></div></div>`;
 }
 
@@ -172,12 +244,27 @@ function vAsk(){
   <div><h2 style="margin-bottom:8px">Häufige Fragen</h2><div class="stack" style="gap:10px">${faq.map(f=>`<details class="faq"><summary>${esc(f.text)}${IC('chev',18)}</summary><div class="a">${esc(f.answer)}</div></details>`).join('')}</div></div></div>`;
 }
 
-const VIEWS={home:vHome,plan:vPlan,log:vLog,races:vRaces,ask:vAsk};
+
+function vAchv(){
+  const xp=xpTotal(),L=levelInfo(xp),B=badgeList(),got=B.filter(x=>x.ok).length,st=weekStreak(),ds=streak();
+  return `<div class="pagehead"><div><a href="#/home" class="small" style="text-decoration:none;font-weight:700">‹ Zurück</a><h1>Erfolge</h1></div><span class="tag">${got} / ${B.length}</span></div><div class="stack">
+  <div class="card hero"><div class="row" style="position:relative;z-index:1;gap:16px"><div class="lvlbadge big2">${L.lvl}</div><div class="grow"><h2 style="font-size:1.3rem">${esc(L.rank)}</h2><div class="small muted num">${xp} XP gesamt</div><div class="bar" style="margin-top:8px;background:rgba(255,255,255,.22);--c:#fff"><i style="width:${L.rest/L.need*100}%"></i></div><div class="tiny muted" style="margin-top:4px">${L.rest} / ${L.need} XP bis Level ${L.lvl+1}</div></div></div></div>
+  <div class="grid2"><div class="card"><div class="lbl">Tage-Streak</div><div class="big num">${ds}<small>Tage</small></div></div><div class="card"><div class="lbl">Wochen-Serie</div><div class="big num">${st}<small>Wochen</small></div></div></div>
+  ${questsCard()}
+  <div><h2 style="margin-bottom:10px">Abzeichen</h2><div class="badges">${B.map(x=>`<div class="badge ${x.ok?'':'locked'}"><span class="bi">${IC(x.ic,26)}</span><b>${esc(x.n)}</b><span class="tiny muted">${esc(x.d)}</span></div>`).join('')}</div></div>
+  <div class="card"><div class="lbl" style="margin-bottom:8px">So gibt es XP</div><ul class="small" style="margin:0;padding-left:18px;display:grid;gap:4px">
+   <li>Training: <b>30 XP</b> + 0,6 XP je Minute (bis 180 min)</li><li>Anstrengung RPE ≥ 7: <b>+10 XP</b></li><li>Einheit aus dem Plan: <b>+15 XP</b></li><li>Jeder Trainingstag: <b>+20 XP</b></li>
+   <li>Wettkampf mit Ergebnis: <b>+100 XP</b>, neue Bestzeit <b>+50 XP</b></li><li>Wochenquest: <b>+60 XP</b></li></ul></div>
+  <div class="card"><div class="lbl" style="margin-bottom:8px">Ränge</div>${RANKS.map((r,i)=>`<div class="row sp small" style="${Math.floor((L.lvl-1)/2)===i||(i===RANKS.length-1&&L.lvl>14)?'color:var(--violet);font-weight:800':'color:var(--muted)'}"><span>Level ${i*2+1}${i<RANKS.length-1?'–'+(i*2+2):'+'}</span><span>${r}</span></div>`).join('')}</div></div>`;
+}
+
+const VIEWS={achv:vAchv,home:vHome,plan:vPlan,log:vLog,races:vRaces,ask:vAsk};
 function render(){
   const r=route();
   $('#view').innerHTML=VIEWS[r]();
   $('#nav').innerHTML=ROUTES.map(([k,n,i])=>`<a href="#/${k}" class="${k===r?'on':''}">${IC(i,22)}${n}</a>`).join('');
   $('#gear').innerHTML=IC('gear',20);
+  $('#lvlpill').innerHTML=`${IC('flame',16)}Lv ${levelInfo(xpTotal()).lvl}`;
   const imp=$('#imp');if(imp)imp.onchange=()=>importFiles([...imp.files]);
   if(r==='ask'&&Sync.sb&&!S._faqAsked){S._faqAsked=1;Sync.faq().then(d=>{if(d&&d.length){S.faq=d;save(true);if(route()==='ask')render()}})}
 }
@@ -210,9 +297,11 @@ function saveW(){
   const dur=Math.round(Number($('#wm').value)),dist=$('#wk').value===''?null:Number($('#wk').value),date=$('#wd').value;
   if(!date||!(dur>=1&&dur<=1440))return toast('Bitte eine Dauer zwischen 1 und 1440 min eingeben');
   if(dist!=null&&!(dist>=0&&dist<=1000))return toast('Distanz bitte prüfen');
+  const before=snap(),isNew=!F.id;
   const rec={id:F.id||uid(),date,sport:F.sport,dur,dist:['strength','mobility'].includes(F.sport)?null:dist,rpe:Number($('#wr').value),note:$('#wn').value.trim(),source:F.source,plan:F.plan,u:Date.now(),d:1};
   const i=S.workouts.findIndex(x=>x.id===rec.id);if(i>=0)S.workouts[i]=rec;else S.workouts.push(rec);
-  save();closeSheet();render();toast('Gespeichert ✓');
+  save();render();
+  if(isNew)celebrate(before,'Training gespeichert');else{closeSheet();toast('Gespeichert ✓')}
 }
 
 function openRace(id){
@@ -236,9 +325,11 @@ function saveR(id){
   const name=$('#r-name').value.trim(),date=$('#r-date').value;
   if(!name||!date)return toast('Name und Datum werden benötigt');
   const t={};for(const k of ['goal','tot','swim','t1','bike','t2','run']){const v=parseT($('#r-'+k).value);if(Number.isNaN(v))return toast('Zeiten bitte als h:mm:ss eingeben');t[k]=v}
+  const before=snap();
   const rec={id:id||uid(),name,date,type:F.type,loc:$('#r-loc').value.trim(),goal:t.goal,res:{tot:t.tot,swim:t.swim,t1:t.t1,bike:t.bike,t2:t.t2,run:t.run},place:$('#r-place').value.trim(),note:$('#r-note').value.trim(),u:Date.now(),d:1};
   const i=S.races.findIndex(x=>x.id===rec.id);if(i>=0)S.races[i]=rec;else S.races.push(rec);
-  save();closeSheet();render();toast('Wettkampf gespeichert ✓');
+  save();render();
+  const after=snap();if(after.xp>before.xp)celebrate(before,'Wettkampf gespeichert');else{closeSheet();toast('Wettkampf gespeichert ✓')}
 }
 
 /* ---------- GPX / TCX Import ---------- */
