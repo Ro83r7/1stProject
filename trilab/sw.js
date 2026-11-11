@@ -1,5 +1,5 @@
 /* Offline-Hülle: App-Dateien werden gecacht (stale-while-revalidate), API-Aufrufe nie. */
-const V='trilab-v1',SHELL=['./','index.html','styles.css','app.js','sync.js','content.js','icons.js','config.js','manifest.webmanifest','icon-192.png'];
+const V='trilab-v2',SHELL=['./','index.html','styles.css','app.js','sync.js','content.js','icons.js','config.js','manifest.webmanifest','icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{

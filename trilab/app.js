@@ -32,6 +32,13 @@ const live=a=>a.filter(x=>!x.del);
 const W=()=>live(S.workouts),R=()=>live(S.races);
 function removeRec(arr,id){const i=arr.findIndex(x=>x.id===id);if(i<0)return;if(Sync.active){arr[i].del=true;arr[i].u=Date.now();arr[i].d=1}else arr.splice(i,1)}
 
+/* ---------- Theme ---------- */
+const THEMES=[['dark','Aurora Dunkel'],['light','Hell'],['auto','Auto']];
+function applyTheme(){const t=S.ui.theme||'dark';document.documentElement.dataset.theme=t;
+  const dark=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches);
+  document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.remove());
+  const m=document.createElement('meta');m.name='theme-color';m.content=dark?'#080c15':'#fbf8ff';document.head.appendChild(m)}
+applyTheme();
 /* ---------- UI helpers ---------- */
 const sdot=(sp,sm)=>`<span class="sdot ${sm?'sm':''}" style="--c:${SP[sp].col}">${IC(sp,sm?18:22)}</span>`;
 const zone=(z,col)=>`<span class="zone" style="--c:${col}" title="Intensität ${z}/5">${[1,2,3,4,5].map(i=>`<i class="${i<=z?'on':''}"></i>`).join('')}</span>`;
@@ -77,7 +84,7 @@ function vHome(){
   <div class="card hero"><div class="row"><span style="position:relative;z-index:1">${IC('target',26)}</span>
     <div style="position:relative;z-index:1"><div class="lbl" style="color:rgba(255,255,255,.8)">Road to</div><h2 style="font-size:1.25rem">${esc(g.n)}</h2><div class="small muted">${esc(g.sub)}</div></div></div></div>
   <div class="card"><div class="row" style="gap:18px">
-    <div class="ring"><svg width="132" height="132" viewBox="0 0 132 132"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7eb6"/><stop offset="1" stop-color="#8b6bff"/></linearGradient></defs>
+    <div class="ring"><svg width="132" height="132" viewBox="0 0 132 132"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--g1)"/><stop offset="1" style="stop-color:var(--g2)"/></linearGradient></defs>
       <circle cx="66" cy="66" r="${R0}" fill="none" stroke="var(--card2)" stroke-width="14"/>
       <circle cx="66" cy="66" r="${R0}" fill="none" stroke="url(#rg)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-pct)}"/></svg>
       <div class="mid"><div><div class="big num" style="font-size:1.6rem">${fmtH(mins)}<small>h</small></div><div class="tiny muted">von ${fmtH(target)} h</div></div></div></div>
@@ -276,6 +283,7 @@ function settings(step){
     <div class="field"><label for="s-name">Vorname</label><input type="text" id="s-name" maxlength="40" value="${esc(P.name)}"></div>
     <div class="field"><label for="s-goal">Ziel</label><select id="s-goal">${Object.entries(C.goals).map(([k,v])=>`<option value="${k}" ${k===P.goal?'selected':''}>${esc(v.n)} – ${esc(v.sub)}</option>`).join('')}</select></div>
     <button class="btn sm" data-a="saveProfile">Profil speichern</button></div>
+  <div class="card stack" style="gap:10px;box-shadow:none;background:var(--card2)"><div class="lbl">Design</div><div class="chips">${THEMES.map(([k,n])=>`<button class="chip ${(S.ui.theme||'dark')===k?'on':''}" data-a="theme" data-id="${k}">${n}</button>`).join('')}</div></div>
   <div class="card stack" style="gap:10px;box-shadow:none;background:var(--card2)"><div class="lbl">Konto &amp; Sync</div>${acct}</div>
   <div class="card stack" style="gap:8px;box-shadow:none;background:var(--card2)"><div class="row"><span class="sdot sm" style="--c:#25b6e8">${IC('watch',18)}</span><div class="lbl">Garmin (optional)</div></div>
     ${CFG.garmin?`<p class="small muted">Verbinde dein Garmin-Konto, damit Aktivitäten automatisch im Log landen.</p><button class="btn sm" data-a="garmin">Mit Garmin verbinden</button>`:`<p class="small muted">Direkte Garmin-Anbindung folgt. Bis dahin: In Garmin Connect eine Aktivität öffnen → ⋯ → <i>Exportieren als GPX/TCX</i> und im Tab „Training“ über „GPX/TCX“ importieren.</p>`}</div>
@@ -298,6 +306,7 @@ async function importJson(f){
 /* ---------- Aktionen ---------- */
 const A={
   closeSheet,settings:()=>settings(),
+  theme:t=>{S.ui.theme=t.dataset.id;save(true);applyTheme();document.querySelectorAll('[data-a=theme]').forEach(c=>c.classList.toggle('on',c===t))},
   session:t=>openSession(t.dataset.id,t.dataset.date),
   logPlan:t=>{const s=C.sessions[t.dataset.id];openWorkout(null,{sport:s.sp,dur:s.min,plan:t.dataset.id,source:'plan',date:t.dataset.date&&t.dataset.date<=today()?t.dataset.date:today()})},
   goal:t=>{S.profile.goal=t.dataset.id;S.profileTouched=1;save();Sync.active&&Sync.saveProfile(S.profile);render()},
