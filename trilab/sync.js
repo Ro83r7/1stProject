@@ -72,7 +72,7 @@ const Sync={
 
   async faq(){
     if(!this.sb)return null;
-    const {data,error}=await this.sb.from('public_faq').select('id,text,answer').order('answered_at',{ascending:false}).limit(60);
+    const {data,error}=await this.sb.from('public_faq').select('id,text,answer,lang').order('answered_at',{ascending:false}).limit(60);
     return error?null:data;
   },
 
@@ -116,7 +116,7 @@ const Sync={
         const {error}=await this.sb.from('questions').update({answer:q.answer,is_public:!!q.pub,answered_at:iso(q.at||Date.now())}).eq('id',q.id);
         if(error)throw error;
       }else if(!q.r){
-        const {error}=await this.sb.from('questions').insert({id:q.id,user_id:uid,text:q.text});
+        const {error}=await this.sb.from('questions').insert({id:q.id,user_id:uid,text:q.text,lang:q.lang||'de'});
         if(error&&!/duplicate/i.test(error.message))throw error;
         q.r=1;
       }
@@ -127,7 +127,7 @@ const Sync={
     if(error)throw error;
     const idx=new Map(S.questions.map(x=>[x.id,x]));
     for(const r of data){
-      const n={id:r.id,text:r.text,created:ts(r.created_at),answer:r.answer,at:ts(r.answered_at),pub:r.is_public,uid:r.user_id,who:r.profiles?.display_name||'',r:1,u:ts(r.synced_at)};
+      const n={id:r.id,text:r.text,created:ts(r.created_at),answer:r.answer,at:ts(r.answered_at),pub:r.is_public,lang:r.lang,uid:r.user_id,who:r.profiles?.display_name||'',r:1,u:ts(r.synced_at)};
       const l=idx.get(n.id);
       if(!l)S.questions.push(n);else if(!l.d)Object.assign(l,n);
     }
