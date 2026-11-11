@@ -169,7 +169,7 @@ function vHome(){
   ${next?`<a href="#/races" class="card row" style="text-decoration:none;color:inherit">${sdot('brick')}<div class="grow"><div class="lbl">Nächster Wettkampf</div><b>${esc(next.name)}</b><div class="small muted">${fmtDate(next.date)}</div></div><div class="big num" style="font-size:1.6rem">${days}<small>${days===1?'Tag':'Tage'}</small></div></a>`:''}
   <div class="card"><div class="lbl" style="margin-bottom:10px">Woche nach Sportart</div>${by.length?`<div class="stack" style="gap:10px">${by.map(([k,m])=>`<div class="row">${sdot(k,1)}<div class="grow"><div class="bar" style="--c:${SP[k].col}"><i style="width:${m/mx*100}%"></i></div></div><b class="small num" style="min-width:56px;text-align:right">${fmtMin(m)}</b></div>`).join('')}</div>`:'<p class="muted small">Noch nichts geloggt – los geht’s!</p>'}</div>
   ${questsCard()}
-  <a href="#/shop" class="card row" style="text-decoration:none;color:inherit">${tileIc('bag','#ff5c9d')}<div class="grow"><b>Lena’s Shop</b><div class="small muted">Persönlicher Plan, Beratung &amp; Fanware</div></div><span class="muted">${IC('chev',18)}</span></a>
+  <a href="#/shop" class="card row" style="text-decoration:none;color:inherit">${tileIc('bag','#ff5c9d')}<div class="grow"><b>Lena’s Shop</b><div class="small muted">Persönlicher Plan, Beratung &amp; Garmin-Anbindung</div></div><span class="muted">${IC('chev',18)}</span></a>
   <div class="card row" style="align-items:flex-start">${IC('sparkle',22)}<div><div class="lbl">Tipp des Tages</div><p style="margin-top:4px">${esc(tip)}</p></div></div></div>`;
 }
 
@@ -263,61 +263,58 @@ function vAchv(){
   <div class="card"><div class="lbl" style="margin-bottom:8px">Ränge</div>${RANKS.map((r,i)=>`<div class="row sp small" style="${Math.floor((L.lvl-1)/2)===i||(i===RANKS.length-1&&L.lvl>14)?'color:var(--violet);font-weight:800':'color:var(--muted)'}"><span>Level ${i*2+1}${i<RANKS.length-1?'–'+(i*2+2):'+'}</span><span>${r}</span></div>`).join('')}</div></div>`;
 }
 
-/* ---------- Shop (Demo-Kasse; echte Zahlung über Payment Links oder Checkout-Endpoint, siehe payments/README.md) ---------- */
+/* ---------- Shop (nur digital; Demo-Kasse. Echte Zahlung über Payment Links oder Checkout-Endpoint, siehe payments/README.md) ---------- */
 const fmtEUR=c=>(c/100).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
-const SHIP=490,PRODUCTS=C.products,prod=id=>PRODUCTS.find(p=>p.id===id);
+const PRODUCTS=C.products,prod=id=>PRODUCTS.find(p=>p.id===id);
+const VAT_NOTE=CFG.vatNote||'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.';
 const isDemo=p=>!(CFG.paymentLinks&&CFG.paymentLinks[p.id])&&!CFG.checkoutEndpoint;
 const owned=id=>S.orders.some(o=>o.items.some(i=>i.id===id));
 const tileIc=(ic,col,sm)=>`<span class="sdot ${sm?'sm':''}" style="--c:${col}">${IC(ic,sm?18:22)}</span>`;
 function vShop(){
   const f=S.ui.sf||'all',cats=C.shopCats,list=PRODUCTS.filter(p=>f==='all'||p.cat===f),anyDemo=PRODUCTS.some(isDemo);
   const card=p=>{const ct=cats[p.cat],got=p.once&&owned(p.id);
-    return `<div class="card prod"><div class="row" style="align-items:flex-start">${tileIc(ct.ic,ct.col)}<div class="grow"><b>${esc(p.n)}</b><div class="small muted" style="margin-top:2px">${esc(p.d)}</div>${p.kind==='physical'?`<div class="tiny muted" style="margin-top:4px">zzgl. ${fmtEUR(SHIP)} Versand</div>`:''}</div></div>
+    return `<div class="card prod"><div class="row" style="align-items:flex-start">${tileIc(ct.ic,ct.col)}<div class="grow"><b>${esc(p.n)}</b><div class="small muted" style="margin-top:2px">${esc(p.d)}</div></div></div>
       <div class="row sp" style="margin-top:12px"><b class="num" style="font-size:1.2rem">${fmtEUR(p.price)}</b>${got?`<span class="tag pb">${IC('check',12)} Gebucht</span>`:`<button class="btn primary sm" data-a="buy" data-id="${p.id}">${IC('bag',16)}Kaufen</button>`}</div></div>`};
   const orders=[...S.orders].sort((a,b)=>b.at-a.at);
   return `<div class="pagehead"><div><a href="#/home" class="small" style="text-decoration:none;font-weight:700">‹ Zurück</a><h1>Shop</h1></div>${IC('bag',26)}</div><div class="stack">
-  ${anyDemo?`<div class="card hero"><div class="row" style="position:relative;z-index:1;align-items:flex-start">${IC('lock',24)}<div><h2>Demo-Modus</h2><div class="small muted">So sieht der Shop aus. Zahlungen werden nur simuliert – es wird nichts abgebucht und nichts versendet.</div></div></div></div>`:''}
+  ${anyDemo?`<div class="card hero"><div class="row" style="position:relative;z-index:1;align-items:flex-start">${IC('lock',24)}<div><h2>Demo-Modus</h2><div class="small muted">So sieht der Shop aus. Zahlungen werden nur simuliert – es wird nichts abgebucht.</div></div></div></div>`:''}
   <div class="chips scroll"><button class="chip ${f==='all'?'on':''}" data-a="sfilter" data-id="all">Alle</button>${Object.entries(cats).map(([k,v])=>`<button class="chip ${f===k?'on':''}" style="--c:${v.col}" data-a="sfilter" data-id="${k}">${IC(v.ic,16)}${v.n}</button>`).join('')}</div>
   <div class="stack" style="gap:12px">${list.map(card).join('')}</div>
-  ${orders.length?`<div><h2 style="margin-bottom:8px">Meine Bestellungen</h2><div class="stack" style="gap:10px">${orders.map(o=>`<div class="card"><div class="row sp"><b class="small">${esc(o.no)}</b><span class="tag">${esc(o.status)}</span></div>${o.items.map(i=>`<div class="small" style="margin-top:6px">${i.q>1?i.q+' × ':''}${esc(i.n)}</div>`).join('')}<div class="row sp tiny muted" style="margin-top:8px"><span>${new Date(o.at).toLocaleDateString('de-DE')}${o.demo?' · Demo':''}</span><b class="num" style="color:var(--ink)">${fmtEUR(o.total)}</b></div></div>`).join('')}</div></div>`:''}
-  <p class="tiny muted">Preise inkl. gesetzlicher USt., sofern anfallend. Impressum, AGB, Widerrufsbelehrung und Datenschutzerklärung vor dem Livegang ergänzen.</p></div>`;
+  ${orders.length?`<div><h2 style="margin-bottom:8px">Meine Bestellungen</h2><div class="stack" style="gap:10px">${orders.map(o=>`<div class="card"><div class="row sp"><b class="small">${esc(o.no)}</b><span class="tag">${esc(o.status)}</span></div>${o.items.map(i=>`<div class="small" style="margin-top:6px">${esc(i.n)}</div>`).join('')}<div class="row sp tiny muted" style="margin-top:8px"><span>${new Date(o.at).toLocaleDateString('de-DE')}${o.demo?' · Demo':''}</span><b class="num" style="color:var(--ink)">${fmtEUR(o.total)}</b></div></div>`).join('')}</div></div>`:''}
+  <p class="tiny muted">Endpreise. ${esc(VAT_NOTE)} Impressum, AGB, Widerrufsbelehrung und Datenschutzerklärung vor dem Livegang ergänzen.</p></div>`;
 }
 const METHODS=[['card','Karte'],['paypal','PayPal'],['apple','Apple Pay'],['sepa','SEPA']];
 function openCheckout(id){
-  const p=prod(id),ct=C.shopCats[p.cat],phys=p.kind==='physical';
-  F={shop:id,qty:1,method:'card'};
+  const p=prod(id),ct=C.shopCats[p.cat];
+  F={shop:id,method:'card'};
   const link=CFG.paymentLinks&&CFG.paymentLinks[id];
   if(link){location.href=link;return}
   if(CFG.checkoutEndpoint)return realCheckout(p);
   sheet(`<div class="stack"><div class="row sp"><h2>Kasse <span class="tag pb">DEMO</span></h2><button class="iconbtn" data-a="closeSheet" aria-label="Schließen">${IC('x',20)}</button></div>
-  <div class="row">${tileIc(ct.ic,ct.col)}<div class="grow"><b>${esc(p.n)}</b><div class="small muted num" id="co-unit">${fmtEUR(p.price)}</div></div>
-    ${phys?`<div class="row" style="gap:6px"><button class="iconbtn" style="width:34px;height:34px" data-a="qty" data-id="-1" aria-label="weniger">−</button><b id="co-q" class="num" style="min-width:18px;text-align:center">1</b><button class="iconbtn" style="width:34px;height:34px" data-a="qty" data-id="1" aria-label="mehr">+</button></div>`:''}</div>
-  ${phys?`<div class="stack" style="gap:8px"><div class="lbl">Lieferadresse</div><input type="text" id="co-name" placeholder="Vor- und Nachname" autocomplete="name"><input type="text" id="co-street" placeholder="Straße und Hausnummer" autocomplete="street-address"><div class="grid2"><input type="text" id="co-zip" placeholder="PLZ" inputmode="numeric" autocomplete="postal-code"><input type="text" id="co-city" placeholder="Ort" autocomplete="address-level2"></div></div>`:''}
-  <div class="field"><label for="co-mail">E-Mail für Bestätigung</label><input type="email" id="co-mail" autocomplete="email" value="${esc(Sync.user?.email||'')}" placeholder="du@mail.de"></div>
+  <div class="row">${tileIc(ct.ic,ct.col)}<div class="grow"><b>${esc(p.n)}</b><div class="small muted">${esc(p.d)}</div></div></div>
+  <div class="field"><label for="co-mail">E-Mail für Bestätigung und Lieferung</label><input type="email" id="co-mail" autocomplete="email" value="${esc(Sync.user?.email||'')}" placeholder="du@mail.de"></div>
   <div><div class="lbl" style="margin-bottom:6px">Zahlungsart</div><div class="chips" id="co-m">${METHODS.map(([k,n])=>`<button class="chip ${k==='card'?'on':''}" data-a="method" data-id="${k}">${n}</button>`).join('')}</div></div>
-  <div class="card stack" style="gap:6px;box-shadow:none;background:var(--card2)"><div class="row sp small"><span>Zwischensumme</span><span class="num" id="co-sub">${fmtEUR(p.price)}</span></div>${phys?`<div class="row sp small"><span>Versand</span><span class="num">${fmtEUR(SHIP)}</span></div>`:''}<div class="row sp"><b>Gesamt</b><b class="num" id="co-tot" style="font-size:1.2rem">${fmtEUR(p.price+(phys?SHIP:0))}</b></div></div>
+  <div class="card stack" style="gap:4px;box-shadow:none;background:var(--card2)"><div class="row sp"><b>Gesamt</b><b class="num" style="font-size:1.2rem">${fmtEUR(p.price)}</b></div><div class="tiny muted">${esc(VAT_NOTE)}</div></div>
   <label class="row small" style="align-items:flex-start"><input type="checkbox" id="co-agb" style="margin-top:3px"><span>Ich akzeptiere die AGB und die Datenschutzerklärung.</span></label>
-  ${phys?'':`<label class="row small" style="align-items:flex-start"><input type="checkbox" id="co-wid" style="margin-top:3px"><span>Ich verlange ausdrücklich, dass Lena sofort mit der Leistung beginnt. Mir ist bekannt, dass mein Widerrufsrecht bei vollständiger Erbringung erlischt.</span></label>`}
+  <label class="row small" style="align-items:flex-start"><input type="checkbox" id="co-wid" style="margin-top:3px"><span>Ich verlange ausdrücklich, dass Lena sofort mit der Leistung beginnt bzw. die digitalen Inhalte sofort bereitstellt. Mir ist bekannt, dass mein Widerrufsrecht bei vollständiger Erbringung erlischt bzw. mit Beginn der Bereitstellung verloren geht.</span></label>
   <button class="btn primary block" data-a="pay" id="co-pay">${IC('lock',18)}Zahlungspflichtig bestellen (Demo)</button>
   <p class="tiny muted" style="text-align:center">Demo: Es wird keine Zahlung ausgelöst. In der Live-Version läuft die Zahlung über Stripe.</p></div>`);
 }
-const coTotal=()=>{const p=prod(F.shop);return p.price*F.qty+(p.kind==='physical'?SHIP:0)};
 function pay(t){
-  const p=prod(F.shop),phys=p.kind==='physical',v=id=>($('#'+id)?.value||'').trim();
+  const p=prod(F.shop),v=id=>($('#'+id)?.value||'').trim();
   if(!/^\S+@\S+\.\S+$/.test(v('co-mail')))return toast('Bitte eine gültige E-Mail angeben');
-  if(phys&&!(v('co-name')&&v('co-street')&&/^\d{4,5}$/.test(v('co-zip'))&&v('co-city')))return toast('Bitte die Lieferadresse vollständig ausfüllen');
   if(!$('#co-agb').checked)return toast('Bitte AGB und Datenschutz akzeptieren');
-  if(!phys&&!$('#co-wid').checked)return toast('Bitte der sofortigen Leistung zustimmen');
+  if(!$('#co-wid').checked)return toast('Bitte der sofortigen Leistung zustimmen');
   t.disabled=true;t.textContent='Zahlung wird simuliert …';
   const before=snap();
   setTimeout(()=>{
-    const o={id:uid(),no:'DEMO-'+Math.random().toString(36).slice(2,8).toUpperCase(),at:Date.now(),demo:true,items:[{id:p.id,n:p.n,q:F.qty}],total:coTotal(),
-      status:phys?'Bezahlt · Versand folgt':p.kind==='digital'?'Freigeschaltet':p.kind==='support'?'Danke!':'Bezahlt · Lena meldet sich',mail:v('co-mail'),method:F.method};
+    const o={id:uid(),no:'DEMO-'+Math.random().toString(36).slice(2,8).toUpperCase(),at:Date.now(),demo:true,items:[{id:p.id,n:p.n,q:1}],total:p.price,
+      status:p.kind==='digital'?'Freigeschaltet':p.kind==='support'?'Danke!':'Bezahlt · Lena meldet sich',mail:v('co-mail'),method:F.method};
     S.orders.push(o);save();render();
     const nb=badgeList().filter(x=>x.ok&&!before.b.includes(x.id));
-    const next={service:'Lena meldet sich in Kürze per E-Mail bei dir.',digital:'Die Garmin-Anbindung ist für dich freigeschaltet. Die Einrichtung folgt (Demo).',physical:'Dein Paket wird in 3–5 Werktagen versendet.',support:'Du bist großartig – danke für deinen Support!'}[p.kind];
+    const next={service:'Lena meldet sich in Kürze per E-Mail bei dir.',digital:'Die Garmin-Anbindung ist für dich freigeschaltet. Die Einrichtung folgt (Demo).',support:'Du bist großartig – danke für deinen Support!'}[p.kind];
     sheet(`<div class="stack" style="text-align:center"><div class="sdot" style="--c:var(--ok);width:64px;height:64px;border-radius:22px;margin:0 auto">${IC('check',32)}</div><h2>Danke für deine Bestellung!</h2>
-      <div class="small muted">Bestellnummer <b>${o.no}</b><br>${esc(p.n)}${F.qty>1?' × '+F.qty:''} · ${fmtEUR(o.total)}</div><p>${next}</p>
+      <div class="small muted">Bestellnummer <b>${o.no}</b><br>${esc(p.n)} · ${fmtEUR(o.total)}</div><p>${next}</p>
       ${nb.map(x=>`<div class="note-line">${IC(x.ic,20)}<span>Neues Abzeichen: <b>${esc(x.n)}</b></span></div>`).join('')}
       <button class="btn primary block" data-a="closeSheet">Zurück zum Shop</button><p class="tiny muted">Demo-Bestellung – es wurde nichts abgebucht.</p></div>`);
     confetti();
@@ -327,7 +324,7 @@ async function realCheckout(p){
   try{
     if(!Sync.user){toast('Bitte zuerst anmelden (Einstellungen)');return settings()}
     const {data}=await Sync.sb.auth.getSession();
-    const r=await fetch(CFG.checkoutEndpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+data.session.access_token},body:JSON.stringify({product:p.id,qty:1})});
+    const r=await fetch(CFG.checkoutEndpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+data.session.access_token},body:JSON.stringify({product:p.id})});
     const j=await r.json();if(!r.ok||!j.url)throw new Error(j.error||'Fehler');location.href=j.url;
   }catch(e){toast('Checkout nicht möglich: '+e.message)}
 }
@@ -472,7 +469,6 @@ async function importJson(f){
 const A={
   closeSheet,settings:()=>settings(),
   sfilter:t=>{S.ui.sf=t.dataset.id;save(true);render()},buy:t=>openCheckout(t.dataset.id),
-  qty:t=>{F.qty=Math.min(10,Math.max(1,F.qty+Number(t.dataset.id)));$('#co-q').textContent=F.qty;$('#co-sub').textContent=fmtEUR(prod(F.shop).price*F.qty);$('#co-tot').textContent=fmtEUR(coTotal())},
   method:t=>{F.method=t.dataset.id;document.querySelectorAll('#co-m .chip').forEach(c=>c.classList.toggle('on',c===t))},pay,
   theme:t=>{S.ui.theme=t.dataset.id;save(true);applyTheme();document.querySelectorAll('[data-a=theme]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.id===t.dataset.id))},
   session:t=>openSession(t.dataset.id,t.dataset.date),

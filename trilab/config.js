@@ -9,6 +9,7 @@ window.TRILAB_CONFIG = {
      Stufe 1 (ohne Backend): paymentLinks: { 'plan-personal': 'https://buy.stripe.com/…' }  (Stripe Payment Links)
      Stufe 2 (mit Supabase):  checkoutEndpoint: 'https://xxxx.supabase.co/functions/v1/create-checkout'
      Siehe payments/README.md */
+  vatNote: 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',   // Kleinunternehmerregelung; bei Wechsel zur Regelbesteuerung anpassen
   paymentLinks: {},
   checkoutEndpoint: '',            // true, sobald die Garmin-Edge-Function live ist (siehe README)
   instagram: 'https://www.instagram.com/lenaasang',

@@ -24,7 +24,6 @@ Deno.serve(async (req) => {
       await sb.from('orders').update({
         status: 'paid', paid_at: new Date().toISOString(),
         stripe_payment_intent: typeof s.payment_intent === 'string' ? s.payment_intent : null,
-        ship: s.shipping_details ?? null,
       }).eq('id', s.client_reference_id).eq('status', 'pending');   // idempotent: Stripe liefert Events mehrfach
     }
   }
