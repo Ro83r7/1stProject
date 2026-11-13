@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "golf-speed",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "golf-speed"],
+      "port": 8765
+    },
+    {
+      "name": "fit-lab",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "fit-lab"],
+      "port": 8766
+    },
+    {
+      "name": "day-lab",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8767", "--directory", "day-lab"],
+      "port": 8767
+    }
+  ]
+}
