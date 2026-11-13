@@ -128,6 +128,19 @@ a.btn{text-decoration:none}
 .sync.ok{color:var(--ok)}.sync.err{color:var(--danger)}
 .empty{color:var(--muted);padding:6px 0;font-weight:700}
 svg.ic{display:block}
+body{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+#nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;max-width:520px;margin:0 auto;display:flex;gap:2px;padding:6px;background:rgba(19,23,51,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:26px;box-shadow:0 10px 36px rgba(0,0,0,.45);border:1px solid var(--line)}
+#nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:20px;font-size:.7rem;font-weight:800;color:var(--muted);text-decoration:none}
+#nav a.on{background:var(--grad);color:var(--on-grad)}
+.toast{bottom:calc(100px + env(safe-area-inset-bottom))}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.wd{background:var(--card2);border-radius:12px;text-align:center;padding:6px 0;line-height:1.25}
+.wd small{display:block;color:var(--muted);font-weight:800;font-size:.68rem;text-transform:uppercase}
+.wd.today{background:var(--grad);color:var(--on-grad)}.wd.today small{color:var(--on-grad)}
+.cdr{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.cdr:first-of-type{border-top:0}
+.cde{font-size:1.4rem}.cdt{flex:1;min-width:0}.cdt b{display:block;overflow-wrap:anywhere}.cdt small{color:var(--muted);font-weight:700;font-size:.78rem}
+.cdd{font-weight:800;font-size:.85rem;color:var(--muted);white-space:nowrap}.cdd.hot{color:var(--g1)}
 </style>
 </head>
 <body>
@@ -136,6 +149,7 @@ svg.ic{display:block}
   <div class="row" style="gap:8px"><span class="sync" id="syncpill"></span><button class="iconbtn" data-a="settings" aria-label="Einstellungen" id="gear"></button></div>
 </header>
 <main id="view" aria-live="polite"></main>
+<nav id="nav" aria-label="Hauptnavigation"></nav>
 <div id="sheet" class="sheet" hidden>
   <div class="scrim" data-a="closeSheet"></div>
   <div class="panel" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></div>
@@ -184,12 +198,12 @@ const dayDiff=(a,b)=>Math.round((fromKey(a)-fromKey(b))/864e5);
 /* ---------- Zustand ---------- */
 const DEFAULT_HABITS=[{id:'h1',n:'Mobility',e:'🧘'},{id:'h2',n:'2 l Wasser',e:'💧'},{id:'h3',n:'Spaziergang',e:'🚶'},{id:'h4',n:'Lesen',e:'📖'}];
 let S=jget(LS,null)||{fj:{},todos:[],habits:DEFAULT_HABITS.map(h=>({...h,u:1})),hlog:{},set:{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0}};
-S.fj=S.fj||{};if(S.focus&&S.focus.text&&S.focus.date&&!S.fj[S.focus.date])S.fj[S.focus.date]={t:S.focus.text,n:'',u:S.focus.u||1};delete S.focus;
+S.fj=S.fj||{};S.cd=S.cd||[];if(S.focus&&S.focus.text&&S.focus.date&&!S.fj[S.focus.date])S.fj[S.focus.date]={t:S.focus.text,n:'',u:S.focus.u||1};delete S.focus;
 S.habits=S.habits||[];S.hlog=S.hlog||{};S.todos=S.todos||[];S.set=S.set||{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0};
 let CFG=jget(LSCFG,{url:DEF.url,key:DEF.key,code:'',g:''});
 let CAL=jget(LSCAL,{events:[],fetched_at:null});
 let sync={status:CFG.code?'idle':'off',err:''};
-let showDone=false,newDue='';
+let showDone=false,newDue='',tab='start';
 const save=(touch=true)=>{jset(LS,S);if(touch)schedulePush()};
 
 /* ---------- Supabase (REST/RPC, ohne SDK) ---------- */
@@ -204,6 +218,7 @@ function mergeState(L,R){
   const o={...L};
   o.todos=mergeById(L.todos||[],R.todos||[]);
   o.habits=mergeById(L.habits||[],R.habits||[]);
+  o.cd=mergeById(L.cd||[],R.cd||[]);
   o.hlog={...(R.hlog||{})};
   for(const[k,v]of Object.entries(L.hlog||{})){const r=o.hlog[k];if(!r||(v.u||0)>(r.u||0))o.hlog[k]=v}
   o.fj={...(R.fj||{})};
@@ -216,7 +231,7 @@ function mergeState(L,R){
   o.todos=o.todos.filter(t=>!(t.del&&(t.u||0)<lim));
   return o;
 }
-const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.fj,o.set]);
+const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.fj,o.cd,o.set]);
 let pushT=null,syncing=false;
 function schedulePush(){if(!CFG.code)return;clearTimeout(pushT);pushT=setTimeout(()=>doSync(),1800)}
 async function doSync(){
@@ -357,15 +372,63 @@ function streak(h,now){
   while((S.hlog[key(d)]?.ids||[]).includes(h.id)){n++;d=addDays(d,-1)}
   return n;
 }
+
+/* ---------- Countdowns & Geburtstage ---------- */
+function parseDM(str){
+  str=String(str||'').trim();let m=str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m)return{y:+m[1],m:+m[2],d:+m[3]};
+  m=str.match(/^(\d{1,2})\.\s*(\d{1,2})\.?\s*(\d{2,4})?$/);if(!m)return null;
+  let y=m[3]?+m[3]:null;if(y!=null&&y<100)y+=y>30?1900:2000;
+  const o={y,m:+m[2],d:+m[1]};if(o.m<1||o.m>12||o.d<1||o.d>31)return null;return o;
+}
+function cdList(now){
+  const tk=key(now),out=[];
+  for(const c of S.cd.filter(x=>!x.del)){
+    if(c.k==='bd'){
+      let y=now.getFullYear(),dt=new Date(y,c.m-1,c.d);
+      if(key(dt)<tk){y++;dt=new Date(y,c.m-1,c.d)}
+      const days=dayDiff(key(dt),tk);
+      if(days<=75)out.push({c,days,age:c.y?y-c.y:null,when:dt});
+    }else{
+      const days=dayDiff(c.d,tk);if(days>=0)out.push({c,days,when:fromKey(c.d)});
+    }
+  }
+  return out.sort((a,b)=>a.days-b.days).slice(0,6);
+}
+const dayWord=n=>n===0?'heute':n===1?'morgen':`in ${n} Tagen`;
+function cdHTML(now){
+  const l=cdList(now);
+  if(!l.length)return'<div class="empty">Noch nichts eingetragen – Urlaub, Turnier, Geburtstage …</div>';
+  return l.map(x=>{const bd=x.c.k==='bd';
+    return`<div class="cdr"><span class="cde">${bd?'🎂':'⏳'}</span><div class="cdt"><b>${esc(x.c.n)}</b><small>${bd?(x.age?`wird ${x.age}`:'Geburtstag'):''}${bd&&x.age?' · ':''}${x.when.getDate()}.${x.when.getMonth()+1}.${bd?'':x.when.getFullYear()}</small></div><span class="cdd ${x.days<=1?'hot':''}">${x.days===0&&bd?'🎉 heute':dayWord(x.days)}</span></div>`}).join('');
+}
+function cdSheet(){
+  const all=S.cd.filter(x=>!x.del).sort((a,b)=>(a.k>b.k?1:-1)||String(a.d||`${pad(a.m)}-${pad(a.d)}`).localeCompare(String(b.d||'')));
+  openSheet(`<h2 style="margin:0 0 12px">Countdowns & Geburtstage</h2>
+  ${all.map(c=>`<div class="td"><span style="font-size:1.2rem">${c.k==='bd'?'🎂':'⏳'}</span><div class="tx" style="cursor:default">${esc(c.n)}<div class="muted tiny">${c.k==='bd'?`${c.d}.${c.m}.${c.y||''}`:esc(c.d.split('-').reverse().join('.'))}</div></div><button class="mini" data-a="delCd" data-id="${c.id}" aria-label="Löschen">${ic('x',18)}</button></div>`).join('')||'<div class="empty">Noch nichts da.</div>'}
+  <div style="height:14px"></div>
+  <div class="field"><label>Neu: Name</label><input id="cN" type="text" maxlength="60" placeholder="z. B. Golfreise / Lena"></div>
+  <div class="two"><div class="field"><label>Datum (TT.MM.JJJJ)</label><input id="cD" type="text" inputmode="numeric" placeholder="24.12.2026"></div>
+  <div class="field"><label>Art</label><select id="cK" style="background:var(--card2);border:2px solid transparent;border-radius:14px;padding:11px 13px;color:var(--ink);font:inherit;min-height:46px"><option value="cd">Countdown</option><option value="bd">Geburtstag (jährlich)</option></select></div></div>
+  <button class="btn primary wide" data-a="addCd">Hinzufügen</button>`);
+}
+function addCd(){
+  const n=$('#cN').value.trim(),k=$('#cK').value,p=parseDM($('#cD').value);
+  if(!n||!p){toast('Name und Datum prüfen (TT.MM.JJJJ)');return}
+  if(k==='cd'){if(!p.y){toast('Countdown braucht ein Jahr');return}S.cd.push({id:uid(),k:'cd',n,d:`${p.y}-${pad(p.m)}-${pad(p.d)}`,u:Date.now()})}
+  else S.cd.push({id:uid(),k:'bd',n,d:p.d,m:p.m,y:p.y,u:Date.now()});
+  save();cdSheet();render();
+}
+
 function render(){
   const now=new Date(),tk=key(now),tm=key(addDays(now,1));
   const st=S.set,hour=now.getHours();
   const wxHTML=WX&&WX.cur?(()=>{const[e,t]=WCODE(WX.cur.weather_code);const d=WX.d;const[,tt]=WCODE(d.weather_code[0]);return`<div class="wx"><span class="t">${e}</span><div><span class="num">${Math.round(WX.cur.temperature_2m)}°</span> ${esc(st.city)}<small>${tt} · ${Math.round(d.temperature_2m_min[0])}–${Math.round(d.temperature_2m_max[0])}° · Regen ${d.precipitation_probability_max[0]??0}%</small></div></div>`})():`<div class="wx"><span class="t">🌡️</span><div>${esc(st.city)}<small>Wetter wird geladen …</small></div></div>`;
   const fj=S.fj[tk]||{},focusOk=!!fj.t;
+  const focusLine=focusOk?`<div class="set" data-a="focus"><span class="star">${ic('star',22)}</span><span>${esc(fj.t)}</span></div>`:`<input id="focusIn" type="text" placeholder="Was ist heute das EINE Wichtige?" maxlength="120" enterkeyhint="done">`;
   const yk=Object.keys(S.fj).filter(k=>k<tk&&S.fj[k].t).sort().pop();
-  const focusHTML=focusOk
-    ?`<div class="set" data-a="focus"><span class="star">${ic('star',22)}</span><span>${esc(fj.t)}</span></div><input id="noteIn" type="text" value="${esc(fj.n||'')}" placeholder="Rückblick am Abend (optional) …" maxlength="300" enterkeyhint="done" style="margin-top:10px">`
-    :`<input id="focusIn" type="text" placeholder="Was ist heute das EINE Wichtige?" maxlength="120" enterkeyhint="done">${yk?`<div class="tiny muted" style="margin-top:8px">Zuletzt (${fromKey(yk).getDate()}.${fromKey(yk).getMonth()+1}.): ${esc(S.fj[yk].t)}</div>`:''}`;
+  const focusStart=focusLine;
+  const focusMind=focusLine+(focusOk?`<input id="noteIn" type="text" value="${esc(fj.n||'')}" placeholder="Rückblick am Abend (optional) …" maxlength="300" enterkeyhint="done" style="margin-top:10px">`:(yk?`<div class="tiny muted" style="margin-top:8px">Zuletzt (${fromKey(yk).getDate()}.${fromKey(yk).getMonth()+1}.): ${esc(S.fj[yk].t)}</div>`:''));
   const tdays=eventsOn(tk),tmr=eventsOn(tm);
   const nextRows=[2,3,4,5].map(i=>{const d=addDays(now,i),k=key(d),l=eventsOn(k);
     const chips=l.length?l.map(e=>`<span class="chip">${e.r.allDay?'':`<b class="num">${hm(e.r.s)}</b>`}${esc(e.t)}</span>`).join(''):'<span class="muted small">–</span>';
@@ -399,20 +462,29 @@ function render(){
   const hab=S.habits.filter(h=>!h.del);
   const habHTML=hab.length?`<div class="habits">${hab.map(h=>{const on=hl.includes(h.id),n=streak(h,now);return`<button class="hb ${on?'on':''}" data-a="habit" data-id="${h.id}"><span class="e">${esc(h.e||'✔️')}</span><span class="n">${esc(h.n)}</span><span class="s">${n?`🔥 ${n}`:''}</span></button>`}).join('')}</div>`:'<div class="empty">Keine Gewohnheiten. Lege welche in den Einstellungen an.</div>';
 
-  $('#view').innerHTML=`
-  <div class="col">
-    <section class="card hero"><h1 class="hello">${greet(hour)}, ${esc(st.name||'')}</h1><div class="date">${WD[now.getDay()]}, ${now.getDate()}. ${MON[now.getMonth()]} ${now.getFullYear()}</div>${wxHTML}<div class="motd">${esc(motd(now))}<small>✦ Message of the Day · von Claude</small></div></section>
-    <section class="card focus"><h2>${ic('star',15)} Fokus des Tages<span class="sp"><a href="#" data-a="journal" style="color:var(--g1);text-decoration:none">Journal ›</a></span></h2>${focusHTML}</section>
-    <section class="card"><h2>${ic('cal2',15)} Heute · ${now.getDate()}.${now.getMonth()+1}.${tdays.length?`<span class="sp">${tdays.filter(e=>!e.r.allDay).length||tdays.length} Termin${(tdays.filter(e=>!e.r.allDay).length||tdays.length)===1?'':'e'}${nextInfo(now)}</span>`:''}</h2>${evHTML(tdays,tk,now)}</section>
+  const hero=`<section class="card hero"><h1 class="hello">${greet(hour)}, ${esc(st.name||'')}</h1><div class="date">${WD[now.getDay()]}, ${now.getDate()}. ${MON[now.getMonth()]} ${now.getFullYear()}</div>${wxHTML}</section>`;
+  const weekHTML=`<div class="week">${[1,2,3,4,5,6,0].map(d=>{const p=PLAN[d];return`<div class="wd ${d===wd?'today':''}"><small>${WDS[d]}</small><span>${p?p[0]:'·'}</span></div>`}).join('')}</div>`;
+  const cards={
+   hero,
+   focusStart:`<section class="card focus"><h2>${ic('star',15)} Fokus des Tages</h2>${focusStart}</section>`,
+   termine:`<section class="card"><h2>${ic('cal2',15)} Heute · ${now.getDate()}.${now.getMonth()+1}.${tdays.length?`<span class="sp">${tdays.filter(e=>!e.r.allDay).length||tdays.length} Termin${(tdays.filter(e=>!e.r.allDay).length||tdays.length)===1?'':'e'}${nextInfo(now)}</span>`:''}</h2>${evHTML(tdays,tk,now)}</section>
     <section class="card"><h2>${ic('cal2',15)} Morgen · ${WD[addDays(now,1).getDay()]}</h2>${evHTML(tmr,tm,now,true)}</section>
-    <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${CAL.fetched_at?`<div class="tiny muted" style="margin-top:8px">Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}</section>
-  </div>
-  <div class="col">
-    <section class="card"><h2>${ic('list',15)} Todos${nTodo?`<span class="sp"><span class="badge">${nTodo} heute</span></span>`:''}</h2>${todoHTML}</section>
-    <section class="card"><h2>${ic('heart',15)} Training heute</h2>${trainHTML}</section>
-    <section class="card"><h2>${ic('heart',15)} Körper-Status · Garmin</h2>${garHTML}</section>
-    <section class="card"><h2>${ic('check',15)} Gewohnheiten</h2>${habHTML}</section>
-  </div>`;
+    <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${CAL.fetched_at?`<div class="tiny muted" style="margin-top:8px">Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}</section>`,
+   todos:`<section class="card"><h2>${ic('list',15)} Todos${nTodo?`<span class="sp"><span class="badge">${nTodo} heute</span></span>`:''}</h2>${todoHTML}</section>`,
+   cd:`<section class="card"><h2>${ic('star',15)} Countdowns & Geburtstage<span class="sp"><a href="#" data-a="cdsheet" style="color:var(--g1);text-decoration:none">Verwalten ›</a></span></h2>${cdHTML(now)}</section>`,
+   train:`<section class="card"><h2>${ic('heart',15)} Training heute</h2>${trainHTML}${weekHTML}</section>`,
+   gar:`<section class="card"><h2>${ic('heart',15)} Körper-Status · Garmin</h2>${garHTML}</section>`,
+   motd:`<section class="card hero"><h2 style="color:rgba(255,255,255,.8)">${ic('sparkle',15)} Message of the Day</h2><div class="motd" style="margin-top:0;font-size:1.2rem">${esc(motd(now))}<small>✦ von Claude</small></div></section>`,
+   focusMind:`<section class="card focus"><h2>${ic('star',15)} Fokus des Tages<span class="sp"><a href="#" data-a="journal" style="color:var(--g1);text-decoration:none">Journal ›</a></span></h2>${focusMind}</section>`,
+   hab:`<section class="card"><h2>${ic('check',15)} Gewohnheiten</h2>${habHTML}</section>`
+  };
+  const L={
+   start:[[cards.hero,cards.focusStart,cards.termine],[cards.todos,cards.cd]],
+   body:[[cards.train],[cards.gar]],
+   mind:[[cards.motd,cards.focusMind],[cards.hab]]
+  }[tab];
+  $('#view').innerHTML=L.map(c=>`<div class="col">${c.join('')}</div>`).join('');
+  $('#nav').innerHTML=[['start','Start','cal'],['body','Körper','heart'],['mind','Mind','sparkle']].map(([t,l,i])=>`<a href="#" data-a="tab" data-t="${t}" class="${tab===t?'on':''}" aria-current="${tab===t}">${ic(i,22)}<span>${l}</span></a>`).join('');
   pill();
 }
 
@@ -494,6 +566,10 @@ document.addEventListener('click',e=>{
   else if(a==='toggleDone'){e.preventDefault();showDone=!showDone;render()}
   else if(a==='habit'){const k=key(new Date());const l=S.hlog[k]||{ids:[],u:0};const i=l.ids.indexOf(id);if(i>=0)l.ids.splice(i,1);else l.ids.push(id);l.u=Date.now();S.hlog[k]=l;save();render()}
   else if(a==='focus')editJ(key(new Date()));
+  else if(a==='tab'){e.preventDefault();tab=el.dataset.t;render();window.scrollTo(0,0)}
+  else if(a==='cdsheet'){e.preventDefault();cdSheet()}
+  else if(a==='addCd')addCd();
+  else if(a==='delCd'){const c=S.cd.find(x=>x.id===id);if(c){c.del=true;c.u=Date.now();save();cdSheet();render()}}
   else if(a==='journal'){e.preventDefault();journal()}
   else if(a==='editJ')editJ(el.dataset.d);
   else if(a==='saveJ'){const d=el.dataset.d,t=$('#jT').value.trim(),n=$('#jN').value.trim();if(t||n){S.fj[d]={t,n,u:Date.now()}}else if(S.fj[d])S.fj[d]={t:'',n:'',u:Date.now()};save();closeSheet();render()}
