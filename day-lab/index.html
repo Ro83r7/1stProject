@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DayLab">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1226">
+<meta name="description" content="Day Lab – dein persönliches Dashboard: Termine, Todos, Fokus, Wetter, Training und Message of the Day.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Day Lab</title>
+<style>
+:root{
+  --bg:#0f1226;--card:#181c3a;--card2:#20254a;--ink:#f1f3ff;--muted:#adb5e2;--line:#2c3262;
+  --pink:#ff8fb8;--violet:#9a86ff;--g1:#ffd23f;--g2:#ff9a1f;--on-grad:#3a2200;
+  --grad:linear-gradient(135deg,#ffd23f,#ff9a1f);
+  --glow:linear-gradient(135deg,#5b5bff,#8a5cff);
+  --ok:#5fe3a6;--danger:#ff8f8f;--radius:22px;--btnshadow:0 8px 22px rgba(255,154,31,.28);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit}
+.muted{color:var(--muted)}.small{font-size:.875rem}.tiny{font-size:.76rem}.num{font-variant-numeric:tabular-nums}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem}
+.brand b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{width:32px;height:32px;border-radius:11px;background:var(--grad);color:var(--on-grad);display:grid;place-items:center}
+.row{display:flex;align-items:center}
+.iconbtn{border:0;background:var(--card);width:40px;height:40px;border-radius:14px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+main{max-width:1040px;margin:0 auto;padding:6px 16px 0;display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:860px){main{grid-template-columns:1fr 1fr;align-items:start}.span2{grid-column:1/-1}.col{display:grid;gap:14px}}
+.col{display:grid;gap:14px;min-width:0}
+.card{background:var(--card);border-radius:var(--radius);padding:16px;min-width:0}
+.card h2{margin:0 0 10px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:var(--muted);display:flex;align-items:center;gap:8px}
+.card h2 .sp{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:700}
+.hero{background:var(--glow);color:#fff;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,63,.55),transparent 65%)}
+.hero>*{position:relative;z-index:1}
+.hello{font-size:1.55rem;font-weight:900;line-height:1.15;margin:0}
+.date{opacity:.85;font-weight:700;margin-top:2px}
+.wx{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:800}
+.wx .t{font-size:1.9rem;line-height:1}.wx small{font-weight:700;opacity:.85;display:block;font-size:.8rem}
+.motd{margin-top:14px;padding:14px 16px;border-radius:18px;background:rgba(15,18,38,.38);font-size:1.08rem;font-weight:700;line-height:1.35}
+.motd small{display:block;margin-top:8px;opacity:.7;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:800}
+.focus input{width:100%;background:var(--card2);border:2px solid transparent;border-radius:14px;padding:12px 14px;outline:none;color:var(--ink);font:inherit;font-weight:700}
+.focus input:focus{border-color:var(--g2)}
+.focus .set{font-size:1.15rem;font-weight:800;display:flex;gap:10px;align-items:center;cursor:pointer}
+.focus .set .star{color:var(--g1);flex:none}
+/* Termine */
+.ev{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:flex-start}
+.ev:first-of-type{border-top:0}
+.ev .tm{width:52px;flex:none;font-weight:800;font-size:.88rem;text-align:right;padding-top:1px}
+.ev .tm small{display:block;color:var(--muted);font-weight:700;font-size:.72rem}
+.ev .bar{width:4px;align-self:stretch;border-radius:4px;background:var(--violet);flex:none;min-height:22px}
+.ev .tx{min-width:0;flex:1}.ev .tt{font-weight:800;overflow-wrap:anywhere}.ev .lo{color:var(--muted);font-size:.82rem}
+.ev.past{opacity:.45}
+.ev.now .bar{background:var(--g2);box-shadow:0 0 12px var(--g2)}
+.ev.now{background:linear-gradient(90deg,rgba(255,154,31,.16),transparent);border-radius:12px;padding-left:6px;margin-left:-6px}
+.ev.next .bar{background:var(--g1)}
+.ad{display:inline-flex;gap:6px;align-items:center;background:var(--card2);border-radius:12px;padding:6px 11px;font-weight:800;font-size:.86rem;margin:0 6px 6px 0}
+.ad:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g1)}
+.badge{background:var(--grad);color:var(--on-grad);border-radius:99px;padding:2px 9px;font-size:.72rem;font-weight:900;text-transform:none;letter-spacing:0}
+.free{color:var(--muted);padding:6px 0 2px;font-weight:700}
+.dayrow{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.dayrow:first-of-type{border-top:0}
+.dayrow .dn{width:52px;flex:none;text-align:center;line-height:1.1;font-weight:900}
+.dayrow .dn small{display:block;color:var(--muted);font-size:.7rem;font-weight:800;text-transform:uppercase}
+.dayrow .ch{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;min-width:0}
+.chip{border-radius:10px;padding:4px 9px;background:var(--card2);font-size:.82rem;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip b{color:var(--g1);margin-right:4px}
+/* Todos */
+.add{display:flex;gap:8px;margin-bottom:6px}
+.add input[type=text]{flex:1;min-width:0;background:var(--card2);border:2px solid transparent;border-radius:14px;padding:11px 13px;outline:none;color:var(--ink);font:inherit}
+.add input:focus{border-color:var(--g2)}
+.add .dt{width:44px;position:relative}
+.add .dt input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.btn{border:0;border-radius:14px;min-width:44px;height:46px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--card2);color:var(--ink);padding:0 14px}
+.btn.primary{background:var(--grad);color:var(--on-grad);box-shadow:var(--btnshadow)}
+.btn.danger{background:transparent;color:var(--danger);border:2px solid color-mix(in srgb,var(--danger) 40%,transparent)}
+.btn.wide{width:100%}
+.dueset{font-size:.78rem;color:var(--g1);font-weight:800;margin:0 0 6px 2px}
+.grp{font-size:.72rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;margin:12px 0 2px;color:var(--muted)}
+.grp.over{color:var(--danger)}.grp.today{color:var(--g1)}
+.td{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.grp+.td{border-top:0}
+.ck{width:26px;height:26px;border-radius:9px;border:2.5px solid var(--muted);background:transparent;flex:none;display:grid;place-items:center;cursor:pointer;color:transparent;padding:0}
+.ck.on{background:var(--grad);border-color:transparent;color:var(--on-grad)}
+.td .tx{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere;cursor:pointer}
+.td.done .tx{text-decoration:line-through;color:var(--muted)}
+.td .meta{font-size:.74rem;color:var(--muted);font-weight:700;white-space:nowrap}
+.td .meta.over{color:var(--danger)}
+.star{color:var(--g1)}
+.mini{background:none;border:0;padding:6px;cursor:pointer;color:var(--muted);border-radius:10px}
+.mini.on{color:var(--g1)}
+/* Status-Kacheln */
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--card2);border-radius:16px;padding:12px}
+.stat .v{font-size:1.5rem;font-weight:900;line-height:1.1}.stat .v small{font-size:.78rem;color:var(--muted);font-weight:800;margin-left:2px}
+.stat .l{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:800;margin-bottom:4px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--c,var(--muted))}
+.train{display:flex;align-items:center;gap:12px}
+.train .em{font-size:1.9rem}
+.train .t1{font-weight:900;font-size:1.15rem}
+a.btn{text-decoration:none}
+.habits{display:grid;gap:8px}
+.hb{display:flex;align-items:center;gap:10px;background:var(--card2);border:0;border-radius:14px;padding:10px 12px;cursor:pointer;width:100%;text-align:left}
+.hb .e{font-size:1.2rem}.hb .n{flex:1;font-weight:800}.hb .s{font-size:.78rem;color:var(--muted);font-weight:800}
+.hb.on{background:var(--grad);color:var(--on-grad)}.hb.on .s{color:var(--on-grad);opacity:.8}
+/* Sheet */
+.sheet[hidden]{display:none}
+.sheet{position:fixed;inset:0;z-index:60}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.panel{position:absolute;left:0;right:0;bottom:0;max-width:720px;margin:0 auto;max-height:92vh;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:10px 18px calc(24px + env(safe-area-inset-bottom));animation:up .25s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 14px}
+.field{display:grid;gap:5px;margin:0 0 12px}.field label{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.field input,.field textarea{width:100%;background:var(--card2);border:2px solid transparent;border-radius:14px;padding:11px 13px;outline:none;color:var(--ink);font:inherit;min-height:46px}
+.field input:focus{border-color:var(--g2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:700;font-size:.9rem;opacity:0;pointer-events:none;transition:.25s;z-index:80;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.sync{font-size:.72rem;font-weight:800;border-radius:99px;padding:3px 9px;background:var(--card2);color:var(--muted)}
+.sync.ok{color:var(--ok)}.sync.err{color:var(--danger)}
+.empty{color:var(--muted);padding:6px 0;font-weight:700}
+svg.ic{display:block}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo" id="logo"></span><span>Day <b>Lab</b></span></div>
+  <div class="row" style="gap:8px"><span class="sync" id="syncpill"></span><button class="iconbtn" data-a="settings" aria-label="Einstellungen" id="gear"></button></div>
+</header>
+<main id="view" aria-live="polite"></main>
+<div id="sheet" class="sheet" hidden>
+  <div class="scrim" data-a="closeSheet"></div>
+  <div class="panel" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<noscript><p style="padding:24px">Bitte JavaScript aktivieren.</p></noscript>
+<script src="motd.js"></script>
+<script>
+(()=>{
+'use strict';
+/* ---------- Konfiguration / Speicher ---------- */
+const DEF={url:'https://njipzdfnzpiremmbimty.supabase.co',key:'sb_publishable_Pp5YaHkVOPpYI9PnzMtHsQ_Wq8kMevf'};
+const LS='daylab.v1',LSCFG='daylab.cfg',LSCAL='daylab.cal',LSWX='daylab.wx',LSGAR='daylab.gar';
+const jget=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const jset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+
+const IC={
+ cal:'<rect x="3" y="5" width="18" height="16" rx="4"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/>',
+ check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+ star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+ cal2:'<rect x="3" y="5" width="18" height="16" rx="4"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ x:'<path d="m6 6 12 12M18 6 6 18"/>',
+ heart:'<path d="M12 20s-8-4.8-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15.2 12 20 12 20z"/>',
+ sparkle:'<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+ list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/>'
+};
+const ic=(n,s=20,sw=2)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]||''}</svg>`;
+$('#logo').innerHTML=ic('cal',20,2.4);$('#gear').innerHTML=ic('gear',22);
+
+/* ---------- Datum ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fromKey=k=>{const[a,b,c]=k.split('-').map(Number);return new Date(a,b-1,c)};
+const addDays=(d,n)=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);return x};
+const WD=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const WDS=['So','Mo','Di','Mi','Do','Fr','Sa'];
+const MON=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const hm=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const dayDiff=(a,b)=>Math.round((fromKey(a)-fromKey(b))/864e5);
+
+/* ---------- Zustand ---------- */
+const DEFAULT_HABITS=[{id:'h1',n:'Mobility',e:'🧘'},{id:'h2',n:'2 l Wasser',e:'💧'},{id:'h3',n:'Spaziergang',e:'🚶'},{id:'h4',n:'Lesen',e:'📖'}];
+let S=jget(LS,null)||{focus:{date:'',text:'',u:0},todos:[],habits:DEFAULT_HABITS.map(h=>({...h,u:1})),hlog:{},set:{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0}};
+S.habits=S.habits||[];S.hlog=S.hlog||{};S.todos=S.todos||[];S.set=S.set||{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0};
+let CFG=jget(LSCFG,{url:DEF.url,key:DEF.key,code:'',g:''});
+let CAL=jget(LSCAL,{events:[],fetched_at:null});
+let sync={status:CFG.code?'idle':'off',err:''};
+let showDone=false,newDue='';
+const save=(touch=true)=>{jset(LS,S);if(touch)schedulePush()};
+
+/* ---------- Supabase (REST/RPC, ohne SDK) ---------- */
+async function rpc(fn,args){
+  const r=await fetch(`${CFG.url}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:CFG.key,'Content-Type':'application/json'},body:JSON.stringify(args)});
+  if(!r.ok)throw new Error(`${fn}: ${r.status}`);
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+const mergeById=(a,b)=>{const m=new Map(a.map(x=>[x.id,x]));for(const x of b){const l=m.get(x.id);if(!l||(x.u||0)>(l.u||0))m.set(x.id,x)}return [...m.values()]};
+function mergeState(L,R){
+  if(!R)return L;
+  const o={...L};
+  o.todos=mergeById(L.todos||[],R.todos||[]);
+  o.habits=mergeById(L.habits||[],R.habits||[]);
+  o.hlog={...(R.hlog||{})};
+  for(const[k,v]of Object.entries(L.hlog||{})){const r=o.hlog[k];if(!r||(v.u||0)>(r.u||0))o.hlog[k]=v}
+  o.focus=((R.focus?.u||0)>(L.focus?.u||0))?R.focus:L.focus;
+  o.set=((R.set?.u||0)>(L.set?.u||0))?R.set:L.set;
+  // erledigte/gelöschte Todos nach 60 Tagen aufräumen
+  const lim=Date.now()-60*864e5;
+  o.todos=o.todos.filter(t=>!(t.del&&(t.u||0)<lim));
+  return o;
+}
+const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.focus,o.set]);
+let pushT=null,syncing=false;
+function schedulePush(){if(!CFG.code)return;clearTimeout(pushT);pushT=setTimeout(()=>doSync(),1800)}
+async function doSync(){
+  if(!CFG.code||syncing)return;
+  syncing=true;sync.status='syncing';pill();
+  try{
+    const remote=await rpc('daylab_get',{p_code:CFG.code});
+    const merged=mergeState(S,remote);
+    const changedLocal=canon(merged)!==canon(S);
+    S=merged;jset(LS,S);
+    if(!remote||canon(merged)!==canon(remote))await rpc('daylab_put',{p_code:CFG.code,p_data:S});
+    sync.status='ok';sync.err='';
+    if(changedLocal)render();
+  }catch(e){sync.status='err';sync.err=e.message}
+  syncing=false;pill();
+}
+async function loadCal(){
+  if(!CFG.code)return;
+  try{
+    const r=await rpc('daylab_cal_get',{p_code:CFG.code});
+    if(r&&Array.isArray(r.events)){CAL=r;jset(LSCAL,CAL);render()}
+  }catch(e){}
+}
+function pill(){
+  const p=$('#syncpill');
+  if(!CFG.code){p.className='sync';p.textContent='☁️ nur lokal';return}
+  const m={ok:['sync ok','☁️ synchron'],syncing:['sync','☁️ …'],err:['sync err','☁️ Fehler'],idle:['sync','☁️']}[sync.status]||['sync','☁️'];
+  p.className=m[0];p.textContent=m[1];p.title=sync.err||'';
+}
+
+/* ---------- Termine ---------- */
+function evRange(e){
+  if(e.ad){return{a:e.s,b:e.e?key(addDays(fromKey(e.e),-1)):e.s,allDay:true}}
+  const s=new Date(e.s),en=new Date(e.e||e.s);
+  return{a:key(s),b:key(en),allDay:false,s,en};
+}
+function eventsOn(k){
+  const out=[];
+  for(const e of CAL.events||[]){
+    const r=evRange(e);
+    if(r.a<=k&&k<=r.b)out.push({...e,r});
+  }
+  out.sort((x,y)=>(y.r.allDay-x.r.allDay)||(x.r.allDay?0:x.r.s-y.r.s));
+  return out;
+}
+const evSub=(e,k)=>{ // Mehrtägig-Hinweis
+  if(e.r.a<e.r.b){const i=dayDiff(k,e.r.a)+1,n=dayDiff(e.r.b,e.r.a)+1;return `Tag ${i}/${n}`}return '';
+};
+
+/* ---------- Wetter (Open-Meteo, ohne Schlüssel) ---------- */
+let WX=jget(LSWX,null);
+const WCODE=c=>c===0?['☀️','klar']:c<=2?['🌤️','heiter']:c===3?['☁️','bewölkt']:c<=48?['🌫️','Nebel']:c<=57?['🌦️','Niesel']:c<=67?['🌧️','Regen']:c<=77?['🌨️','Schnee']:c<=82?['🌧️','Schauer']:c<=86?['🌨️','Schneeschauer']:['⛈️','Gewitter'];
+async function loadWx(){
+  const st=S.set;
+  if(WX&&WX.k===`${st.lat},${st.lon}`&&Date.now()-WX.at<30*60e3)return;
+  try{
+    const u=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=2`;
+    const j=await (await fetch(u)).json();
+    WX={k:`${st.lat},${st.lon}`,at:Date.now(),cur:j.current,d:j.daily};jset(LSWX,WX);render();
+  }catch(e){}
+}
+
+/* ---------- Garmin (nur lesen) ---------- */
+let GAR=jget(LSGAR,null);
+async function garmin(table,since){
+  const r=await fetch(`${CFG.url}/rest/v1/rpc/garmin_read`,{method:'POST',headers:{apikey:CFG.key,'Content-Type':'application/json'},body:JSON.stringify({p_code:CFG.g,p_table:table,p_since:since})});
+  if(!r.ok)throw new Error('garmin '+r.status);return r.json();
+}
+async function loadGarmin(){
+  if(!CFG.g)return;
+  if(GAR&&Date.now()-GAR.at<20*60e3)return;
+  try{
+    const since=key(addDays(new Date(),-4));
+    const [sl,hr,dy]=await Promise.all([garmin('sleep',since),garmin('hrv',since),garmin('daily',since)]);
+    const last=a=>Array.isArray(a)&&a.length?a.slice().sort((x,y)=>String(x.date||x.day||'').localeCompare(String(y.date||y.day||''))).pop():null;
+    GAR={at:Date.now(),sleep:last(sl),hrv:last(hr),daily:last(dy)};jset(LSGAR,GAR);render();
+  }catch(e){}
+}
+
+/* ---------- Training (Wochenplan aus Happy 100) ---------- */
+const PLAN={1:['🏃','HIIT + Oberkörper'],3:['🦵','Beine / Hip-Hinge'],5:['🏋️','Ganzkörper + Mobility']};
+const PLAN_REST=['🚶','Frei · optional Zone 2 / Spaziergang'];
+
+/* ---------- Rendering ---------- */
+const greet=h=>h<5?'Gute Nacht':h<11?'Guten Morgen':h<14?'Guten Tag':h<18?'Guten Nachmittag':'Guten Abend';
+function motd(d){
+  const L=window.DAYLAB_MOTD||[];if(!L.length)return'';
+  const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);
+  return L[(doy+d.getFullYear()*3)%L.length];
+}
+function evHTML(list,k,now,compact){
+  const ad=list.filter(e=>e.r.allDay),tm=list.filter(e=>!e.r.allDay);
+  let nextDone=false,h='';
+  if(ad.length)h+='<div>'+ad.map(e=>`<span class="ad">${esc(e.t)}${evSub(e,k)?` · ${evSub(e,k)}`:''}</span>`).join('')+'</div>';
+  tm.forEach(e=>{
+    const isToday=k===key(now);let cls='ev';
+    if(isToday){if(e.r.en<=now)cls+=' past';else if(e.r.s<=now)cls+=' now';else if(!nextDone){cls+=' next';nextDone=true}}
+    h+=`<div class="${cls}"><div class="tm num">${hm(e.r.s)}<small>${hm(e.r.en)}</small></div><div class="bar"></div><div class="tx"><div class="tt">${esc(e.t)}</div>${e.l?`<div class="lo">${esc(e.l)}</div>`:''}</div></div>`;
+  });
+  if(!list.length)h=`<div class="free">${compact?'Keine festen Termine':'Keine festen Termine – Zeit für deinen Fokus 🎯'}</div>`;
+  return h;
+}
+function nextInfo(now){
+  const k=key(now);
+  const n=eventsOn(k).find(e=>!e.r.allDay&&e.r.s>now);
+  if(!n)return'';
+  const m=Math.round((n.r.s-now)/6e4);
+  return m<=180?` · nächster in ${m<60?m+' min':Math.floor(m/60)+' h '+pad(m%60)}`:'';
+}
+function todoGroups(now){
+  const tk=key(now);
+  const act=S.todos.filter(t=>!t.del&&!t.done);
+  const srt=(a,b)=>(b.star||0)-(a.star||0)||(a.due||'9').localeCompare(b.due||'9')||(a.c||0)-(b.c||0);
+  return{
+    over:act.filter(t=>t.due&&t.due<tk).sort(srt),
+    today:act.filter(t=>t.due===tk).sort(srt),
+    soon:act.filter(t=>t.due&&t.due>tk).sort(srt),
+    none:act.filter(t=>!t.due).sort(srt),
+    done:S.todos.filter(t=>!t.del&&t.done&&t.doneKey===tk).sort((a,b)=>(b.u||0)-(a.u||0))
+  };
+}
+function dueLabel(t,tk){
+  if(!t.due)return'';const d=dayDiff(t.due,tk);
+  if(d<-1)return`${-d} Tage überfällig`;if(d===-1)return'gestern';if(d===0)return'heute';if(d===1)return'morgen';
+  const x=fromKey(t.due);return`${WDS[x.getDay()]} ${x.getDate()}.${x.getMonth()+1}.`;
+}
+function tdHTML(t,tk){
+  const over=t.due&&t.due<tk&&!t.done;
+  return`<div class="td ${t.done?'done':''}"><button class="ck ${t.done?'on':''}" data-a="tick" data-id="${t.id}" aria-label="Erledigt">${ic('check',16,3.2)}</button><div class="tx" data-a="edit" data-id="${t.id}">${esc(t.t)}</div><span class="meta ${over?'over':''}">${dueLabel(t,tk)}</span><button class="mini ${t.star?'on':''}" data-a="star" data-id="${t.id}" aria-label="Wichtig"><svg width="20" height="20" viewBox="0 0 24 24" fill="${t.star?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round">${IC.star}</svg></button></div>`;
+}
+function streak(h,now){
+  let n=0,d=new Date(now);
+  if(!(S.hlog[key(d)]?.ids||[]).includes(h.id))d=addDays(d,-1);
+  while((S.hlog[key(d)]?.ids||[]).includes(h.id)){n++;d=addDays(d,-1)}
+  return n;
+}
+function render(){
+  const now=new Date(),tk=key(now),tm=key(addDays(now,1));
+  const st=S.set,hour=now.getHours();
+  const wxHTML=WX&&WX.cur?(()=>{const[e,t]=WCODE(WX.cur.weather_code);const d=WX.d;const[,tt]=WCODE(d.weather_code[0]);return`<div class="wx"><span class="t">${e}</span><div><span class="num">${Math.round(WX.cur.temperature_2m)}°</span> ${esc(st.city)}<small>${tt} · ${Math.round(d.temperature_2m_min[0])}–${Math.round(d.temperature_2m_max[0])}° · Regen ${d.precipitation_probability_max[0]??0}%</small></div></div>`})():`<div class="wx"><span class="t">🌡️</span><div>${esc(st.city)}<small>Wetter wird geladen …</small></div></div>`;
+  const focusOk=S.focus.date===tk&&S.focus.text;
+  const focusHTML=focusOk
+    ?`<div class="set" data-a="focus"><span class="star">${ic('star',22)}</span><span>${esc(S.focus.text)}</span></div>`
+    :`<input id="focusIn" type="text" placeholder="Was ist heute das EINE Wichtige?" maxlength="120" enterkeyhint="done">`;
+  const tdays=eventsOn(tk),tmr=eventsOn(tm);
+  const nextRows=[2,3,4,5].map(i=>{const d=addDays(now,i),k=key(d),l=eventsOn(k);
+    const chips=l.length?l.map(e=>`<span class="chip">${e.r.allDay?'':`<b class="num">${hm(e.r.s)}</b>`}${esc(e.t)}</span>`).join(''):'<span class="muted small">–</span>';
+    return`<div class="dayrow"><div class="dn">${WDS[d.getDay()]}<small>${d.getDate()}.${d.getMonth()+1}.</small></div><div class="ch">${chips}</div></div>`}).join('');
+  const g=todoGroups(now);
+  const grp=(cls,title,list)=>list.length?`<div class="grp ${cls}">${title} · ${list.length}</div>${list.map(t=>tdHTML(t,tk)).join('')}`:'';
+  const nTodo=g.over.length+g.today.length;
+  const dueHint=newDue?`<div class="dueset">📅 ${dueLabel({due:newDue},tk)} <a href="#" data-a="clearDue" style="color:var(--muted)">entfernen</a></div>`:'';
+  const todoHTML=`<div class="add"><input id="todoIn" type="text" placeholder="Neue Aufgabe …" maxlength="200" enterkeyhint="done"><label class="btn dt" aria-label="Fällig am">${ic('cal2',20)}<input type="date" id="dueIn" value="${newDue}"></label><button class="btn primary" data-a="addTodo" aria-label="Hinzufügen">${ic('plus',22,2.6)}</button></div>${dueHint}`
+    +(grp('over','Überfällig',g.over)+grp('today','Heute',g.today)+grp('','Demnächst',g.soon)+grp('','Ohne Datum',g.none)||'<div class="empty">Alles erledigt – gönn dir was Schönes. ✨</div>')
+    +(g.done.length?`<div class="grp"><a href="#" data-a="toggleDone" style="color:inherit;text-decoration:none">${showDone?'▾':'▸'} Heute erledigt · ${g.done.length}</a></div>${showDone?g.done.map(t=>tdHTML(t,tk)).join(''):''}`:'');
+  // Training
+  const wd=now.getDay(),pl=PLAN[wd]||PLAN_REST,plT=PLAN[(wd+1)%7]||null;
+  const trainHTML=`<div class="train"><div class="em">${pl[0]}</div><div style="flex:1"><div class="t1">${pl[1]}</div><div class="muted small">${PLAN[wd]?'Heute im Plan':'Kein Pflichttraining heute'}${plT?` · morgen ${plT[1]}`:''}</div></div><a class="btn primary" href="../fit-lab/">Fit Lab</a></div>`;
+  // Garmin
+  let garHTML;
+  if(!CFG.g)garHTML=`<div class="empty">Garmin-Lesecode fehlt. <a href="#" data-a="settings" style="color:var(--g1)">Einstellungen</a></div>`;
+  else if(!GAR)garHTML='<div class="empty">Lade Garmin-Daten …</div>';
+  else{
+    const sl=GAR.sleep,hv=GAR.hrv,dy=GAR.daily;
+    const dur=sl?.duration_s?`${Math.floor(sl.duration_s/3600)}:${pad(Math.round(sl.duration_s%3600/60))}`:'–';
+    const sc=sl?.score,c=sc>=80?'var(--ok)':sc>=60?'var(--g1)':'var(--danger)';
+    garHTML=`<div class="stats">
+      <div class="stat"><div class="l">Schlaf</div><div class="v"><span class="dot" style="--c:${sc==null?'var(--muted)':c}"></span>${sc??'–'}<small>Score</small></div><div class="tiny muted">${dur} h</div></div>
+      <div class="stat"><div class="l">HRV letzte Nacht</div><div class="v">${hv?.last_night_avg??'–'}<small>ms</small></div><div class="tiny muted">${hv?.status?esc(String(hv.status).toLowerCase()):'Wochenschnitt '+(hv?.weekly_avg??'–')}</div></div>
+      <div class="stat"><div class="l">Ruhepuls</div><div class="v">${dy?.resting_hr??'–'}<small>bpm</small></div></div>
+      <div class="stat"><div class="l">Schritte</div><div class="v num">${dy?.steps!=null?Number(dy.steps).toLocaleString('de-DE'):'–'}</div></div></div>`;
+  }
+  // Habits
+  const hl=S.hlog[tk]?.ids||[];
+  const hab=S.habits.filter(h=>!h.del);
+  const habHTML=hab.length?`<div class="habits">${hab.map(h=>{const on=hl.includes(h.id),n=streak(h,now);return`<button class="hb ${on?'on':''}" data-a="habit" data-id="${h.id}"><span class="e">${esc(h.e||'✔️')}</span><span class="n">${esc(h.n)}</span><span class="s">${n?`🔥 ${n}`:''}</span></button>`}).join('')}</div>`:'<div class="empty">Keine Gewohnheiten. Lege welche in den Einstellungen an.</div>';
+
+  $('#view').innerHTML=`
+  <div class="col">
+    <section class="card hero"><h1 class="hello">${greet(hour)}, ${esc(st.name||'')}</h1><div class="date">${WD[now.getDay()]}, ${now.getDate()}. ${MON[now.getMonth()]} ${now.getFullYear()}</div>${wxHTML}<div class="motd">${esc(motd(now))}<small>✦ Message of the Day · von Claude</small></div></section>
+    <section class="card focus"><h2>${ic('star',15)} Fokus des Tages</h2>${focusHTML}</section>
+    <section class="card"><h2>${ic('cal2',15)} Heute · ${now.getDate()}.${now.getMonth()+1}.${tdays.length?`<span class="sp">${tdays.filter(e=>!e.r.allDay).length||tdays.length} Termin${(tdays.filter(e=>!e.r.allDay).length||tdays.length)===1?'':'e'}${nextInfo(now)}</span>`:''}</h2>${evHTML(tdays,tk,now)}</section>
+    <section class="card"><h2>${ic('cal2',15)} Morgen · ${WD[addDays(now,1).getDay()]}</h2>${evHTML(tmr,tm,now,true)}</section>
+    <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${CAL.fetched_at?`<div class="tiny muted" style="margin-top:8px">Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}</section>
+  </div>
+  <div class="col">
+    <section class="card"><h2>${ic('list',15)} Todos${nTodo?`<span class="sp"><span class="badge">${nTodo} heute</span></span>`:''}</h2>${todoHTML}</section>
+    <section class="card"><h2>${ic('heart',15)} Training heute</h2>${trainHTML}</section>
+    <section class="card"><h2>${ic('heart',15)} Körper-Status · Garmin</h2>${garHTML}</section>
+    <section class="card"><h2>${ic('check',15)} Gewohnheiten</h2>${habHTML}</section>
+  </div>`;
+  pill();
+}
+
+/* ---------- Aktionen ---------- */
+const byId=id=>S.todos.find(t=>t.id===id);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2200)};
+function addTodo(){
+  const el=$('#todoIn');const v=(el?.value||'').trim();if(!v)return;
+  S.todos.push({id:uid(),t:v,due:newDue||'',done:false,star:0,c:Date.now(),u:Date.now()});
+  newDue='';save();render();$('#todoIn')?.focus();
+}
+function openSheet(h){$('#sheetBody').innerHTML=h;$('#sheet').hidden=false}
+function closeSheet(){$('#sheet').hidden=true}
+function editTodo(id){
+  const t=byId(id);if(!t)return;
+  openSheet(`<div class="field"><label>Aufgabe</label><input id="eT" type="text" value="${esc(t.t)}" maxlength="200"></div>
+  <div class="field"><label>Fällig am</label><input id="eD" type="date" value="${esc(t.due||'')}"></div>
+  <div class="two"><button class="btn danger" data-a="delTodo" data-id="${id}">Löschen</button><button class="btn primary" data-a="saveTodo" data-id="${id}">Speichern</button></div>`);
+}
+function settings(){
+  const link=CFG.code?`${location.origin}${location.pathname}#/set?cfg=${encodeURIComponent(btoa(JSON.stringify({u:CFG.url,k:CFG.key,c:CFG.code,g:CFG.g||undefined})))}`:'';
+  openSheet(`<h2 style="margin:0 0 14px">Einstellungen</h2>
+  <div class="field"><label>Name</label><input id="sN" type="text" value="${esc(S.set.name)}"></div>
+  <div class="field"><label>Ort für das Wetter</label><input id="sC" type="text" value="${esc(S.set.city)}"></div>
+  <div class="two"><div class="field"><label>Breitengrad</label><input id="sLa" type="text" inputmode="decimal" value="${S.set.lat}"></div><div class="field"><label>Längengrad</label><input id="sLo" type="text" inputmode="decimal" value="${S.set.lon}"></div></div>
+  <div class="field"><label>Garmin-Lesecode (nur dieses Gerät)</label><input id="sG" type="text" value="${esc(CFG.g||'')}" autocomplete="off" autocapitalize="off"></div>
+  <div class="field"><label>Gewohnheiten (je Zeile: Emoji Name)</label><textarea id="sH" rows="5" style="width:100%;background:var(--card2);border:2px solid transparent;border-radius:14px;padding:11px 13px;color:var(--ink);font:inherit">${esc(S.habits.filter(h=>!h.del).map(h=>`${h.e||''} ${h.n}`.trim()).join('\n'))}</textarea></div>
+  <div class="field"><label>Sync (Gerät verbinden)</label><input id="sL" type="text" placeholder="Geräte-Link hier einfügen" value=""></div>
+  ${link?`<button class="btn wide" data-a="copyLink" style="margin-bottom:10px">Geräte-Link kopieren</button>`:''}
+  <button class="btn primary wide" data-a="saveSettings">Speichern</button>`);
+}
+function saveSettings(){
+  const f=id=>$(id).value.trim();
+  const lat=parseFloat(f('#sLa').replace(',','.')),lon=parseFloat(f('#sLo').replace(',','.'));
+  S.set={name:f('#sN'),city:f('#sC')||'Ort',lat:isFinite(lat)?lat:S.set.lat,lon:isFinite(lon)?lon:S.set.lon,u:Date.now()};
+  CFG.g=f('#sG');
+  // Gewohnheiten
+  const lines=$('#sH').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const old=S.habits.filter(h=>!h.del);const used=new Set();
+  const parse=l=>{const m=l.match(/^(\p{Extended_Pictographic}️?(?:‍\p{Extended_Pictographic}️?)*)\s*(.*)$/u);return m?{e:m[1],n:m[2]||l}:{e:'',n:l}};
+  lines.forEach(l=>{const p=parse(l);const ex=old.find(h=>!used.has(h.id)&&h.n===p.n);
+    if(ex){used.add(ex.id);if(ex.e!==p.e){ex.e=p.e;ex.u=Date.now()}}
+    else S.habits.push({id:uid(),n:p.n,e:p.e,u:Date.now()})});
+  old.forEach(h=>{if(!used.has(h.id)&&!lines.some(l=>parse(l).n===h.n)){h.del=true;h.u=Date.now()}});
+  const l=f('#sL');
+  if(l&&!applyLink(l))toast('Geräte-Link nicht lesbar');
+  jset(LSCFG,CFG);save();closeSheet();render();loadWx();loadGarmin();doSync();loadCal();
+}
+function applyLink(v){
+  const m=String(v).match(/cfg=([^&\s]+)/);if(!m)return false;
+  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(!o.c)return false;
+    CFG={url:o.u||DEF.url,key:o.k||DEF.key,code:o.c,g:o.g||CFG.g||''};jset(LSCFG,CFG);return true}catch(e){return false}
+}
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-a]');if(!el)return;
+  const a=el.dataset.a,id=el.dataset.id;
+  if(a==='tick'){const t=byId(id);if(t){t.done=!t.done;t.doneKey=t.done?key(new Date()):'';t.u=Date.now();save();render()}}
+  else if(a==='star'){const t=byId(id);if(t){t.star=t.star?0:1;t.u=Date.now();save();render()}}
+  else if(a==='edit')editTodo(id);
+  else if(a==='delTodo'){const t=byId(id);if(t){t.del=true;t.u=Date.now();save();closeSheet();render();toast('Gelöscht')}}
+  else if(a==='saveTodo'){const t=byId(id);const v=$('#eT').value.trim();if(t&&v){t.t=v;t.due=$('#eD').value;t.u=Date.now();save();closeSheet();render()}}
+  else if(a==='addTodo')addTodo();
+  else if(a==='clearDue'){e.preventDefault();newDue='';render()}
+  else if(a==='toggleDone'){e.preventDefault();showDone=!showDone;render()}
+  else if(a==='habit'){const k=key(new Date());const l=S.hlog[k]||{ids:[],u:0};const i=l.ids.indexOf(id);if(i>=0)l.ids.splice(i,1);else l.ids.push(id);l.u=Date.now();S.hlog[k]=l;save();render()}
+  else if(a==='focus'){S.focus={date:'',text:'',u:Date.now()};save();render();$('#focusIn')?.focus()}
+  else if(a==='settings'){e.preventDefault();settings()}
+  else if(a==='closeSheet')closeSheet();
+  else if(a==='saveSettings')saveSettings();
+  else if(a==='copyLink'){const link=`${location.origin}${location.pathname}#/set?cfg=${encodeURIComponent(btoa(JSON.stringify({u:CFG.url,k:CFG.key,c:CFG.code,g:CFG.g||undefined})))}`;(navigator.clipboard?.writeText(link)||Promise.reject()).then(()=>toast('Link kopiert')).catch(()=>{$('#sL').value=link;$('#sL').select();toast('Link markiert – bitte kopieren')})}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.id==='todoIn'){e.preventDefault();addTodo()}
+  else if(e.key==='Enter'&&e.target.id==='focusIn'){const v=e.target.value.trim();if(v){S.focus={date:key(new Date()),text:v,u:Date.now()};save();render()}}
+  else if(e.key==='Escape')closeSheet();
+});
+document.addEventListener('change',e=>{if(e.target.id==='dueIn'){newDue=e.target.value;const v=$('#todoIn').value;render();$('#todoIn').value=v}});
+document.addEventListener('focusout',e=>{if(e.target.id==='focusIn'){const v=e.target.value.trim();if(v){S.focus={date:key(new Date()),text:v,u:Date.now()};save();render()}}});
+
+/* ---------- Start ---------- */
+(function boot(){
+  const m=location.hash.match(/cfg=([^&]+)/);
+  if(m&&applyLink(location.hash)){history.replaceState(null,'',location.pathname);toast('Mit Sync verbunden ✓')}
+  render();loadWx();loadGarmin();
+  if(CFG.code){doSync();loadCal()}
+  // Minutentakt: „läuft jetzt“, Datumswechsel; Sync/Kalender alle 10 min und beim Zurückkehren in die App
+  setInterval(()=>{if($('#sheet').hidden&&!document.activeElement?.matches?.('input,textarea'))render()},60e3);
+  setInterval(()=>{doSync();loadCal();loadWx();loadGarmin()},10*60e3);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){if($('#sheet').hidden&&!document.activeElement?.matches?.('input,textarea'))render();doSync();loadCal();loadWx();loadGarmin()}});
+  if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+})();
+</script>
+</body>
+</html>
