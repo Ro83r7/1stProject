@@ -32,3 +32,8 @@ returns jsonb language sql security definer set search_path = public as $$
 $$;
 revoke all on function public.daylab_get(text), public.daylab_put(text, jsonb), public.daylab_cal_get(text) from public;
 grant execute on function public.daylab_get(text), public.daylab_put(text, jsonb), public.daylab_cal_get(text) to anon;
+
+-- Kalender-Abruf: geheime iCal-Adresse pro Sync-Code (nur serverseitig, nicht per RPC lesbar)
+alter table public.daylab_cal add column if not exists ical_url text;
+-- Befüllen: update public.daylab_cal set ical_url='<geheime iCal-Adresse>' where code='<Sync-Code>';
+-- Edge Function: functions/daylab-cal/index.ts (verify_jwt=false, prüft den Sync-Code selbst)

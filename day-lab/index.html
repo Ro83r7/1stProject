@@ -183,7 +183,8 @@ const dayDiff=(a,b)=>Math.round((fromKey(a)-fromKey(b))/864e5);
 
 /* ---------- Zustand ---------- */
 const DEFAULT_HABITS=[{id:'h1',n:'Mobility',e:'🧘'},{id:'h2',n:'2 l Wasser',e:'💧'},{id:'h3',n:'Spaziergang',e:'🚶'},{id:'h4',n:'Lesen',e:'📖'}];
-let S=jget(LS,null)||{focus:{date:'',text:'',u:0},todos:[],habits:DEFAULT_HABITS.map(h=>({...h,u:1})),hlog:{},set:{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0}};
+let S=jget(LS,null)||{fj:{},todos:[],habits:DEFAULT_HABITS.map(h=>({...h,u:1})),hlog:{},set:{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0}};
+S.fj=S.fj||{};if(S.focus&&S.focus.text&&S.focus.date&&!S.fj[S.focus.date])S.fj[S.focus.date]={t:S.focus.text,n:'',u:S.focus.u||1};delete S.focus;
 S.habits=S.habits||[];S.hlog=S.hlog||{};S.todos=S.todos||[];S.set=S.set||{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0};
 let CFG=jget(LSCFG,{url:DEF.url,key:DEF.key,code:'',g:''});
 let CAL=jget(LSCAL,{events:[],fetched_at:null});
@@ -205,14 +206,17 @@ function mergeState(L,R){
   o.habits=mergeById(L.habits||[],R.habits||[]);
   o.hlog={...(R.hlog||{})};
   for(const[k,v]of Object.entries(L.hlog||{})){const r=o.hlog[k];if(!r||(v.u||0)>(r.u||0))o.hlog[k]=v}
-  o.focus=((R.focus?.u||0)>(L.focus?.u||0))?R.focus:L.focus;
+  o.fj={...(R.fj||{})};
+  for(const[k,v]of Object.entries(L.fj||{})){const r=o.fj[k];if(!r||(v.u||0)>(r.u||0))o.fj[k]=v}
+  if(R.focus&&R.focus.text&&R.focus.date&&!o.fj[R.focus.date])o.fj[R.focus.date]={t:R.focus.text,n:'',u:R.focus.u||1};
+  delete o.focus;
   o.set=((R.set?.u||0)>(L.set?.u||0))?R.set:L.set;
   // erledigte/gelöschte Todos nach 60 Tagen aufräumen
   const lim=Date.now()-60*864e5;
   o.todos=o.todos.filter(t=>!(t.del&&(t.u||0)<lim));
   return o;
 }
-const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.focus,o.set]);
+const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.fj,o.set]);
 let pushT=null,syncing=false;
 function schedulePush(){if(!CFG.code)return;clearTimeout(pushT);pushT=setTimeout(()=>doSync(),1800)}
 async function doSync(){
@@ -232,6 +236,10 @@ async function doSync(){
 async function loadCal(){
   if(!CFG.code)return;
   try{
+    // Stand älter als 5 min? Dann Kalender direkt neu abrufen lassen (sonst alle 15 min per Cron)
+    if(!CAL.fetched_at||Date.now()-new Date(CAL.fetched_at)>5*60e3){
+      await fetch(`${CFG.url}/functions/v1/daylab-cal`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CFG.code})}).catch(()=>{});
+    }
     const r=await rpc('daylab_cal_get',{p_code:CFG.code});
     if(r&&Array.isArray(r.events)){CAL=r;jset(LSCAL,CAL);render()}
   }catch(e){}
@@ -353,10 +361,11 @@ function render(){
   const now=new Date(),tk=key(now),tm=key(addDays(now,1));
   const st=S.set,hour=now.getHours();
   const wxHTML=WX&&WX.cur?(()=>{const[e,t]=WCODE(WX.cur.weather_code);const d=WX.d;const[,tt]=WCODE(d.weather_code[0]);return`<div class="wx"><span class="t">${e}</span><div><span class="num">${Math.round(WX.cur.temperature_2m)}°</span> ${esc(st.city)}<small>${tt} · ${Math.round(d.temperature_2m_min[0])}–${Math.round(d.temperature_2m_max[0])}° · Regen ${d.precipitation_probability_max[0]??0}%</small></div></div>`})():`<div class="wx"><span class="t">🌡️</span><div>${esc(st.city)}<small>Wetter wird geladen …</small></div></div>`;
-  const focusOk=S.focus.date===tk&&S.focus.text;
+  const fj=S.fj[tk]||{},focusOk=!!fj.t;
+  const yk=Object.keys(S.fj).filter(k=>k<tk&&S.fj[k].t).sort().pop();
   const focusHTML=focusOk
-    ?`<div class="set" data-a="focus"><span class="star">${ic('star',22)}</span><span>${esc(S.focus.text)}</span></div>`
-    :`<input id="focusIn" type="text" placeholder="Was ist heute das EINE Wichtige?" maxlength="120" enterkeyhint="done">`;
+    ?`<div class="set" data-a="focus"><span class="star">${ic('star',22)}</span><span>${esc(fj.t)}</span></div><input id="noteIn" type="text" value="${esc(fj.n||'')}" placeholder="Rückblick am Abend (optional) …" maxlength="300" enterkeyhint="done" style="margin-top:10px">`
+    :`<input id="focusIn" type="text" placeholder="Was ist heute das EINE Wichtige?" maxlength="120" enterkeyhint="done">${yk?`<div class="tiny muted" style="margin-top:8px">Zuletzt (${fromKey(yk).getDate()}.${fromKey(yk).getMonth()+1}.): ${esc(S.fj[yk].t)}</div>`:''}`;
   const tdays=eventsOn(tk),tmr=eventsOn(tm);
   const nextRows=[2,3,4,5].map(i=>{const d=addDays(now,i),k=key(d),l=eventsOn(k);
     const chips=l.length?l.map(e=>`<span class="chip">${e.r.allDay?'':`<b class="num">${hm(e.r.s)}</b>`}${esc(e.t)}</span>`).join(''):'<span class="muted small">–</span>';
@@ -393,7 +402,7 @@ function render(){
   $('#view').innerHTML=`
   <div class="col">
     <section class="card hero"><h1 class="hello">${greet(hour)}, ${esc(st.name||'')}</h1><div class="date">${WD[now.getDay()]}, ${now.getDate()}. ${MON[now.getMonth()]} ${now.getFullYear()}</div>${wxHTML}<div class="motd">${esc(motd(now))}<small>✦ Message of the Day · von Claude</small></div></section>
-    <section class="card focus"><h2>${ic('star',15)} Fokus des Tages</h2>${focusHTML}</section>
+    <section class="card focus"><h2>${ic('star',15)} Fokus des Tages<span class="sp"><a href="#" data-a="journal" style="color:var(--g1);text-decoration:none">Journal ›</a></span></h2>${focusHTML}</section>
     <section class="card"><h2>${ic('cal2',15)} Heute · ${now.getDate()}.${now.getMonth()+1}.${tdays.length?`<span class="sp">${tdays.filter(e=>!e.r.allDay).length||tdays.length} Termin${(tdays.filter(e=>!e.r.allDay).length||tdays.length)===1?'':'e'}${nextInfo(now)}</span>`:''}</h2>${evHTML(tdays,tk,now)}</section>
     <section class="card"><h2>${ic('cal2',15)} Morgen · ${WD[addDays(now,1).getDay()]}</h2>${evHTML(tmr,tm,now,true)}</section>
     <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${CAL.fetched_at?`<div class="tiny muted" style="margin-top:8px">Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}</section>
@@ -414,6 +423,21 @@ function addTodo(){
   const el=$('#todoIn');const v=(el?.value||'').trim();if(!v)return;
   S.todos.push({id:uid(),t:v,due:newDue||'',done:false,star:0,c:Date.now(),u:Date.now()});
   newDue='';save();render();$('#todoIn')?.focus();
+}
+function saveFocus(v){v=(v||'').trim();if(!v)return;const k=key(new Date());S.fj[k]={t:v,n:S.fj[k]?.n||'',u:Date.now()};save();render()}
+function saveNote(v){v=(v||'').trim();const k=key(new Date()),c=S.fj[k];if(!c||(c.n||'')===v)return;S.fj[k]={...c,n:v,u:Date.now()};save()}
+function journal(){
+  const ks=Object.keys(S.fj).filter(k=>S.fj[k].t||S.fj[k].n).sort().reverse();
+  openSheet(`<h2 style="margin:0 0 4px">Journal</h2><div class="muted small" style="margin-bottom:12px">Dein Fokus und Rückblick pro Tag – gespeichert in der Datenbank.</div>`
+   +(ks.length?ks.map(k=>{const d=fromKey(k),e=S.fj[k];return`<div class="td" style="align-items:flex-start;cursor:pointer" data-a="editJ" data-d="${k}"><div style="width:62px;flex:none;font-weight:900;line-height:1.1">${WDS[d.getDay()]}<small class="muted" style="display:block;font-size:.72rem">${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}</small></div><div style="min-width:0;flex:1"><div style="font-weight:800;overflow-wrap:anywhere">${esc(e.t||'–')}</div>${e.n?`<div class="muted small" style="overflow-wrap:anywhere">${esc(e.n)}</div>`:''}</div></div>`}).join(''):'<div class="empty">Noch keine Einträge. Setze oben deinen Fokus des Tages.</div>')
+   +`<div style="height:12px"></div><button class="btn wide" data-a="closeSheet">Schließen</button>`);
+}
+function editJ(d){
+  const e=S.fj[d]||{},x=fromKey(d);
+  openSheet(`<h2 style="margin:0 0 12px">${WD[x.getDay()]}, ${x.getDate()}.${x.getMonth()+1}.${x.getFullYear()}</h2>
+  <div class="field"><label>Fokus des Tages</label><input id="jT" type="text" value="${esc(e.t||'')}" maxlength="120"></div>
+  <div class="field"><label>Rückblick / Notiz</label><textarea id="jN" rows="4" maxlength="600" style="width:100%;background:var(--card2);border:2px solid transparent;border-radius:14px;padding:11px 13px;color:var(--ink);font:inherit">${esc(e.n||'')}</textarea></div>
+  <div class="two"><button class="btn" data-a="journalBack">Journal</button><button class="btn primary" data-a="saveJ" data-d="${d}">Speichern</button></div>`);
 }
 function openSheet(h){$('#sheetBody').innerHTML=h;$('#sheet').hidden=false}
 function closeSheet(){$('#sheet').hidden=true}
@@ -469,7 +493,11 @@ document.addEventListener('click',e=>{
   else if(a==='clearDue'){e.preventDefault();newDue='';render()}
   else if(a==='toggleDone'){e.preventDefault();showDone=!showDone;render()}
   else if(a==='habit'){const k=key(new Date());const l=S.hlog[k]||{ids:[],u:0};const i=l.ids.indexOf(id);if(i>=0)l.ids.splice(i,1);else l.ids.push(id);l.u=Date.now();S.hlog[k]=l;save();render()}
-  else if(a==='focus'){S.focus={date:'',text:'',u:Date.now()};save();render();$('#focusIn')?.focus()}
+  else if(a==='focus')editJ(key(new Date()));
+  else if(a==='journal'){e.preventDefault();journal()}
+  else if(a==='editJ')editJ(el.dataset.d);
+  else if(a==='saveJ'){const d=el.dataset.d,t=$('#jT').value.trim(),n=$('#jN').value.trim();if(t||n){S.fj[d]={t,n,u:Date.now()}}else if(S.fj[d])S.fj[d]={t:'',n:'',u:Date.now()};save();closeSheet();render()}
+  else if(a==='journalBack'){e.preventDefault();journal()}
   else if(a==='settings'){e.preventDefault();settings()}
   else if(a==='closeSheet')closeSheet();
   else if(a==='saveSettings')saveSettings();
@@ -477,11 +505,12 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id==='todoIn'){e.preventDefault();addTodo()}
-  else if(e.key==='Enter'&&e.target.id==='focusIn'){const v=e.target.value.trim();if(v){S.focus={date:key(new Date()),text:v,u:Date.now()};save();render()}}
+  else if(e.key==='Enter'&&e.target.id==='focusIn')saveFocus(e.target.value);
+  else if(e.key==='Enter'&&e.target.id==='noteIn')e.target.blur();
   else if(e.key==='Escape')closeSheet();
 });
 document.addEventListener('change',e=>{if(e.target.id==='dueIn'){newDue=e.target.value;const v=$('#todoIn').value;render();$('#todoIn').value=v}});
-document.addEventListener('focusout',e=>{if(e.target.id==='focusIn'){const v=e.target.value.trim();if(v){S.focus={date:key(new Date()),text:v,u:Date.now()};save();render()}}});
+document.addEventListener('focusout',e=>{if(e.target.id==='focusIn')saveFocus(e.target.value);else if(e.target.id==='noteIn')saveNote(e.target.value)});
 
 /* ---------- Start ---------- */
 (function boot(){
