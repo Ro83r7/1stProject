@@ -623,6 +623,7 @@ function pageKraft(){return pageSets(false)}
 function pageMobi(){return pageSets(true)}
 function pageSets(m){
   const dr=m?DM:D,kind=m?'mobi':'kraft',groups=m?GRPM:GRP,da=m?' data-dr="m"':'';
+  if(!dr.manual&&dr.date!==today()){dr.date=today();sdr(dr)}
   const vis=visibleEx().filter(e=>m?e.k==='mobi':!e.k),n=Object.keys(dr.items).length;
   const lastK=sortedDesc().find(s=>s.kind===kind);
   const dayS=S.sessions.find(x=>x.kind===kind&&x.date===dr.date);
@@ -655,7 +656,7 @@ function saveKraft(el){
     if(!hist.length)continue;const mt=ex.t==='w'?'w':ex.t==='t'?'sec':'reps';
     const val=exValue(ex,o,mt),prev=hist.map(h=>exValue(ex,h,mt));
     if(ex.a?val<Math.min(...prev):val>Math.max(...prev))pbs.push(ex.n)}
-  const g0=gamiSnap(),day=dr.date||today();
+  const g0=gamiSnap(),day=(dr.manual&&dr.date)||today();
   const ex0=S.sessions.find(x=>x.kind===kind&&x.date===day);
   if(ex0){const map=new Map((ex0.items||[]).map(i=>[i.ex,i]));items.forEach(i=>map.set(i.ex,i));
     ex0.items=[...map.values()].sort((a,b)=>order.indexOf(a.ex)-order.indexOf(b.ex));ex0.mod=Date.now()}
@@ -1054,7 +1055,7 @@ function applyCfgFromHash(){
   try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}}saveSync();syncState.s='idle';setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
   history.replaceState(null,'',location.pathname+'#/set');
 }
-document.addEventListener('visibilitychange',()=>{doSync();if(!document.hidden)gSync()});
+document.addEventListener('visibilitychange',()=>{doSync();if(!document.hidden){gSync();if(/#\/(kraft|mobi)/.test(location.hash)&&((!D.manual&&D.date!==today())||(!DM.manual&&DM.date!==today())))render()}});
 window.addEventListener('pagehide',()=>doSync());
 window.addEventListener('online',()=>doSync());
 setInterval(()=>{if(!document.hidden)doSync()},90000);
@@ -1139,7 +1140,7 @@ document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset.bind){setPath(ui,t.dataset.bind,t.value);const a=$('#hiitlive'),b=$('#z2live');if(a)a.textContent=hiitLive();if(b)b.textContent=z2Live()}
   else if(t.dataset.ex&&t.dataset.f){const dr=drOf(t),v=num(t.value);if(dr.items[t.dataset.ex]){dr.items[t.dataset.ex][t.dataset.f]=isNaN(v)?0:v;sdr(dr)}}
-  else if(t.dataset.kdate!==undefined){const dr=drOf(t);dr.date=t.value||today();sdr(dr)}
+  else if(t.dataset.kdate!==undefined){const dr=drOf(t);dr.date=t.value||today();dr.manual=!!t.value&&t.value!==today();sdr(dr)}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
