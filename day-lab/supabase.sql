@@ -37,3 +37,17 @@ grant execute on function public.daylab_get(text), public.daylab_put(text, jsonb
 alter table public.daylab_cal add column if not exists ical_url text;
 -- Befüllen: update public.daylab_cal set ical_url='<geheime iCal-Adresse>' where code='<Sync-Code>';
 -- Edge Function: functions/daylab-cal/index.ts (verify_jwt=false, prüft den Sync-Code selbst)
+
+-- Härtung (2026-11-17): Schreiben nur für registrierte Codes (Zeile in daylab_cal), nur JSON-Objekte; kein Zugriff für "authenticated"
+create or replace function public.daylab_put(p_code text, p_data jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_code is null or length(p_code) < 24 or length(p_code) > 128 then raise exception 'code invalid'; end if;
+  if not exists (select 1 from public.daylab_cal where code = p_code) then raise exception 'code unknown'; end if;
+  if jsonb_typeof(p_data) <> 'object' then raise exception 'data must be object'; end if;
+  if octet_length(p_data::text) > 2000000 then raise exception 'data too large'; end if;
+  insert into public.daylab(code, data, updated_at) values (p_code, p_data, now())
+  on conflict (code) do update set data = excluded.data, updated_at = now();
+end $$;
+revoke all on function public.daylab_get(text), public.daylab_put(text, jsonb), public.daylab_cal_get(text) from public, authenticated;
+grant execute on function public.daylab_get(text), public.daylab_put(text, jsonb), public.daylab_cal_get(text) to anon;

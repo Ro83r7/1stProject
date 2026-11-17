@@ -17,16 +17,22 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const { code } = await req.json().catch(() => ({}));
-    if (!code || String(code).length < 24) return json({ error: "code" }, 400);
+    if (typeof code !== "string" || code.length < 24 || code.length > 128) return json({ error: "code" }, 400);
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: row } = await sb.from("daylab_cal").select("code, ical_url").eq("code", code).maybeSingle();
     if (!row) return json({ error: "unknown" }, 403);
 
     const url = row.ical_url || Deno.env.get("ICAL_URL");
     if (!url) return json({ error: "ical_url fehlt" }, 500);
-    const res = await fetch(url);
+    let u: URL;
+    try { u = new URL(url); } catch { return json({ error: "ical_url ungültig" }, 500); }
+    if (u.protocol !== "https:" || u.hostname !== "calendar.google.com") return json({ error: "ical_url nicht erlaubt" }, 500);
+    const res = await fetch(u, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return json({ error: `ical ${res.status}` }, 502);
-    const comp = new ICAL.Component(ICAL.parse(await res.text()));
+    if (new URL(res.url).hostname !== "calendar.google.com") return json({ error: "ical Umleitung nicht erlaubt" }, 502);
+    const txt = await res.text();
+    if (txt.length > 8_000_000 || !txt.startsWith("BEGIN:VCALENDAR")) return json({ error: "ical Antwort unplausibel" }, 502);
+    const comp = new ICAL.Component(ICAL.parse(txt));
     for (const vtz of comp.getAllSubcomponents("vtimezone")) {
       const tz = new ICAL.Timezone(vtz);
       if (!ICAL.TimezoneService.has(tz.tzid)) ICAL.TimezoneService.register(tz);
@@ -67,7 +73,7 @@ Deno.serve(async (req) => {
       if (ev.isRecurring()) {
         const it = ev.iterator();
         let n = 0, next;
-        while ((next = it.next()) && n++ < 800) {
+        while ((next = it.next()) && n++ < 5000) {
           if (next.toJSDate() > winB) break;
           const d = ev.getOccurrenceDetails(next);
           if (inWin(d.startDate, d.endDate)) push(`${uid}_${next.toString()}`, d.item, d.startDate, d.endDate);
@@ -75,6 +81,7 @@ Deno.serve(async (req) => {
       } else if (inWin(ev.startDate, ev.endDate)) push(uid, ev, ev.startDate, ev.endDate);
     }
     events.sort((a, b) => String(a.s).localeCompare(String(b.s)));
+    if (events.length > 2000) events.length = 2000;
     const { error } = await sb.from("daylab_cal").update({ events, fetched_at: new Date().toISOString() }).eq("code", code);
     if (error) return json({ error: error.message }, 500);
     return json({ ok: true, count: events.length });
