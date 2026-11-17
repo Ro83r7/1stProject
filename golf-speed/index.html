@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Speed Lab">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -349,6 +350,7 @@ const defaults=()=>{
 };
 let S=null;
 function mergeState(o){
+  o=sanitizeState(o);
   const d=defaults();
   const s={...d,...o,settings:{...d.settings,...(o.settings||{})}};
   s.settings.equip={stack:{...d.settings.equip.stack,...((o.settings||{}).equip||{}).stack},pure:{...d.settings.equip.pure,...((o.settings||{}).equip||{}).pure},driver:{...d.settings.equip.driver,...((o.settings||{}).equip||{}).driver}};
@@ -358,11 +360,32 @@ function mergeState(o){
   s.settings.model={...d.settings.model,...(o.settings||{}).model};
   const ol=(o.settings||{}).loads||{};
   s.settings.loads={stack:{...d.settings.loads.stack,...ol.stack},pure:{...d.settings.loads.pure,...ol.pure}};
+  cleanSettings(s.settings,d.settings);
   return s;
 }
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){S=mergeState(JSON.parse(raw));window.S=S;return}}catch(e){console.warn(e)}
+  let raw=null;try{raw=localStorage.getItem(KEY)}catch(e){}
+  if(raw){
+    try{S=mergeState(JSON.parse(raw));window.S=S;return}
+    catch(e){console.warn(e);try{localStorage.setItem(KEY+'.beschaedigt-'+Date.now(),raw)}catch(_){}
+      setTimeout(()=>toast('⚠️ Gespeicherte Daten waren beschädigt. Eine Kopie wurde gesichert, der zentrale Stand wird geladen.',9000),600)}
+  }
   S=defaults();window.S=S;
+}
+/* Tägliche lokale Sicherung (7 Tage), unabhängig vom zentralen Speicher */
+const SNAP_KEY='speedlab.snaps';
+function loadSnaps(){try{const a=JSON.parse(localStorage.getItem(SNAP_KEY)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function snapshotDaily(){
+  try{const a=loadSnaps();if(!S.sessions.length||a[0]?.day===today())return;
+    a.unshift({day:today(),t:Date.now(),n:S.sessions.length,data:{sessions:S.sessions,deleted:S.deleted}});
+    localStorage.setItem(SNAP_KEY,JSON.stringify(a.slice(0,7)))}catch(e){}
+}
+/* Wiederherstellen fügt nur fehlende Einheiten hinzu – vorhandene bleiben unverändert */
+function restoreSessions(src){
+  const o=sanitizeState(src),have=new Set(S.sessions.map(x=>x.id));let n=0;
+  for(const x of o.sessions)if(!have.has(x.id)){S.sessions.push({...x,mod:Date.now()});delete S.deleted[x.id];n++}
+  if(n){S.sessions.sort((a,b)=>a.date.localeCompare(b.date)||(a.created||0)-(b.created||0));checkBadges(true);persist()}
+  return n;
 }
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – bitte Daten exportieren.')}scheduleSync()}
 
@@ -422,6 +445,58 @@ function normSet(x){
   const v=(x.v||[]).filter(n=>n>0);
   return {dev:x.dev,lvl:x.lvl,w:x.w||0,side:x.side||'normal',swings:Math.max(+x.swings||0,v.length),v,
     max:v.length?Math.max(...v):(x.max||0),avg:v.length?v.reduce((a,b)=>a+b,0)/v.length:(x.avg||0)};
+}
+/* ---------- Datenprüfung: alles, was aus Speicher, Import oder Sync kommt, wird hier bereinigt ---------- */
+const isDay=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(parseD(v));
+const num=(v,lo,hi,def)=>{v=Number(v);return Number.isFinite(v)?Math.min(hi,Math.max(lo,v)):def};
+function cleanSet(x){
+  if(!x||typeof x!=='object'||!DEVS.includes(x.dev))return null;
+  const v=(Array.isArray(x.v)?x.v:[]).map(Number).filter(n=>Number.isFinite(n)&&n>=10&&n<=400).slice(0,50);
+  const set=normSet({dev:x.dev,lvl:x.dev==='driver'?'D':(['L','M','H'].includes(x.lvl)?x.lvl:'M'),w:x.dev==='driver'?0:num(x.w,0,1500,0),
+    side:x.side==='gegen'?'gegen':'normal',swings:Math.round(num(x.swings,0,50,0)),v,max:num(x.max,0,400,0),avg:num(x.avg,0,400,0)});
+  return set.swings>0||set.max>0?set:null;
+}
+function cleanSession(x){
+  if(!x||typeof x!=='object'||typeof x.id!=='string'||!x.id||x.id.length>64||!isDay(x.date))return null;
+  const sets=(Array.isArray(x.sets)?x.sets:[]).map(cleanSet).filter(Boolean).slice(0,100);
+  if(!sets.length)return null;
+  const o={id:x.id,created:num(x.created,0,9e15,0),mod:num(x.mod,0,9e15,0),date:x.date,type:['training','test','free'].includes(x.type)?x.type:'free',
+    sets,rpe:x.rpe==null||x.rpe===''?null:num(x.rpe,1,10,null),note:String(x.note??'').slice(0,1000),pain:!!x.pain,xp:num(x.xp,0,1e6,0),
+    pbs:(Array.isArray(x.pbs)?x.pbs:[]).filter(p=>p&&/^(E|driver|stack:\d+|pure:\d+)$/.test(p.key)).map(p=>({key:p.key,val:num(p.val,0,400,0),prev:num(p.prev,0,400,0)}))};
+  if(KINDS[x.kind])o.kind=x.kind;
+  if(x.dur!=null)o.dur=num(x.dur,0,86400,0);
+  return o;
+}
+function sanitizeState(o){
+  o=o&&typeof o==='object'&&!Array.isArray(o)?o:{};
+  const map=new Map();
+  for(const x of (Array.isArray(o.sessions)?o.sessions:[]).map(cleanSession).filter(Boolean)){const p=map.get(x.id);if(!p||x.mod>=p.mod)map.set(x.id,x)}
+  const dict=(d,f)=>{const r={};if(d&&typeof d==='object'&&!Array.isArray(d))for(const k of Object.keys(d)){const v=f(d[k]);if(v!=null&&k.length<=80)r[k]=v}return r};
+  return {v:2,settings:o.settings&&typeof o.settings==='object'&&!Array.isArray(o.settings)?o.settings:{},
+    sessions:[...map.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created),
+    deleted:dict(o.deleted,v=>Number.isFinite(+v)?+v:null),badges:dict(o.badges,v=>isDay(v)?v:null),
+    questsDone:dict(o.questsDone,v=>isDay(v)?v:null),settingsMod:num(o.settingsMod,0,9e15,0)};
+}
+function cleanSettings(st,d){
+  st.unit=st.unit==='kmh'?'kmh':'mph';
+  st.name=String(st.name??'').slice(0,60);
+  st.goal=st.goal==null||st.goal===''?null:num(st.goal,10,250,null);
+  st.weekly=Math.round(num(st.weekly,2,5,3));st.swings=Math.round(num(st.swings,3,10,5));st.rest=Math.round(num(st.rest,15,120,40));
+  st.transfer=st.transfer!==false;st.sound=st.sound!==false;
+  st.programStart=isDay(st.programStart)?st.programStart:today();
+  if(!['auto','compact','full'].includes(st.view))st.view='auto';
+  if(!DEVS.includes(st.device))st.device='stack';
+  const e=st.equip,de=d.equip;
+  e.stack.len=num(e.stack.len,30,50,de.stack.len);e.stack.m0=num(e.stack.m0,50,1500,de.stack.m0);
+  e.stack.cg=num(e.stack.cg,.2,1,de.stack.cg);e.stack.wp=num(e.stack.wp,.5,1,de.stack.wp);
+  e.stack.weights=Array.isArray(e.stack.weights)&&e.stack.weights.length&&e.stack.weights.length<=8&&e.stack.weights.every(w=>num(w,1,500,0)>0)?e.stack.weights.map(Number):de.stack.weights.slice();
+  e.pure.len=num(e.pure.len,30,50,de.pure.len);e.pure.m0=num(e.pure.m0,50,1500,de.pure.m0);
+  e.pure.cg=num(e.pure.cg,.2,1,de.pure.cg);e.pure.wp=num(e.pure.wp,.5,1,de.pure.wp);
+  e.pure.weights=Array.isArray(e.pure.weights)&&e.pure.weights.length===3&&e.pure.weights.every(w=>num(w,1,500,0)>0)?e.pure.weights.map(Number):de.pure.weights.slice();
+  e.driver.len=num(e.driver.len,40,48,de.driver.len);e.driver.moi=num(e.driver.moi,1500,5000,de.driver.moi);
+  st.model.k=num(st.model.k,.05,.6,d.model.k);st.model.cal=num(st.model.cal,.7,1.3,d.model.cal);
+  for(const dev of ['stack','pure'])for(const lv of ['L','M','H'])st.loads[dev][lv]=num(st.loads[dev][lv],0,1500,d.loads[dev][lv]);
+  return st;
 }
 const emaxOf=x=>x.max*eFactor(x.dev,x.w);
 const swingsOf=s=>s.sets.reduce((a,b)=>a+(+b.swings||0),0);
@@ -837,7 +912,7 @@ function afterDash(){
 }
 
 /* ---------- Training ---------- */
-let G=null;
+let G=null,undoBuf=null;
 /* Entwurf der laufenden Einheit: wird nach jedem Satz gesichert, damit nichts verloren geht,
    wenn iOS die Seite im Hintergrund beendet oder neu lädt. */
 const DRAFT_KEY='speedlab.draft';
@@ -909,7 +984,7 @@ function setCue(st){
   return {L:'Locker greifen, maximal schnell durch den Treffbereich. Ziel: neues Tempo-Gefühl.',M:'Referenzlast: explosiv, aber kontrolliert, voller Schwungbogen.',H:'Kraftvoll beschleunigen, Körper rotiert, Arme folgen. Nicht „drücken“.'}[st.plan||st.lvl];
 }
 function swingCells(st){
-  return Array.from({length:st.swings},(_,i)=>`<div class="swcell"><div class="n">Swing ${i+1}</div><input type="number" step="0.1" inputmode="decimal" class="swin" data-i="${i}" value="${G.cur[i]??''}" placeholder="–"><div class="es" id="es${i}"></div></div>`).join('');
+  return Array.from({length:st.swings},(_,i)=>`<div class="swcell"><div class="n">Swing ${i+1}</div><input type="number" step="0.1" inputmode="decimal" class="swin" enterkeyhint="next" data-i="${i}" value="${G.cur[i]??''}" placeholder="–"><div class="es" id="es${i}"></div></div>`).join('');
 }
 function updateSwingStats(){
   const st=G.steps[G.i];if(!st||st.t!=='set')return;
@@ -1014,7 +1089,15 @@ function editorSheet(sess){
   <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-a="closeModal">Abbrechen</button><button class="btn primary" data-a="saveEdit" data-id="${s.id||''}">Speichern</button></div>`);
 }
 const parseVals=t=>t.replace(/,/g,'.').split(/[\s;]+/).map(parseFloat).filter(n=>n>0);
+const plausRange=()=>U()==='mph'?[20,200]:[32,320];
+const plausible=v=>{const [lo,hi]=plausRange();return v>=lo&&v<=hi};
 function saveEditor(id){
+  const [lo,hi]=plausRange(),rows=$$('#e-rows .setrow');
+  for(let i=0;i<rows.length;i++){const bad=parseVals($('.r-v',rows[i]).value).find(v=>!plausible(v));
+    if(bad!=null){toast(`Satz ${i+1}: ${bad} ${uLabel()} wirkt unplausibel (erlaubt ${lo}–${hi}).`);return}
+    if(parseVals($('.r-v',rows[i]).value).length>50){toast(`Satz ${i+1}: höchstens 50 Swings.`);return}}
+  const dt=$('#e-date').value;if(!isDay(dt)||dt>today()){toast('Bitte ein gültiges Datum wählen, nicht in der Zukunft.');return}
+  const rpeIn=$('#e-rpe').value;if(rpeIn!==''&&!(+rpeIn>=1&&+rpeIn<=10)){toast('Anstrengung (RPE) bitte von 1 bis 10.');return}
   const sets=$$('#e-rows .setrow').map(r=>{
     const dev=$('.r-dev',r).value,v=parseVals($('.r-v',r).value).map(fromU);
     const lv=dev==='driver'?'D':$('.r-lv',r).value;
@@ -1023,7 +1106,7 @@ function saveEditor(id){
   if(!sets.length){toast('Bitte mindestens einen Satz mit Messwerten eintragen.');return}
   const old=id?S.sessions.find(s=>s.id===id):null;
   const sess={id:old?.id||uid(),created:old?.created||Date.now(),date:$('#e-date').value||today(),type:$('#e-type').value,kind:old?.kind,
-    sets,rpe:+$('#e-rpe').value||null,note:$('#e-note').value.trim(),pain:$('#e-pain').checked};
+    sets,rpe:+$('#e-rpe').value||null,note:$('#e-note').value.trim().slice(0,1000),pain:$('#e-pain').checked};
   commitSession(sess,!!old);closeModal();render();
 }
 function commitSession(sess,isEdit){
@@ -1175,6 +1258,9 @@ function pageSet(){
      <div class="row wrap"><button class="btn primary" data-a="syncSave">Speichern & synchronisieren</button><button class="btn" data-a="syncNow">Jetzt abgleichen</button><button class="btn" data-a="syncGen">Code erzeugen</button><button class="btn" data-a="syncLink">🔗 Geräte-Link kopieren</button><button class="btn danger" data-a="syncOff">Trennen</button></div>
      <div class="small" id="syncMsg">${syncMsgText()}</div>
      <div class="tiny muted">Alle Geräte mit demselben Code teilen die Daten. Einheiten werden pro ID zusammengeführt, Löschungen und Einstellungen synchronisiert. Ansicht und Design bleiben pro Gerät. Wer den Code kennt, kann die Daten lesen – nicht weitergeben.</div></div>`)}
+   ${card('Sicherungen',`<div class="stack-v"><div class="small muted">Täglich entsteht eine lokale Sicherung (7 Tage), zentral werden die letzten 30 Stände aufbewahrt. „Wiederherstellen“ fügt nur fehlende Einheiten hinzu – nichts wird überschrieben.</div>
+     ${loadSnaps().map((a,i)=>`<div class="row sp small"><span>Lokal · ${fmtShort(a.day)} · ${+a.n||0} Einheiten</span><button class="btn sm" data-a="snapRestore" data-i="${i}">Wiederherstellen</button></div>`).join('')||'<div class="small muted">Noch keine lokale Sicherung.</div>'}
+     ${syncOn()?'<button class="btn" data-a="histLoad">Zentrale Stände anzeigen</button><div id="histList"></div>':''}</div>`)}
    ${card('Daten',`<div class="stack-v">
      <div class="row wrap"><button class="btn" data-a="exportJson">⬇ Backup (JSON)</button><button class="btn" data-a="exportCsv">⬇ CSV (alle Swings)</button><button class="btn" data-a="importJson">⬆ Import (JSON)</button></div>
      <input type="file" id="impFile" accept="application/json" style="display:none">
@@ -1289,6 +1375,7 @@ function canon(o){
 }
 function mergeData(a,b){
   if(!b||!b.sessions)return a;
+  b=sanitizeState(b);
   const del={};for(const o of [a.deleted,b.deleted])for(const k in (o||{}))del[k]=Math.max(del[k]||0,o[k]);
   const map=new Map();
   for(const s of [...b.sessions,...a.sessions]){const p=map.get(s.id);if(!p||(s.mod||0)>=(p.mod||0))map.set(s.id,s)}
@@ -1309,15 +1396,22 @@ async function doSync(force=false){
   if(syncing){syncAgain=true;return}
   syncing=true;setSyncState('busy');
   try{
-    const local=JSON.parse(JSON.stringify(S));
-    if(force){await rpc('speedlab_put',{p_code:sync.code,p_data:local})}
-    else{
-      const remote=await rpc('speedlab_get',{p_code:sync.code});
-      const merged=mergeData(local,remote);
+    for(let attempt=0;;attempt++){
+      const res=await rpc('speedlab_load',{p_code:sync.code});
+      const rev=res?res.rev:null,remote=res&&res.data?sanitizeState(res.data):null;
+      const local=JSON.parse(JSON.stringify(S));
+      const merged=force?local:mergeData(local,remote);
       const mj=canon(merged);
-      if(mj!==canon(local))applyState(merged);
-      if(!remote||mj!==canon(remote))await rpc('speedlab_put',{p_code:sync.code,p_data:merged});
+      if(!force&&mj!==canon(local))applyState(merged);
+      try{
+        if(force||!remote||mj!==canon(remote))await rpc('speedlab_save',{p_code:sync.code,p_data:merged,p_rev:rev});
+      }catch(e){
+        if(/conflict/.test(e.message)&&attempt<4)continue;          // anderes Gerät war schneller: neu laden und zusammenführen
+        if(/would lose sessions/.test(e.message))throw new Error('Abgleich gestoppt – er hätte Einheiten gelöscht. Bitte „Jetzt abgleichen“ tippen oder melden.');
+        throw e;
+      }
       syncState.remote=merged.sessions.length;
+      break;
     }
     setSyncState('ok');
   }catch(e){setSyncState('err',e.message);clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),30000)}   // automatisch erneut versuchen
@@ -1326,8 +1420,16 @@ async function doSync(force=false){
 function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),1500)}
 function applyCfgFromHash(){
   const m=location.hash.match(/cfg=([^&]+)/);if(!m)return;
-  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};saveSync();setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
   history.replaceState(null,'',location.pathname+'#/set');
+  let o;try{o=JSON.parse(atob(decodeURIComponent(m[1])))}catch(e){setTimeout(()=>toast('Geräte-Link ist ungültig.'),300);return}
+  const okUrl=typeof o.u==='string'&&/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(o.u);
+  const okKey=typeof o.k==='string'&&/^(sb_publishable_[A-Za-z0-9_-]{10,}|eyJ[A-Za-z0-9._-]{20,})$/.test(o.k);
+  const okCode=typeof o.c==='string'&&/^[A-Za-z0-9_-]{24,128}$/.test(o.c);
+  if(!okUrl||!okKey||!okCode){setTimeout(()=>toast('Geräte-Link abgelehnt: nur Supabase-Server und gültige Codes sind erlaubt.',7000),300);return}
+  if(sync.code===o.c&&sync.url===o.u.replace(/\/$/,''))return;
+  const host=new URL(o.u).host;
+  if(!confirm(`Dieses Gerät mit dem zentralen Speicher verbinden?\n\nServer: ${host}\nCode: ${o.c.slice(0,6)}…\n\nVorhandene Einheiten auf diesem Gerät bleiben erhalten und werden zusammengeführt.`))return;
+  sync={url:o.u.replace(/\/$/,''),key:o.k,code:o.c};saveSync();setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300);
 }
 document.addEventListener('visibilitychange',()=>doSync());      // beim Verlassen sofort hochladen, beim Zurückkehren holen
 window.addEventListener('pagehide',()=>doSync());
@@ -1344,7 +1446,7 @@ const route=()=>(location.hash.replace(/^#\/?/,'')||'dash').split('?')[0];
 function render(){
   const r=PAGES[route()]?route():'dash';
   document.body.classList.toggle('compact',isCompact());
-  $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">${syncOn()?'Zentral synchronisiert':'Daten nur lokal'}<br>${uLabel()} · v2</div>`;
+  $('#nav').innerHTML=`<div class="brand"><div class="logo">⛳</div>Speed Lab</div>`+NAV.map(([k,i,l])=>`<a href="#/${k}" class="${k===r?'on':''}"><span class="ic">${i}</span>${isCompact()&&k==='set'?'Mehr':l}</a>`).join('')+`<div class="navfoot">${syncOn()?'Zentral synchronisiert':'Daten nur lokal'}<br>${uLabel()} · v2.1</div>`;
   const y=scrollY;
   $('#view').innerHTML=PAGES[r]()+((G&&r==='train')?'':footer());
   AFTER[r]?.();
@@ -1367,7 +1469,17 @@ const A={
   setview(el){S.settings.view=el.dataset.v;persist();render()},
   manual(){editorSheet()},
   edit(el){editorSheet(S.sessions.find(s=>s.id===el.dataset.id))},
-  del(el){if(confirm('Diese Einheit wirklich löschen?')){S.deleted[el.dataset.id]=Date.now();S.sessions=S.sessions.filter(s=>s.id!==el.dataset.id);persist();render()}},
+  del(el){const x=S.sessions.find(s=>s.id===el.dataset.id);if(!x||!confirm('Diese Einheit wirklich löschen?'))return;
+    undoBuf=x;S.deleted[x.id]=Date.now();S.sessions=S.sessions.filter(s=>s.id!==x.id);persist();render();
+    toast('Einheit gelöscht. <button class="btn sm" data-a="undoDel" style="margin-left:8px">Rückgängig</button>',9000)},
+  undoDel(el){if(!undoBuf)return;const x=undoBuf;undoBuf=null;delete S.deleted[x.id];S.sessions.push({...x,mod:Date.now()});
+    S.sessions.sort((a,b)=>a.date.localeCompare(b.date)||(a.created||0)-(b.created||0));persist();render();el.closest('.toast')?.remove();toast('Einheit wiederhergestellt ✔')},
+  snapRestore(el){const a=loadSnaps()[+el.dataset.i];if(!a)return;const n=restoreSessions(a.data);render();toast(n?`${n} Einheit${n>1?'en':''} wiederhergestellt ✔`:'Keine fehlenden Einheiten in dieser Sicherung.')},
+  async histLoad(){const box=$('#histList');if(!box)return;box.innerHTML='<div class="small muted">Lade …</div>';
+    try{const list=await rpc('speedlab_history_list',{p_code:sync.code})||[];
+      box.innerHTML=list.length?list.slice(0,15).map(h=>`<div class="row sp small" style="padding:4px 0"><span>${new Date(h.saved_at).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'})} · ${+h.sessions} Einheiten</span><button class="btn sm" data-a="histRestore" data-id="${+h.id}">Wiederherstellen</button></div>`).join(''):'<div class="small muted">Noch keine früheren Stände gespeichert.</div>'}
+    catch(e){box.innerHTML=`<div class="small" style="color:var(--danger)">${esc(e.message)}</div>`}},
+  async histRestore(el){try{const d=await rpc('speedlab_history_get',{p_code:sync.code,p_id:+el.dataset.id});const n=restoreSessions(d||{});render();toast(n?`${n} Einheit${n>1?'en':''} wiederhergestellt ✔`:'Keine fehlenden Einheiten in diesem Stand.')}catch(e){toast('Wiederherstellen fehlgeschlagen: '+esc(e.message))}},
   closeModal(){closeModal()},
   addrow(){$('#e-rows').insertAdjacentHTML('beforeend',editorRow({dev:S.settings.device,lvl:'L',v:[]}))},
   rmrow(el){if($$('#e-rows .setrow').length>1)el.closest('.setrow').remove()},
@@ -1390,13 +1502,13 @@ const A={
   saveSet(){
     const st=G.steps[G.i],vals=$$('.swin').map(el=>parseFloat(el.value)).filter(v=>v>0);
     if(!vals.length){toast('Bitte mindestens einen Swing eintragen – oder „Ohne Messung“ wählen.');return}
-    if(vals.some(v=>toU(1)*0+v<10||v>400)){toast('Ein Wert wirkt unplausibel – bitte prüfen.');return}
+    const bad=vals.find(v=>!plausible(v));if(bad!=null){const [lo,hi]=plausRange();toast(`${bad} ${uLabel()} wirkt unplausibel (erlaubt ${lo}–${hi}) – bitte prüfen.`);return}
     G.sets.push(normSet({dev:st.dev,lvl:st.lvl,w:st.w,side:st.side,swings:st.swings,v:vals.map(fromU)}));
     beep(740,.12);advance();
   },
   finishRun(){
     const sess={id:uid(),created:Date.now(),date:today(),type:G.kind==='test'?'test':'training',kind:G.kind==='test'?undefined:G.kind,
-      sets:G.sets,rpe:+$('#rpe').value,note:$('#note').value.trim(),pain:$('#pain').checked,dur:Math.round((Date.now()-G.start)/1000)};
+      sets:G.sets,rpe:+$('#rpe').value,note:$('#note').value.trim().slice(0,1000),pain:$('#pain').checked,dur:Math.round((Date.now()-G.start)/1000)};
     if(!sess.sets.length){toast('Keine Sätze erfasst – nichts gespeichert.');stopRun();render();return}
     const res=commitSession(sess,false);stopRun();location.hash='#/dash';render();summarySheet(sess,res);
   },
@@ -1409,8 +1521,10 @@ const A={
   reset(){if(confirm('Wirklich ALLE Daten unwiderruflich löschen'+(syncOn()?' (auch zentral, auf allen Geräten)':'')+'?')&&confirm('Letzte Rückfrage: Alles löschen?')){
     const del={...S.deleted};S.sessions.forEach(x=>del[x.id]=Date.now());
     S=defaults();window.S=S;S.deleted=del;S.settingsMod=Date.now();persist();applyTheme();render();if(syncOn())doSync(true);toast('Alle Daten gelöscht')}},
-  syncSave(){sync.url=$('#sy-url').value.trim();sync.key=$('#sy-key').value.trim();sync.code=$('#sy-code').value.trim();saveSync();
-    if(sync.code&&sync.code.length<24){toast('Der Sync-Code muss mindestens 24 Zeichen haben.');return}
+  syncSave(){const url=$('#sy-url').value.trim().replace(/\/$/,''),key=$('#sy-key').value.trim(),code=$('#sy-code').value.trim();
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)){toast('Die Projekt-URL muss so aussehen: https://xxxx.supabase.co');return}
+    if(code&&!/^[A-Za-z0-9_-]{24,128}$/.test(code)){toast('Der Sync-Code muss mindestens 24 Zeichen haben (Buchstaben, Ziffern, - und _).');return}
+    sync.url=url;sync.key=key;sync.code=code;saveSync();
     doSync();render()},
   syncNow(){if(!syncOn()){toast('Erst Code eintragen und speichern.');return}syncing=false;doSync()},
   syncGen(){const b=new Uint8Array(24);crypto.getRandomValues(b);$('#sy-code').value=btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_')},
@@ -1429,15 +1543,22 @@ document.addEventListener('change',e=>{
   else if(t.classList.contains('r-lv')){const row=t.closest('.setrow'),dev=$('.r-dev',row).value;if(dev!=='driver')$('.r-w',row).value=loadFor(dev,t.value)}
   else if(t.dataset.set){setSetting(t.dataset.set,t.type==='checkbox'?t.checked:t.value)}
   else if(t.id==='impFile'&&t.files[0]){
-    const fr=new FileReader();fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o.sessions)throw 0;
-      if(!confirm(`Import ersetzt vorhandene Daten (${o.sessions.length} Einheiten). Fortfahren?`))return;
-      S=mergeState(o);window.S=S;persist();applyTheme();render();toast('Import erfolgreich ✔')}catch(err){toast('Datei ungültig.')}};
+    if(t.files[0].size>5e6){toast('Datei ist zu groß.');t.value='';return}
+    const fr=new FileReader();fr.onload=()=>{try{const o=sanitizeState(JSON.parse(fr.result));
+      const neu=o.sessions.filter(x=>!S.sessions.some(y=>y.id===x.id)).length;
+      if(!o.sessions.length){toast('Keine gültigen Einheiten in der Datei.');return}
+      if(!confirm(`Die Sicherung enthält ${o.sessions.length} Einheiten, davon ${neu} neu.\n\nFehlende Einheiten hinzufügen? Vorhandene bleiben unverändert.`))return;
+      const n=restoreSessions(o);render();toast(n?`${n} Einheit${n>1?'en':''} importiert ✔`:'Nichts Neues in der Datei.')}catch(err){toast('Datei ungültig.')}finally{t.value=''}};
     fr.readAsText(t.files[0]);
   }
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='Enter'&&e.target.classList?.contains('swin')){e.preventDefault();const all=$$('.swin'),i=all.indexOf(e.target);if(all[i+1])all[i+1].focus();else A.saveSet()}
+});
 
-load();applyCfgFromHash();applyTheme();checkBadges(true);persist();render();doSync();
+load();snapshotDaily();applyCfgFromHash();applyTheme();checkBadges(true);persist();render();doSync();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
