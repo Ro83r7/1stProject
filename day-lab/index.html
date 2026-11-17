@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="DayLab">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1226">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://njipzdfnzpiremmbimty.supabase.co https://api.open-meteo.com; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Day Lab – dein persönliches Dashboard: Termine, Todos, Fokus, Wetter, Training und Message of the Day.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -128,6 +130,12 @@ a.btn{text-decoration:none}
 .sync.ok{color:var(--ok)}.sync.err{color:var(--danger)}
 .empty{color:var(--muted);padding:6px 0;font-weight:700}
 svg.ic{display:block}
+:focus-visible{outline:2px solid var(--g1);outline-offset:2px;border-radius:8px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.toast.act{pointer-events:auto;display:flex;gap:12px;align-items:center}
+.toast button{border:0;background:transparent;color:inherit;font-weight:900;text-decoration:underline;cursor:pointer;padding:0}
+.warn{color:var(--g1)!important}
+#syncpill{cursor:pointer}
 body{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 #nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;max-width:520px;margin:0 auto;display:flex;gap:2px;padding:6px;background:rgba(19,23,51,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:26px;box-shadow:0 10px 36px rgba(0,0,0,.45);border:1px solid var(--line)}
 #nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:20px;font-size:.7rem;font-weight:800;color:var(--muted);text-decoration:none}
@@ -146,7 +154,7 @@ body{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 <body>
 <header class="topbar">
   <div class="brand"><span class="logo" id="logo"></span><span>Day <b>Lab</b></span></div>
-  <div class="row" style="gap:8px"><span class="sync" id="syncpill"></span><button class="iconbtn" data-a="settings" aria-label="Einstellungen" id="gear"></button></div>
+  <div class="row" style="gap:8px"><span class="sync" id="syncpill" role="button" tabindex="0" data-a="syncnow" title="Jetzt aktualisieren"></span><button class="iconbtn" data-a="settings" aria-label="Einstellungen" id="gear"></button></div>
 </header>
 <main id="view" aria-live="polite"></main>
 <nav id="nav" aria-label="Hauptnavigation"></nav>
@@ -202,6 +210,8 @@ S.fj=S.fj||{};S.cd=S.cd||[];if(S.focus&&S.focus.text&&S.focus.date&&!S.fj[S.focu
 S.habits=S.habits||[];S.hlog=S.hlog||{};S.todos=S.todos||[];S.set=S.set||{name:'Robert',city:'Düsseldorf',lat:51.2277,lon:6.7735,u:0};
 let CFG=jget(LSCFG,{url:DEF.url,key:DEF.key,code:'',g:''});
 let CAL=jget(LSCAL,{events:[],fetched_at:null});
+if(!Array.isArray(CAL.events))CAL={events:[],fetched_at:null};
+let calErr=false,garErr='';
 let sync={status:CFG.code?'idle':'off',err:''};
 let showDone=false,newDue='',tab='start';
 const save=(touch=true)=>{jset(LS,S);if(touch)schedulePush()};
@@ -213,25 +223,31 @@ async function rpc(fn,args){
   const t=await r.text();return t?JSON.parse(t):null;
 }
 const mergeById=(a,b)=>{const m=new Map(a.map(x=>[x.id,x]));for(const x of b){const l=m.get(x.id);if(!l||(x.u||0)>(l.u||0))m.set(x.id,x)}return [...m.values()]};
+const arr=x=>Array.isArray(x)?x.filter(i=>i&&typeof i==='object'&&typeof i.id==='string'):[];
+const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 function mergeState(L,R){
-  if(!R)return L;
+  if(!R||typeof R!=='object')return L;
   const o={...L};
-  o.todos=mergeById(L.todos||[],R.todos||[]);
-  o.habits=mergeById(L.habits||[],R.habits||[]);
-  o.cd=mergeById(L.cd||[],R.cd||[]);
-  o.hlog={...(R.hlog||{})};
-  for(const[k,v]of Object.entries(L.hlog||{})){const r=o.hlog[k];if(!r||(v.u||0)>(r.u||0))o.hlog[k]=v}
-  o.fj={...(R.fj||{})};
-  for(const[k,v]of Object.entries(L.fj||{})){const r=o.fj[k];if(!r||(v.u||0)>(r.u||0))o.fj[k]=v}
+  o.todos=mergeById(arr(L.todos),arr(R.todos));
+  o.habits=mergeById(arr(L.habits),arr(R.habits));
+  o.cd=mergeById(arr(L.cd),arr(R.cd));
+  o.hlog={...obj(R.hlog)};
+  for(const[k,v]of Object.entries(obj(L.hlog))){const r=o.hlog[k];if(!r||(v.u||0)>(r.u||0))o.hlog[k]=v}
+  o.fj={...obj(R.fj)};
+  for(const[k,v]of Object.entries(obj(L.fj))){const r=o.fj[k];if(!r||(v.u||0)>(r.u||0))o.fj[k]=v}
   if(R.focus&&R.focus.text&&R.focus.date&&!o.fj[R.focus.date])o.fj[R.focus.date]={t:R.focus.text,n:'',u:R.focus.u||1};
   delete o.focus;
-  o.set=((R.set?.u||0)>(L.set?.u||0))?R.set:L.set;
+  o.set=(obj(R.set).u||0)>(obj(L.set).u||0)?R.set:L.set;
   // erledigte/gelöschte Todos nach 60 Tagen aufräumen
-  const lim=Date.now()-60*864e5;
-  o.todos=o.todos.filter(t=>!(t.del&&(t.u||0)<lim));
+  const lim=Date.now()-60*864e5,old=key(addDays(new Date(),-30));
+  o.todos=o.todos.filter(t=>!(t.del&&(t.u||0)<lim)&&!(t.done&&t.doneKey&&t.doneKey<old));
+  const hold=key(addDays(new Date(),-400));
+  for(const k of Object.keys(o.hlog))if(k<hold)delete o.hlog[k];
   return o;
 }
 const canon=o=>JSON.stringify([o.todos,o.habits,o.hlog,o.fj,o.cd,o.set]);
+let pending=false;
+function rerender(){if(document.activeElement?.matches?.('input,textarea,select')){pending=true;return}render()}
 let pushT=null,syncing=false;
 function schedulePush(){if(!CFG.code)return;clearTimeout(pushT);pushT=setTimeout(()=>doSync(),1800)}
 async function doSync(){
@@ -244,20 +260,20 @@ async function doSync(){
     S=merged;jset(LS,S);
     if(!remote||canon(merged)!==canon(remote))await rpc('daylab_put',{p_code:CFG.code,p_data:S});
     sync.status='ok';sync.err='';
-    if(changedLocal)render();
+    if(changedLocal)rerender();
   }catch(e){sync.status='err';sync.err=e.message}
   syncing=false;pill();
 }
-async function loadCal(){
+async function loadCal(force){
   if(!CFG.code)return;
   try{
     // Stand älter als 5 min? Dann Kalender direkt neu abrufen lassen (sonst alle 15 min per Cron)
-    if(!CAL.fetched_at||Date.now()-new Date(CAL.fetched_at)>5*60e3){
+    if(force||!CAL.fetched_at||Date.now()-new Date(CAL.fetched_at)>5*60e3){
       await fetch(`${CFG.url}/functions/v1/daylab-cal`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CFG.code})}).catch(()=>{});
     }
     const r=await rpc('daylab_cal_get',{p_code:CFG.code});
-    if(r&&Array.isArray(r.events)){CAL=r;jset(LSCAL,CAL);render()}
-  }catch(e){}
+    if(r&&Array.isArray(r.events)){CAL=r;jset(LSCAL,CAL);calErr=false;rerender()}
+  }catch(e){calErr=true;rerender()}
 }
 function pill(){
   const p=$('#syncpill');
@@ -294,7 +310,7 @@ async function loadWx(){
   try{
     const u=`https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=2`;
     const j=await (await fetch(u)).json();
-    WX={k:`${st.lat},${st.lon}`,at:Date.now(),cur:j.current,d:j.daily};jset(LSWX,WX);render();
+    WX={k:`${st.lat},${st.lon}`,at:Date.now(),cur:j.current,d:j.daily};jset(LSWX,WX);rerender();
   }catch(e){}
 }
 
@@ -311,8 +327,8 @@ async function loadGarmin(){
     const since=key(addDays(new Date(),-4));
     const [sl,hr,dy]=await Promise.all([garmin('sleep',since),garmin('hrv',since),garmin('daily',since)]);
     const last=a=>Array.isArray(a)&&a.length?a.slice().sort((x,y)=>String(x.date||x.day||'').localeCompare(String(y.date||y.day||''))).pop():null;
-    GAR={at:Date.now(),sleep:last(sl),hrv:last(hr),daily:last(dy)};jset(LSGAR,GAR);render();
-  }catch(e){}
+    GAR={at:Date.now(),sleep:last(sl),hrv:last(hr),daily:last(dy)};jset(LSGAR,GAR);garErr='';rerender();
+  }catch(e){garErr=/403|401|400/.test(e.message)?'Code prüfen':'nicht erreichbar';rerender()}
 }
 
 /* ---------- Training (Wochenplan aus Happy 100) ---------- */
@@ -325,6 +341,11 @@ function motd(d){
   const L=window.DAYLAB_MOTD||[];if(!L.length)return'';
   const doy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);
   return L[(doy+d.getFullYear()*3)%L.length];
+}
+function calStamp(){
+  if(!CAL.fetched_at)return CFG.code?'<div class="tiny muted" style="margin-top:8px">Kalender wird geladen …</div>':'<div class="tiny muted" style="margin-top:8px">Kalender: Gerät verbinden (Einstellungen)</div>';
+  const age=Date.now()-new Date(CAL.fetched_at),stale=age>3*3600e3||calErr;
+  return`<div class="tiny muted ${stale?'warn':''}" style="margin-top:8px">${stale?'⚠️ ':''}Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}${stale?' – ggf. veraltet (zum Aktualisieren ☁️ tippen)':''}</div>`;
 }
 function evHTML(list,k,now,compact){
   const ad=list.filter(e=>e.r.allDay),tm=list.filter(e=>!e.r.allDay);
@@ -403,7 +424,7 @@ function cdHTML(now){
     return`<div class="cdr"><span class="cde">${bd?'🎂':'⏳'}</span><div class="cdt"><b>${esc(x.c.n)}</b><small>${bd?(x.age?`wird ${x.age}`:'Geburtstag'):''}${bd&&x.age?' · ':''}${x.when.getDate()}.${x.when.getMonth()+1}.${bd?'':x.when.getFullYear()}</small></div><span class="cdd ${x.days<=1?'hot':''}">${x.days===0&&bd?'🎉 heute':dayWord(x.days)}</span></div>`}).join('');
 }
 function cdSheet(){
-  const all=S.cd.filter(x=>!x.del).sort((a,b)=>(a.k>b.k?1:-1)||String(a.d||`${pad(a.m)}-${pad(a.d)}`).localeCompare(String(b.d||'')));
+  const all=S.cd.filter(x=>!x.del).sort((a,b)=>(a.k>b.k?1:a.k<b.k?-1:0)||String(a.n).localeCompare(String(b.n),'de'));
   openSheet(`<h2 style="margin:0 0 12px">Countdowns & Geburtstage</h2>
   ${all.map(c=>`<div class="td"><span style="font-size:1.2rem">${c.k==='bd'?'🎂':'⏳'}</span><div class="tx" style="cursor:default">${esc(c.n)}<div class="muted tiny">${c.k==='bd'?`${c.d}.${c.m}.${c.y||''}`:esc(c.d.split('-').reverse().join('.'))}</div></div><button class="mini" data-a="delCd" data-id="${c.id}" aria-label="Löschen">${ic('x',18)}</button></div>`).join('')||'<div class="empty">Noch nichts da.</div>'}
   <div style="height:14px"></div>
@@ -446,14 +467,14 @@ function render(){
   // Garmin
   let garHTML;
   if(!CFG.g)garHTML=`<div class="empty">Garmin-Lesecode fehlt. <a href="#" data-a="settings" style="color:var(--g1)">Einstellungen</a></div>`;
-  else if(!GAR)garHTML='<div class="empty">Lade Garmin-Daten …</div>';
+  else if(!GAR)garHTML=garErr?`<div class="empty">Garmin ${garErr}. <a href="#" data-a="settings" style="color:var(--g1)">Einstellungen</a></div>`:'<div class="empty">Lade Garmin-Daten …</div>';
   else{
     const sl=GAR.sleep,hv=GAR.hrv,dy=GAR.daily;
     const dur=sl?.duration_s?`${Math.floor(sl.duration_s/3600)}:${pad(Math.round(sl.duration_s%3600/60))}`:'–';
     const sc=sl?.score,c=sc>=80?'var(--ok)':sc>=60?'var(--g1)':'var(--danger)';
     garHTML=`<div class="stats">
       <div class="stat"><div class="l">Schlaf</div><div class="v"><span class="dot" style="--c:${sc==null?'var(--muted)':c}"></span>${sc??'–'}<small>Score</small></div><div class="tiny muted">${dur} h</div></div>
-      <div class="stat"><div class="l">HRV letzte Nacht</div><div class="v">${hv?.last_night_avg??'–'}<small>ms</small></div><div class="tiny muted">${hv?.status?esc(String(hv.status).toLowerCase()):'Wochenschnitt '+(hv?.weekly_avg??'–')}</div></div>
+      <div class="stat"><div class="l">HRV letzte Nacht</div><div class="v">${hv?.last_night_avg??'–'}<small>ms</small></div><div class="tiny muted">${hv?.status?esc(({BALANCED:'ausgewogen',UNBALANCED:'unausgeglichen',LOW:'niedrig',POOR:'schwach'})[hv.status]||String(hv.status).toLowerCase())+' · Ø '+(hv.weekly_avg??'–'):'Wochenschnitt '+(hv?.weekly_avg??'–')}</div></div>
       <div class="stat"><div class="l">Ruhepuls</div><div class="v">${dy?.resting_hr??'–'}<small>bpm</small></div></div>
       <div class="stat"><div class="l">Schritte</div><div class="v num">${dy?.steps!=null?Number(dy.steps).toLocaleString('de-DE'):'–'}</div></div></div>`;
   }
@@ -469,7 +490,7 @@ function render(){
    focusStart:`<section class="card focus"><h2>${ic('star',15)} Fokus des Tages</h2>${focusStart}</section>`,
    termine:`<section class="card"><h2>${ic('cal2',15)} Heute · ${now.getDate()}.${now.getMonth()+1}.${tdays.length?`<span class="sp">${tdays.filter(e=>!e.r.allDay).length||tdays.length} Termin${(tdays.filter(e=>!e.r.allDay).length||tdays.length)===1?'':'e'}${nextInfo(now)}</span>`:''}</h2>${evHTML(tdays,tk,now)}</section>
     <section class="card"><h2>${ic('cal2',15)} Morgen · ${WD[addDays(now,1).getDay()]}</h2>${evHTML(tmr,tm,now,true)}</section>
-    <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${CAL.fetched_at?`<div class="tiny muted" style="margin-top:8px">Kalender-Stand: ${new Date(CAL.fetched_at).toLocaleString('de-DE',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}</section>`,
+    <section class="card"><h2>${ic('cal2',15)} Nächste Tage</h2>${nextRows}${calStamp()}</section>`,
    todos:`<section class="card"><h2>${ic('list',15)} Todos${nTodo?`<span class="sp"><span class="badge">${nTodo} heute</span></span>`:''}</h2>${todoHTML}</section>`,
    cd:`<section class="card"><h2>${ic('star',15)} Countdowns & Geburtstage<span class="sp"><a href="#" data-a="cdsheet" style="color:var(--g1);text-decoration:none">Verwalten ›</a></span></h2>${cdHTML(now)}</section>`,
    train:`<section class="card"><h2>${ic('heart',15)} Training heute</h2>${trainHTML}${weekHTML}</section>`,
@@ -490,7 +511,9 @@ function render(){
 
 /* ---------- Aktionen ---------- */
 const byId=id=>S.todos.find(t=>t.id===id);
-const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2200)};
+const toast=(m,undo)=>{const t=$('#toast');t.textContent=m;t.classList.toggle('act',!!undo);
+  if(undo){const b=document.createElement('button');b.textContent='Rückgängig';b.onclick=()=>{undo();t.classList.remove('show')};t.appendChild(b)}
+  t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),undo?5000:2200)};
 function addTodo(){
   const el=$('#todoIn');const v=(el?.value||'').trim();if(!v)return;
   S.todos.push({id:uid(),t:v,due:newDue||'',done:false,star:0,c:Date.now(),u:Date.now()});
@@ -535,6 +558,7 @@ function saveSettings(){
   const f=id=>$(id).value.trim();
   const lat=parseFloat(f('#sLa').replace(',','.')),lon=parseFloat(f('#sLo').replace(',','.'));
   S.set={name:f('#sN'),city:f('#sC')||'Ort',lat:isFinite(lat)?lat:S.set.lat,lon:isFinite(lon)?lon:S.set.lon,u:Date.now()};
+  if(f('#sG')!==(CFG.g||'')){GAR=null;garErr='';try{localStorage.removeItem(LSGAR)}catch(e){}}
   CFG.g=f('#sG');
   // Gewohnheiten
   const lines=$('#sH').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -559,13 +583,14 @@ document.addEventListener('click',e=>{
   if(a==='tick'){const t=byId(id);if(t){t.done=!t.done;t.doneKey=t.done?key(new Date()):'';t.u=Date.now();save();render()}}
   else if(a==='star'){const t=byId(id);if(t){t.star=t.star?0:1;t.u=Date.now();save();render()}}
   else if(a==='edit')editTodo(id);
-  else if(a==='delTodo'){const t=byId(id);if(t){t.del=true;t.u=Date.now();save();closeSheet();render();toast('Gelöscht')}}
+  else if(a==='delTodo'){const t=byId(id);if(t){t.del=true;t.u=Date.now();save();closeSheet();render();toast('Gelöscht',()=>{t.del=false;t.u=Date.now();save();render()})}}
   else if(a==='saveTodo'){const t=byId(id);const v=$('#eT').value.trim();if(t&&v){t.t=v;t.due=$('#eD').value;t.u=Date.now();save();closeSheet();render()}}
   else if(a==='addTodo')addTodo();
   else if(a==='clearDue'){e.preventDefault();newDue='';render()}
   else if(a==='toggleDone'){e.preventDefault();showDone=!showDone;render()}
   else if(a==='habit'){const k=key(new Date());const l=S.hlog[k]||{ids:[],u:0};const i=l.ids.indexOf(id);if(i>=0)l.ids.splice(i,1);else l.ids.push(id);l.u=Date.now();S.hlog[k]=l;save();render()}
   else if(a==='focus')editJ(key(new Date()));
+  else if(a==='syncnow'){toast('Aktualisiere …');GAR=null;doSync();loadCal(true);loadWx();loadGarmin()}
   else if(a==='tab'){e.preventDefault();tab=el.dataset.t;render();window.scrollTo(0,0)}
   else if(a==='cdsheet'){e.preventDefault();cdSheet()}
   else if(a==='addCd')addCd();
@@ -583,10 +608,12 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id==='todoIn'){e.preventDefault();addTodo()}
   else if(e.key==='Enter'&&e.target.id==='focusIn')saveFocus(e.target.value);
   else if(e.key==='Enter'&&e.target.id==='noteIn')e.target.blur();
+  else if(e.key==='Enter'&&(e.target.id==='eT'||e.target.id==='jT'||e.target.id==='cN'||e.target.id==='cD')){e.preventDefault();$(e.target.id==='eT'?'[data-a=saveTodo]':e.target.id==='jT'?'[data-a=saveJ]':'[data-a=addCd]')?.click()}
+  else if(e.key==='Enter'&&e.target.id==='syncpill')e.target.click();
   else if(e.key==='Escape')closeSheet();
 });
 document.addEventListener('change',e=>{if(e.target.id==='dueIn'){newDue=e.target.value;const v=$('#todoIn').value;render();$('#todoIn').value=v}});
-document.addEventListener('focusout',e=>{if(e.target.id==='focusIn')saveFocus(e.target.value);else if(e.target.id==='noteIn')saveNote(e.target.value)});
+document.addEventListener('focusout',e=>{if(pending)setTimeout(()=>{if(!document.activeElement?.matches?.('input,textarea,select')){pending=false;render()}},50);if(e.target.id==='focusIn')saveFocus(e.target.value);else if(e.target.id==='noteIn')saveNote(e.target.value)});
 
 /* ---------- Start ---------- */
 (function boot(){
