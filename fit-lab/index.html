@@ -304,13 +304,28 @@ const FORMATS=[[3,3],[3,4],[4,3],[4,4]];
 
 /* ---------- Zustand ---------- */
 const defaults=()=>({v:1,sessions:[],deleted:{},settingsMod:0,settings:{bw:79,goals:{hiit:1,z2:120,kraft:3,mobi:2},hidden:[],custom:[]}});
+const KINDS=['hiit','z2','kraft','mobi'];
+const validSess=x=>x&&typeof x==='object'&&typeof x.id==='string'&&x.id&&typeof x.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&KINDS.includes(x.kind)&&(!['kraft','mobi'].includes(x.kind)||Array.isArray(x.items));
+function cleanSessions(a){if(!Array.isArray(a))return [];const seen=new Set();return a.filter(x=>{if(!validSess(x)||seen.has(x.id))return false;seen.add(x.id);if(x.items)x.items=x.items.filter(i=>i&&typeof i.ex==='string');return true})}
 function mergeState(o){
-  const d=defaults();o=o||{};
-  return {...d,...o,sessions:o.sessions||[],deleted:o.deleted||{},settings:{...d.settings,...(o.settings||{}),goals:{...d.settings.goals,...((o.settings||{}).goals||{})}}};
+  const d=defaults();o=o&&typeof o==='object'?o:{};
+  const st=o.settings&&typeof o.settings==='object'?o.settings:{};
+  return {...d,...o,sessions:cleanSessions(o.sessions),deleted:o.deleted&&typeof o.deleted==='object'?o.deleted:{},settings:{...d.settings,...st,hidden:Array.isArray(st.hidden)?st.hidden:[],custom:Array.isArray(st.custom)?st.custom.filter(e=>e&&e.id&&e.n):[],goals:{...d.settings.goals,...(st.goals||{})}}};
 }
 let S=(()=>{try{return mergeState(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){return defaults()}})();
 window.S=S;
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – bitte Daten exportieren.')}scheduleSync()}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('⚠️ Speichern fehlgeschlagen – Speicher voll? Bitte Backup exportieren.',8000)}scheduleSync()}
+/* Sicherung: täglich + vor riskanten Aktionen (Import, Reset, Sync mit weniger Einheiten). Max. 5 Stände. */
+const BAK_KEY='fitlab.bak';
+function backups(){try{const b=JSON.parse(localStorage.getItem(BAK_KEY)||'[]');return Array.isArray(b)?b:[]}catch(e){return []}}
+function backup(why,force){
+  if(!S.sessions.length)return;
+  const b=backups(),t=today();
+  if(!force&&b.some(x=>x.d===t&&x.why==='täglich'))return;
+  b.unshift({t:Date.now(),d:t,why,n:S.sessions.length,data:JSON.parse(JSON.stringify(S))});
+  while(b.length>5)b.pop();
+  for(;;){try{localStorage.setItem(BAK_KEY,JSON.stringify(b));break}catch(e){if(b.length<=1)break;b.pop()}}
+}
 const touchSettings=()=>{S.settingsMod=Date.now()};
 let ui={
   date:today(),
@@ -319,8 +334,11 @@ let ui={
   hfilter:'all',
   ana:{tab:'over',range:'W12',mode:'tm',ex:'',metric:'w'}
 };
-try{const u=JSON.parse(localStorage.getItem(UI_KEY)||'null');if(u){ui.hiit.n=u.n||4;ui.hiit.m=u.m||3;ui.z2.mode=u.mode||'tm';ui.z2.zone=u.zone||2;if(u.ana)ui.ana={...ui.ana,...u.ana}}}catch(e){}
-function saveUi(){try{localStorage.setItem(UI_KEY,JSON.stringify({n:ui.hiit.n,m:ui.hiit.m,mode:ui.z2.mode,zone:ui.z2.zone,ana:ui.ana}))}catch(e){}}
+try{const u=JSON.parse(localStorage.getItem(UI_KEY)||'null');if(u){ui.hiit.n=u.n||4;ui.hiit.m=u.m||3;ui.z2.mode=u.mode||'tm';ui.z2.zone=u.zone||2;if(u.ana)ui.ana={...ui.ana,...u.ana};
+  if(u.cd&&u.cd.day===today()){const c=u.cd;['hf','note'].forEach(k=>{if(c.h&&c.h[k])ui.hiit[k]=c.h[k]});['min','km','hf','note'].forEach(k=>{if(c.z&&c.z[k])ui.z2[k]=c.z[k]});if(c.date){ui.date=c.date;ui.dateManual=true}}}}catch(e){}
+function saveUi(){try{localStorage.setItem(UI_KEY,JSON.stringify({n:ui.hiit.n,m:ui.hiit.m,mode:ui.z2.mode,zone:ui.z2.zone,ana:ui.ana,
+  cd:{day:today(),date:ui.dateManual?ui.date:'',h:{hf:ui.hiit.hf,note:ui.hiit.note},z:{min:ui.z2.min,km:ui.z2.km,hf:ui.z2.hf,note:ui.z2.note}}}))}catch(e){}}
+const cardioDay=()=>(ui.dateManual&&ui.date)||today();
 function setPath(o,p,v){const k=p.split('.');let c=o;for(let i=0;i<k.length-1;i++)c=c[k[i]];c[k[k.length-1]]=v}
 
 /* ---------- Abfragen ---------- */
@@ -534,7 +552,7 @@ function z2Live(){
   return z2Metric({mode:ui.z2.mode,min:mi,km});
 }
 function pageCardio(){
-  initCardioUI();
+  initCardioUI();if(!ui.dateManual)ui.date=today();
   const lh=lastHiit(),lz=lastZ2(ui.z2.mode),md=MODES[ui.z2.mode];
   const bike=ui.z2.mode==='bike';
   return `${head('Cardio',`<input type="date" class="dinput" data-bind="date" value="${ui.date}" aria-label="Datum">`)}
@@ -570,21 +588,24 @@ function pageCardio(){
 }
 function saveHiit(){
   const sp=num(ui.hiit.speed);if(!(sp>=3&&sp<=30)){toast('Bitte einen plausiblen Speed (km/h) eintragen.');return}
+  const hf0=num(ui.hiit.hf);if(hf0>0&&(hf0<60||hf0>230)){toast('HF-Peak bitte prüfen (60–230 bpm).');return}
   const g0=gamiSnap();
   const prev=byKind('hiit').filter(s=>s.n===+ui.hiit.n&&s.m===+ui.hiit.m);
   const pb=prev.length&&prev.every(s=>sp>s.speed);
-  const s={id:uid(),kind:'hiit',date:ui.date||today(),created:Date.now(),mod:Date.now(),n:+ui.hiit.n,m:+ui.hiit.m,speed:+sp.toFixed(2)};
+  const s={id:uid(),kind:'hiit',date:cardioDay(),created:Date.now(),mod:Date.now(),n:+ui.hiit.n,m:+ui.hiit.m,speed:+sp.toFixed(2)};
   const hf=num(ui.hiit.hf);if(hf>0)s.hf=hf;if(ui.hiit.note.trim())s.note=ui.hiit.note.trim();
-  S.sessions.push(s);persist();ui.hiit.hf='';ui.hiit.note='';ui.date=today();saveUi();
+  S.sessions.push(s);persist();ui.hiit.hf='';ui.hiit.note='';ui.date=today();ui.dateManual=false;saveUi();
   toast(`⚡ <b>HIIT ${s.n} × ${s.m}</b> bei ${nf(s.speed,1)} km/h gespeichert${pb?' · 🏆 neuer Bestwert für dieses Format':''}${gamiNote(g0)}`,6500);render();
 }
 function saveZ2(){
   const mi=num(ui.z2.min),km=num(ui.z2.km);
   if(!(mi>0&&km>0)){toast('Bitte Dauer und Distanz eintragen.');return}
+  const v0=km/(mi/60);if(mi>600||v0>(ui.z2.mode==='bike'?70:25)){toast(`Bitte Werte prüfen – ${nf(v0,1)} km/h wirkt unplausibel.`);return}
+  const hz=num(ui.z2.hf);if(hz>0&&(hz<50||hz>220)){toast('Ø HF bitte prüfen (50–220 bpm).');return}
   const g0=gamiSnap();
-  const s={id:uid(),kind:'z2',date:ui.date||today(),created:Date.now(),mod:Date.now(),mode:ui.z2.mode,zone:+ui.z2.zone,min:mi,km};
+  const s={id:uid(),kind:'z2',date:cardioDay(),created:Date.now(),mod:Date.now(),mode:ui.z2.mode,zone:+ui.z2.zone,min:mi,km};
   const hf=num(ui.z2.hf);if(hf>0)s.hf=hf;if(ui.z2.note.trim())s.note=ui.z2.note.trim();
-  S.sessions.push(s);persist();ui.z2.min='';ui.z2.km='';ui.z2.hf='';ui.z2.note='';ui.date=today();
+  S.sessions.push(s);persist();ui.z2.min='';ui.z2.km='';ui.z2.hf='';ui.z2.note='';ui.date=today();ui.dateManual=false;saveUi();
   toast(`🏃 <b>Zone ${s.zone} · ${MODES[s.mode].n}</b>: ${nf(mi,0)} min, ${nf(km,2)} km gespeichert${gamiNote(g0)}`,6500);render();
 }
 
@@ -642,14 +663,17 @@ function saveKraft(el){
   const dr=drOf(el),m=dr===DM,kind=m?'mobi':'kraft';
   const ids=Object.keys(dr.items);if(!ids.length)return;
   const order=allEx().map(e=>e.id);ids.sort((a,b)=>order.indexOf(a)-order.indexOf(b));
-  const items=[];
+  const items=[],odd=[];
   for(const id of ids){const ex=exById(id),it=dr.items[id];if(!ex)continue;
+    if(it.sets>20||it.reps>300||it.sec>3600||(ex.t==='w'&&it.w>400))odd.push(ex.n);
+    else if(ex.t==='w'&&!ex.u&&!ex.a){const l=lastItem(id);if(l&&l.w>0&&it.w>l.w*1.6+5)odd.push(`${ex.n} (${nf(it.w)} kg statt zuletzt ${nf(l.w)} kg)`)}
     const o={ex:id,n:ex.n};
     if(ex.t==='w'){if(!(it.sets>0&&it.reps>0)||!(it.w>=0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.reps=it.reps;o.w=it.w}
     else if(ex.t==='sr'){if(!(it.sets>0&&it.reps>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.reps=it.reps}
     else if(ex.t==='t'){if(!(it.sets>0&&it.sec>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.sec=it.sec}
     else{if(!(it.reps>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.reps=it.reps}
     items.push(o)}
+  if(odd.length&&!confirm('Ungewöhnliche Werte – wirklich so speichern?\n\n'+odd.join('\n')))return;
   // Bestwerte gegen Historie prüfen (vor dem Speichern)
   const pbs=[];
   for(const o of items){const ex=exById(o.ex),hist=byKind(kind).flatMap(s=>(s.items||[]).filter(i=>i.ex===o.ex));
@@ -702,7 +726,11 @@ function saveEdit(id){
   if(s.kind==='hiit'){const sp=num(v('e-speed'));if(!(sp>0)){toast('Speed prüfen.');return}Object.assign(s,{date,n:+v('e-n'),m:+v('e-m'),speed:sp});setOpt(s,'hf',num(v('e-hf')));setOpt(s,'note',v('e-note').trim())}
   else if(s.kind==='z2'){const mi=num(v('e-min')),km=num(v('e-km'));if(!(mi>0&&km>0)){toast('Dauer/Distanz prüfen.');return}Object.assign(s,{date,mode:v('e-mode'),zone:+v('e-zone'),min:mi,km});setOpt(s,'hf',num(v('e-hf')));setOpt(s,'note',v('e-note').trim())}
   else{const items=$$('#e-items .eitem').map(el=>{const o={ex:el.dataset.ex,n:el.dataset.n};$$('input[data-k]',el).forEach(i=>{const x=num(i.value);if(!isNaN(x))o[i.dataset.k]=x});return o});
-    if(!items.length){toast('Mindestens eine Übung – oder Einheit löschen.');return}Object.assign(s,{date,items})}
+    if(!items.length){toast('Mindestens eine Übung – oder Einheit löschen.');return}
+    const other=S.sessions.find(x=>x!==s&&x.kind===s.kind&&x.date===date);
+    if(other){const map=new Map((other.items||[]).map(i=>[i.ex,i]));items.forEach(i=>map.set(i.ex,i));other.items=[...map.values()];other.mod=Date.now();
+      S.deleted[s.id]=Date.now();S.sessions=S.sessions.filter(x=>x!==s);persist();closeModal();render();toast(`Mit der Einheit vom ${fmtShort(date)} zusammengeführt ✔`);return}
+    Object.assign(s,{date,items})}
   s.mod=Date.now();persist();closeModal();render();toast('Gespeichert ✔');
 }
 function setOpt(o,k,v){if(v>0||(typeof v==='string'&&v))o[k]=v;else delete o[k]}
@@ -947,7 +975,8 @@ function pageSet(){
       <div class="field"><label>Art</label><select id="x-t"><option value="w">Sätze × Wdh. × kg</option><option value="t">Sätze × Sekunden</option><option value="r">Wiederholungen gesamt</option></select></div>
       <div class="field"><label>Startgewicht (kg)</label><input type="number" id="x-w" value="20"></div></div>
     <button class="btn primary" style="margin-top:12px" data-a="exadd">Übung anlegen</button></div>
-  <div class="card"><h2>💾 Daten</h2><div class="row wrap" style="margin-top:10px"><button class="btn" data-a="exportJson">Backup (JSON)</button><button class="btn" data-a="exportCsv">Export (CSV)</button><button class="btn" data-a="importJson">Import</button><input type="file" id="impFile" accept=".json" hidden></div>
+  <div class="card"><h2>💾 Daten</h2><div class="row wrap" style="margin-top:10px"><button class="btn" data-a="exportJson">Backup (JSON)</button><button class="btn" data-a="exportCsv">Export (CSV)</button><button class="btn" data-a="importJson">Import</button><input type="file" id="impFile" accept=".json,application/json" hidden></div>
+    ${(()=>{const b=backups();return b.length?`<div class="lbl" style="margin:14px 0 6px">Automatische Sicherungen (auf diesem Gerät)</div>${b.map((x,i)=>`<div class="row sp" style="padding:5px 0"><span class="small">${new Date(x.t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${esc(x.why)} · ${x.n} Einheiten</span><button class="btn sm" data-a="restore" data-i="${i}">Wiederherstellen</button></div>`).join('')}`:''})()}
     <div class="row wrap" style="margin-top:10px"><button class="btn" data-a="demo">Demodaten laden</button><button class="btn" data-a="demoOff">Demodaten entfernen</button><button class="btn danger" data-a="reset">Alles löschen</button></div></div>
   <div class="card"><h2>🧭 Geplant</h2><p class="small muted" style="margin:6px 0 0">Weiterer Reiter vorgemerkt: Neuroathletik. Das Datenmodell (kind je Einheit) ist dafür vorbereitet.</p></div>
   </div>`;
@@ -1036,13 +1065,16 @@ async function doSync(force=false){
   if(syncing){syncAgain=true;return}
   syncing=true;setSyncState('busy');
   try{
-    const local=JSON.parse(JSON.stringify(S));
-    if(force){await rpc('fitlab_put',{p_code:sync.code,p_data:local})}
+    if(force){await rpc('fitlab_put',{p_code:sync.code,p_data:JSON.parse(JSON.stringify(S))})}
     else{
-      const remote=await rpc('fitlab_get',{p_code:sync.code});
-      const merged=mergeData(local,remote),mj=canon(merged);
-      if(mj!==canon(local))applyState(merged);
+      const remote0=await rpc('fitlab_get',{p_code:sync.code});
+      const remote=remote0&&typeof remote0==='object'?{...remote0,sessions:cleanSessions(remote0.sessions)}:null;
+      const now=JSON.parse(JSON.stringify(S));   // aktueller Stand – inkl. Eingaben während des Abrufs
+      const merged=mergeData(now,remote),mj=canon(merged);
+      if(merged.sessions.length<now.sessions.length)backup('vor Sync',true);
+      if(mj!==canon(now))applyState(merged);
       if(!remote||mj!==canon(remote))await rpc('fitlab_put',{p_code:sync.code,p_data:merged});
+      if(canon(S)!==mj)syncAgain=true;   // während des Hochladens geändert → gleich nochmal
       syncState.remote=merged.sessions.length;
     }
     setSyncState('ok');
@@ -1052,10 +1084,10 @@ async function doSync(force=false){
 function scheduleSync(){if(!syncOn())return;clearTimeout(syncTimer);syncTimer=setTimeout(()=>doSync(),1500)}
 function applyCfgFromHash(){
   const m=location.hash.match(/cfg=([^&]+)/);if(!m)return;
-  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}}saveSync();syncState.s='idle';setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
+  try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c&&/^https:\/\//.test(o.u)){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}}saveSync();syncState.s='idle';setTimeout(()=>toast('Sync-Verbindung übernommen ✔'),300)}}catch(e){}
   history.replaceState(null,'',location.pathname+'#/set');
 }
-document.addEventListener('visibilitychange',()=>{doSync();if(!document.hidden){gSync();if(/#\/(kraft|mobi)/.test(location.hash)&&((!D.manual&&D.date!==today())||(!DM.manual&&DM.date!==today())))render()}});
+document.addEventListener('visibilitychange',()=>{doSync();if(!document.hidden){gSync();if((/#\/(kraft|mobi)/.test(location.hash)&&((!D.manual&&D.date!==today())||(!DM.manual&&DM.date!==today())))||(/#\/cardio/.test(location.hash)&&!ui.dateManual&&ui.date!==today()))render()}});
 window.addEventListener('pagehide',()=>doSync());
 window.addEventListener('online',()=>doSync());
 setInterval(()=>{if(!document.hidden)doSync()},90000);
@@ -1110,18 +1142,24 @@ const A={
   exportJson(){download(`fitlab-backup-${today()}.json`,JSON.stringify(S,null,1),'application/json')},
   exportCsv(){download(`fitlab-${today()}.csv`,csv(),'text/csv')},
   importJson(){$('#impFile').click()},
+  restore(el){const x=backups()[+el.dataset.i];if(!x)return;
+    if(!confirm(`Sicherung vom ${new Date(x.t).toLocaleString('de-DE')} (${x.n} Einheiten) wiederherstellen?\n\nEinheiten, die danach gelöscht wurden, kommen zurück. Neuere Einträge bleiben erhalten.`))return;
+    backup('vor Wiederherstellen',true);
+    const r=mergeState(x.data);r.sessions.forEach(s=>{delete S.deleted[s.id];s.mod=Date.now()});
+    const map=new Map(S.sessions.map(s=>[s.id,s]));r.sessions.forEach(s=>{if(!map.has(s.id))map.set(s.id,s)});
+    S.sessions=[...map.values()];mergeKraftDays();persist();render();toast('Sicherung wiederhergestellt ✔')},
   demo(){demoData()},
   demoOff(){const ids=S.sessions.filter(s=>s.demo).map(s=>s.id);if(!ids.length){toast('Keine Demodaten vorhanden.');return}
     ids.forEach(id=>S.deleted[id]=Date.now());S.sessions=S.sessions.filter(s=>!s.demo);persist();render();toast('Demodaten entfernt ✔')},
   reset(){if(confirm('Wirklich ALLE Daten unwiderruflich löschen'+(syncOn()?' (auch zentral, auf allen Geräten)':'')+'?')&&confirm('Letzte Rückfrage: Alles löschen?')){
-    const del={...S.deleted};S.sessions.forEach(x=>del[x.id]=Date.now());
+    backup('vor Löschen',true);const del={...S.deleted};S.sessions.forEach(x=>del[x.id]=Date.now());
     S=defaults();window.S=S;S.deleted=del;touchSettings();persist();render();if(syncOn())doSync(true);toast('Alle Daten gelöscht')}},
   syncSave(){sync.url=$('#sy-url').value.trim();sync.key=$('#sy-key').value.trim();sync.code=$('#sy-code').value.trim();
     if(sync.code&&sync.code.length<24){toast('Der Sync-Code muss mindestens 24 Zeichen haben.');return}
     saveSync();syncState.s=syncOn()?'idle':'off';doSync();render()},
   syncLinkIn(){const v=($('#sy-link').value||'').trim();if(!v){toast('Bitte Link oder Code einfügen.');return}
     const m=v.match(/cfg=([^&\s]+)/);let ok=false;
-    if(m){try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}gSync(true)}ok=true}}catch(e){}}
+    if(m){try{const o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.c&&/^https:\/\//.test(o.u)){sync={url:o.u,key:o.k,code:o.c};if(o.g){gcode=o.g;try{localStorage.setItem(GKEY,o.g)}catch(e){}gSync(true)}ok=true}}catch(e){}}
     else if(/^[A-Za-z0-9_-]{24,}$/.test(v)){sync.code=v;ok=true}
     if(!ok){toast('Das sieht nicht nach einem gültigen Link oder Code aus.');return}
     saveSync();syncState.s='idle';doSync();render();toast('Sync-Verbindung übernommen ✔')},
@@ -1138,7 +1176,7 @@ const A={
 document.addEventListener('click',e=>{const el=e.target.closest('[data-a]');if(!el||['INPUT','SELECT'].includes(el.tagName))return;const f=A[el.dataset.a];if(f){if(el.tagName!=='A')e.preventDefault();f(el,e)}});
 document.addEventListener('input',e=>{
   const t=e.target;
-  if(t.dataset.bind){setPath(ui,t.dataset.bind,t.value);const a=$('#hiitlive'),b=$('#z2live');if(a)a.textContent=hiitLive();if(b)b.textContent=z2Live()}
+  if(t.dataset.bind){setPath(ui,t.dataset.bind,t.value);if(t.dataset.bind==='date'){if(!t.value)ui.date=today();ui.dateManual=ui.date!==today()}saveUi();const a=$('#hiitlive'),b=$('#z2live');if(a)a.textContent=hiitLive();if(b)b.textContent=z2Live()}
   else if(t.dataset.ex&&t.dataset.f){const dr=drOf(t),v=num(t.value);if(dr.items[t.dataset.ex]){dr.items[t.dataset.ex][t.dataset.f]=isNaN(v)?0:v;sdr(dr)}}
   else if(t.dataset.kdate!==undefined){const dr=drOf(t);dr.date=t.value||today();dr.manual=!!t.value&&t.value!==today();sdr(dr)}
 });
@@ -1151,7 +1189,9 @@ document.addEventListener('change',e=>{
   else if(t.id==='impFile'&&t.files[0]){
     const fr=new FileReader();fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o.sessions)throw 0;
       if(!confirm(`Import ersetzt vorhandene Daten (${o.sessions.length} Einheiten). Fortfahren?`))return;
-      S=mergeState(o);window.S=S;touchSettings();persist();render();toast('Import erfolgreich ✔')}catch(err){toast('Datei ungültig.')}};
+      const n0=cleanSessions(JSON.parse(JSON.stringify(o.sessions))).length;if(n0<o.sessions.length&&!confirm(`${o.sessions.length-n0} fehlerhafte Einträge werden übersprungen. Weiter?`))return;
+      backup('vor Import',true);S=mergeState(o);window.S=S;mergeKraftDays();touchSettings();persist();render();toast(`Import erfolgreich ✔ (${S.sessions.length} Einheiten)`)}catch(err){toast('Datei ungültig.')}};
+    t.value='';
     fr.readAsText(t.files[0]);
   }
 });
@@ -1159,6 +1199,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 function setNavH(){const n=$('#nav');if(n&&innerWidth<900)document.documentElement.style.setProperty('--navh',n.offsetHeight+'px');else document.documentElement.style.removeProperty('--navh')}
 addEventListener('resize',setNavH);
-mergeKraftDays();applyCfgFromHash();persist();render();setNavH();doSync();gSync();
+mergeKraftDays();applyCfgFromHash();persist();backup('täglich');render();setNavH();doSync();gSync();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+addEventListener('error',e=>{if(e.message&&(e.filename||'').startsWith(location.origin))toast('⚠️ Fehler: '+esc(e.message).slice(0,120))});
 </script>
 </body></html>
