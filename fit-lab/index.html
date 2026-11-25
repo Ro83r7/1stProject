@@ -217,8 +217,8 @@ const EX0=[
  {id:'facepull',n:'Facepull',g:'Seilzug',m:'Schultern',t:'w',w:23.75,s:2.5},
  {id:'trizeps',n:'Trizeps (Seilzug)',g:'Seilzug',m:'Arme',t:'w',w:23.75,s:2.5},
  {id:'hippull',n:'Hip-Pull',g:'Seilzug',m:'Hüfte',t:'w',w:23.75,s:2.5},
- {id:'innenrot_k',n:'Innenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:6.25,s:2.5},
- {id:'aussenrot_k',n:'Außenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:3,dv:12,vs:1},
+ {id:'innenrot_k',n:'Innenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:6.25,s:2.5,ds:3,dv:12},
+ {id:'aussenrot_k',n:'Außenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:3,dv:12},
  {id:'rotator_k',n:'Rotator – Außenrotation 90° (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:2,dv:12,vs:1,h:'Oberarm waagrecht zur Seite, Ellbogen auf Schulterhöhe und 90° gebeugt – nur der Unterarm dreht vom Kabel nach oben. Leichtes Gewicht, langsam zurück. Plan: Stufe 2 des Schulter-Moduls (frühestens ab ca. 14.12., nach 2 Wochen ≤ 1/10 Schmerz); ersetzt eine Übung, nicht zusätzlich.'},
  {id:'bizepscurl',n:'Bizeps-Curl',g:'Hanteln',m:'Arme',t:'w',w:10,s:1},
  {id:'singlelegsq',n:'Single Leg Squat',g:'Hanteln',m:'Beine',t:'w',w:10,s:1},
@@ -650,8 +650,8 @@ function defItem(ex){
   const l=lastItem(ex.id);return {sets:ex.ds||3,reps:ex.dv||12,w:l&&l.w!=null?l.w:ex.w};
 }
 function lastText(ex){
-  const l=lastItem(ex.id),wt=v=>ex.u?`${ex.u} ${nf(v)}`:`${nf(v)} kg`;
-  if(!l)return ex.t==='w'?(ex.w==null?`Gewicht wählen${ex.vs?` · Vorschlag ${ex.ds||3} × ${ex.dv||12}`:''}${isCable(ex)?' · Stapel 1,25–48,75 kg':''}`:`Start: ${wt(ex.w)}`):ex.t==='t'?`Start: ${ex.ds||3} × ${ex.dv||60} s`:ex.t==='sr'?`Start: ${ex.ds||2} × ${ex.dv||8} Wdh.`:'Start: 3 Wdh.';
+  const l=lastItem(ex.id),wt=v=>ex.u?`${ex.u} ${nf(v)}`:`${nf(v,2)} kg`;
+  if(!l)return ex.t==='w'?(ex.w==null?`Gewicht wählen${ex.vs?` · Vorschlag ${ex.ds||3} × ${ex.dv||12}`:ex.ds?` · ${ex.ds} × ${ex.dv||12}`:''}${isCable(ex)?' · Stapel 1,25–48,75 kg':''}`:`Start: ${wt(ex.w)}${ex.ds?` · ${ex.ds} × ${ex.dv||12}`:''}`):ex.t==='t'?`Start: ${ex.ds||3} × ${ex.dv||60} s`:ex.t==='sr'?`Start: ${ex.ds||2} × ${ex.dv||8} Wdh.`:'Start: 3 Wdh.';
   const a=ex.t==='w'?`${wt(l.w)} · ${l.sets}×${l.reps}`:ex.t==='t'?`${l.sets} × ${l.sec} s`:ex.t==='sr'?`${l.sets} × ${l.reps} Wdh.`:`${l.reps} Wdh.`;
   return `zuletzt ${a} · ${ago(l.date)}`;
 }

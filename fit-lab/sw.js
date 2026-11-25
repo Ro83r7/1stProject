@@ -1,5 +1,5 @@
 /* Fit Lab – Offline-Fallback. Netzwerk zuerst (immer neueste Version), Cache nur ohne Netz. */
-const C='fitlab-v2';
+const C='fitlab-v3';
 const CORE=['./','index.html','manifest.webmanifest','icon-192.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(CORE)).catch(()=>{}));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
