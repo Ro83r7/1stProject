@@ -100,7 +100,7 @@ table.t .r{text-align:right}
 .exhead{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:12px 14px;cursor:pointer}
 .chk{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:900;color:transparent}
 .ex.on .chk{background:var(--accent);border-color:var(--accent);color:var(--ink)}
-.exn{font-weight:800}.exlast{font-size:.78rem;color:var(--muted)}
+.exn{font-weight:800}.exlast{font-size:.78rem;color:var(--muted)}.exhint{font-size:.78rem;color:var(--muted);line-height:1.35;padding:2px 12px 10px}
 .exin{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px;padding:2px 14px 14px}
 details.grp{margin-bottom:14px}
 details.grp>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:6px 4px 10px}
@@ -219,7 +219,7 @@ const EX0=[
  {id:'hippull',n:'Hip-Pull',g:'Seilzug',m:'Hüfte',t:'w',w:23.75,s:2.5},
  {id:'innenrot_k',n:'Innenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:6.25,s:2.5},
  {id:'aussenrot_k',n:'Außenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:3,dv:12,vs:1},
- {id:'rotator_k',n:'Rotator – Außenrotation 90° (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:2,dv:12,vs:1},
+ {id:'rotator_k',n:'Rotator – Außenrotation 90° (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:2,dv:12,vs:1,h:'Oberarm waagrecht zur Seite, Ellbogen auf Schulterhöhe und 90° gebeugt – nur der Unterarm dreht vom Kabel nach oben. Leichtes Gewicht, langsam zurück. Plan: Stufe 2 des Schulter-Moduls (frühestens ab ca. 14.12., nach 2 Wochen ≤ 1/10 Schmerz); ersetzt eine Übung, nicht zusätzlich.'},
  {id:'bizepscurl',n:'Bizeps-Curl',g:'Hanteln',m:'Arme',t:'w',w:10,s:1},
  {id:'singlelegsq',n:'Single Leg Squat',g:'Hanteln',m:'Beine',t:'w',w:10,s:1},
  {id:'squat',n:'Squat (Hantel)',g:'Hanteln',m:'Beine',t:'w',w:20,s:2},
@@ -663,7 +663,7 @@ function exRow(ex,m=false,dr=D){
     inner=`<div class="exin">${ex.t==='w'?stp(a('sets'),'Sätze',it.sets,1)+stp(a('reps'),'Wdh.',it.reps,1)+stp(a('w'),ex.a?'Assistenz (kg)':(ex.u||'Gewicht (kg)'),it.w,ex.s||2.5)
       :ex.t==='t'?stp(a('sets'),'Sätze',it.sets,1)+stp(a('sec'),'Sekunden',it.sec,5)
       :ex.t==='sr'?stp(a('sets'),'Sätze',it.sets,1)+stp(a('reps'),'Wdh.',it.reps,1)
-      :stp(a('reps'),'Wdh. gesamt',it.reps,1)}</div>`;
+      :stp(a('reps'),'Wdh. gesamt',it.reps,1)}</div>${ex.h?`<div class="exhint">${esc(ex.h)}</div>`:''}`;
   }
   return `<div class="ex ${on?'on':''}"><button class="exhead" data-a="extoggle" data-id="${ex.id}"${da}><span class="chk">✓</span>${exIcon(ex)}<span style="flex:1;min-width:0"><div class="exn">${esc(ex.n)}</div><div class="exlast">${esc(lastText(ex))}</div></span></button>${inner}</div>`;
 }
