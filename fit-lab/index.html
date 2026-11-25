@@ -214,17 +214,28 @@ const EX0=[
  {id:'pullup_sup',n:'Pull-Up (supported)',g:'Geräte',m:'Rücken',t:'w',w:20,s:2.5,a:1},
  {id:'bauch',n:'Bauchmuskeln (Gerät)',g:'Geräte',m:'Rumpf',t:'w',w:40,s:2.5},
  {id:'rueckenstr',n:'Rückenstrecker (Gerät)',g:'Geräte',m:'Rücken',t:'w',w:40,s:2.5},
- {id:'facepull',n:'Facepull',g:'Seilzug',m:'Schultern',t:'w',w:25,s:2.5},
- {id:'trizeps',n:'Trizeps (Seilzug)',g:'Seilzug',m:'Arme',t:'w',w:25,s:2.5},
- {id:'hippull',n:'Hip-Pull',g:'Seilzug',m:'Hüfte',t:'w',w:25,s:2.5},
+ {id:'facepull',n:'Facepull',g:'Seilzug',m:'Schultern',t:'w',w:23.75,s:2.5},
+ {id:'trizeps',n:'Trizeps (Seilzug)',g:'Seilzug',m:'Arme',t:'w',w:23.75,s:2.5},
+ {id:'hippull',n:'Hip-Pull',g:'Seilzug',m:'Hüfte',t:'w',w:23.75,s:2.5},
+ {id:'innenrot_k',n:'Innenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5},
+ {id:'aussenrot_k',n:'Außenrotation (Seilzug)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5,ds:3,dv:12,vs:1},
+ {id:'rotator_k',n:'Rotator (Rotatorenmanschette)',g:'Seilzug',m:'Schultern',t:'w',w:null,s:2.5},
  {id:'bizepscurl',n:'Bizeps-Curl',g:'Hanteln',m:'Arme',t:'w',w:10,s:1},
  {id:'singlelegsq',n:'Single Leg Squat',g:'Hanteln',m:'Beine',t:'w',w:10,s:1},
  {id:'squat',n:'Squat (Hantel)',g:'Hanteln',m:'Beine',t:'w',w:20,s:2},
  {id:'thruster',n:'Thruster (Kniebeuge → Überkopf)',g:'Hanteln',m:'Beine',t:'w',w:8,s:1},
  {id:'seitheben',n:'Seitheben',g:'Hanteln',m:'Schultern',t:'w',w:6,s:1},
+ {id:'slrdl',n:'Single-Leg Romanian Deadlift',g:'Hanteln',m:'Beine',t:'w',w:null,s:1,ds:3,dv:8,vs:1},
+ {id:'hiphinge',n:'Hip Hinge mit Gewicht',g:'Hanteln',m:'Hüfte',t:'w',w:null,s:1,ds:3,dv:8,vs:1},
  {id:'rueckenbank',n:'Rückenstrecker (Schrägbank)',g:'Core',m:'Rücken',t:'w',w:15,s:2.5},
  {id:'pullups',n:'Pull-ups',g:'Core',m:'Rücken',t:'r'}
 ];
+/* Seilzug-Gewichtsstapel FitX (Foto 25.11.2026): 1,25 kg, dann je +2,5 kg; sichtbar bis 48,75 kg – darüber unbekannt */
+const CABLE=Array.from({length:20},(_,i)=>1.25+i*2.5);
+const CABLE_MAX=CABLE[CABLE.length-1];
+const isCable=ex=>!!ex&&ex.g==='Seilzug'&&ex.t==='w';
+/* nächstliegende Stufe; bei Gleichstand die niedrigere. Werte über dem sichtbaren Stapel bleiben unverändert. */
+function snapCable(w){if(!(w>0)||w>CABLE_MAX+1.25)return w;let b=CABLE[0];for(const c of CABLE){if(Math.abs(c-w)<Math.abs(b-w)-1e-9)b=c}return b}
 const GRPM=['Mobility','Stability'];
 /* Mi·Sta: t=Halten (Sätze×s) · sr=Sätze×Wdh. · w=Sätze×Wdh.×Stufe/kg · u=Einheitenname · ds/dv=Default Sätze/Wert */
 const EXM=[
@@ -289,6 +300,11 @@ const ICONS={
  pallof:SV('<circle cx="22" cy="9" r="4" fill="currentColor" stroke="none"/><path d="M22 14V32M22 32L18 44M22 32L26 44M22 20H38M38 20H46M44 15V25"/>'),
  glutebridge:SV('<circle cx="6" cy="37" r="4" fill="currentColor" stroke="none"/><path d="M10 38L28 26L38 28V40M4 44H46"/>'),
  einbein:SV('<circle cx="24" cy="8" r="4" fill="currentColor" stroke="none"/><path d="M24 13V30V44M24 30L34 34L30 40M24 18L16 24M24 18L32 24"/>'),
+ innenrot_k:SV('<circle cx="30" cy="9" r="4" fill="currentColor" stroke="none"/><path d="M30 14V32M30 32L26 44M30 32L35 44M30 18L28 26L18 24M18 24H5M21 20L17 24L21 28"/><circle cx="4" cy="24" r="2.5" stroke-width="2"/>'),
+ aussenrot_k:SV('<circle cx="18" cy="9" r="4" fill="currentColor" stroke="none"/><path d="M18 14V32M18 32L13 44M18 32L23 44M18 18L20 26L31 23M31 23H43M27 19L31 23L27 27"/><circle cx="44" cy="23" r="2.5" stroke-width="2"/>'),
+ rotator_k:SV('<circle cx="20" cy="12" r="4" fill="currentColor" stroke="none"/><path d="M20 17V34M20 34L15 44M20 34L25 44M20 21H31V9M31 9L42 4"/><path d="M36 14A7 7 0 0 0 31 21" stroke-dasharray="2 3" stroke-width="2"/><circle cx="43" cy="4" r="2" stroke-width="2"/>'),
+ slrdl:SV('<circle cx="10" cy="16" r="4" fill="currentColor" stroke="none"/><path d="M14 18L28 22L27 44M28 22L44 15M16 19V30"/><path d="M16 31V36" stroke-width="6"/>'),
+ hiphinge:SV('<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/><path d="M15 16L30 26L28 44M30 26L35 44M18 19L20 31"/><path d="M16 33H24" stroke-width="6"/>'),
  dumbbell:SV('<path d="M10 24H38"/>'+'<path d="M13 14V34M35 14V34" stroke-width="6"/><path d="M6 19V29M42 19V29"/>'),
  tab:SV('<circle cx="24" cy="8" r="4" fill="currentColor" stroke="none"/><path d="M24 13V30M24 19L13 12M24 19L35 12M24 30V44M24 30L33 36L25 40"/>')
 };
@@ -501,6 +517,17 @@ function gamiCard(){
   <div class="lbl" style="margin-top:14px">Abzeichen · ${got} / ${B.length}</div>
   <div class="badges">${B.map(x=>`<div class="badge ${x.ok?'':'off'}"><span class="bi">${x.ic}</span>${esc(x.n)}</div>`).join('')}</div></div>`;
 }
+/* Einmalig: alte Seilzug-Sätze auf die Stapelstufen setzen (idempotent; Sicherung vorher) */
+function cableMigrate(){
+  if(S.settings.cableStack)return;
+  const ch=[];
+  for(const s of S.sessions){let hit=false;for(const i of (s.items||[])){const ex=exById(i.ex);if(!isCable(ex)||!(i.w>0))continue;
+    const n=snapCable(i.w);if(n!==i.w){ch.push({d:s.date,n:ex.n,a:i.w,b:n,tie:Math.abs(Math.abs(n-i.w)-Math.abs(n+2.5-i.w))<1e-9});i.w=n;hit=true}}
+    if(hit)s.mod=Date.now()}
+  S.settings.cableStack=1;touchSettings();
+  if(ch.length){try{localStorage.setItem('fitlab.cablelog',JSON.stringify(ch))}catch(e){}
+    setTimeout(()=>toast(`🔧 ${ch.length} Seilzug-Sätze auf die Stapelstufen umgestellt (z. B. ${nf(ch[0].a,2)} → ${nf(ch[0].b,2)} kg${ch[0].tie?', genau mittig → niedrigere Stufe':''}). Sicherung unter Mehr → Daten.`,9000),400)}
+}
 function mergeKraftDays(){
   const by={};sortedAsc().filter(s=>s.kind==='kraft').forEach(s=>{(by[s.date]=by[s.date]||[]).push(s)});
   const order=allEx().map(e=>e.id);let ch=false;
@@ -624,7 +651,7 @@ function defItem(ex){
 }
 function lastText(ex){
   const l=lastItem(ex.id),wt=v=>ex.u?`${ex.u} ${nf(v)}`:`${nf(v)} kg`;
-  if(!l)return ex.t==='w'?`Start: ${wt(ex.w)}`:ex.t==='t'?`Start: ${ex.ds||3} × ${ex.dv||60} s`:ex.t==='sr'?`Start: ${ex.ds||2} × ${ex.dv||8} Wdh.`:'Start: 3 Wdh.';
+  if(!l)return ex.t==='w'?(ex.w==null?`Gewicht wählen${ex.vs?` · Vorschlag ${ex.ds||3} × ${ex.dv||12}`:''}${isCable(ex)?' · Stapel 1,25–48,75 kg':''}`:`Start: ${wt(ex.w)}`):ex.t==='t'?`Start: ${ex.ds||3} × ${ex.dv||60} s`:ex.t==='sr'?`Start: ${ex.ds||2} × ${ex.dv||8} Wdh.`:'Start: 3 Wdh.';
   const a=ex.t==='w'?`${wt(l.w)} · ${l.sets}×${l.reps}`:ex.t==='t'?`${l.sets} × ${l.sec} s`:ex.t==='sr'?`${l.sets} × ${l.reps} Wdh.`:`${l.reps} Wdh.`;
   return `zuletzt ${a} · ${ago(l.date)}`;
 }
@@ -668,7 +695,7 @@ function saveKraft(el){
     if(it.sets>20||it.reps>300||it.sec>3600||(ex.t==='w'&&it.w>400))odd.push(ex.n);
     else if(ex.t==='w'&&!ex.u&&!ex.a){const l=lastItem(id);if(l&&l.w>0&&it.w>l.w*1.6+5)odd.push(`${ex.n} (${nf(it.w)} kg statt zuletzt ${nf(l.w)} kg)`)}
     const o={ex:id,n:ex.n};
-    if(ex.t==='w'){if(!(it.sets>0&&it.reps>0)||!(it.w>=0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.reps=it.reps;o.w=it.w}
+    if(ex.t==='w'){if(!(it.sets>0&&it.reps>0)||!(typeof it.w==='number'&&it.w>=0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.reps=it.reps;o.w=isCable(ex)?snapCable(it.w):it.w}
     else if(ex.t==='sr'){if(!(it.sets>0&&it.reps>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.reps=it.reps}
     else if(ex.t==='t'){if(!(it.sets>0&&it.sec>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.sets=it.sets;o.sec=it.sec}
     else{if(!(it.reps>0)){toast(`Bitte Werte für <b>${esc(ex.n)}</b> prüfen.`);return}o.reps=it.reps}
@@ -725,7 +752,7 @@ function saveEdit(id){
   const v=i=>$('#'+i)?.value,date=v('e-date');if(!date){toast('Datum fehlt.');return}
   if(s.kind==='hiit'){const sp=num(v('e-speed'));if(!(sp>0)){toast('Speed prüfen.');return}Object.assign(s,{date,n:+v('e-n'),m:+v('e-m'),speed:sp});setOpt(s,'hf',num(v('e-hf')));setOpt(s,'note',v('e-note').trim())}
   else if(s.kind==='z2'){const mi=num(v('e-min')),km=num(v('e-km'));if(!(mi>0&&km>0)){toast('Dauer/Distanz prüfen.');return}Object.assign(s,{date,mode:v('e-mode'),zone:+v('e-zone'),min:mi,km});setOpt(s,'hf',num(v('e-hf')));setOpt(s,'note',v('e-note').trim())}
-  else{const items=$$('#e-items .eitem').map(el=>{const o={ex:el.dataset.ex,n:el.dataset.n};$$('input[data-k]',el).forEach(i=>{const x=num(i.value);if(!isNaN(x))o[i.dataset.k]=x});return o});
+  else{const items=$$('#e-items .eitem').map(el=>{const o={ex:el.dataset.ex,n:el.dataset.n};$$('input[data-k]',el).forEach(i=>{const x=num(i.value);if(!isNaN(x))o[i.dataset.k]=x});if(o.w!=null&&isCable(exById(o.ex)))o.w=snapCable(o.w);return o});
     if(!items.length){toast('Mindestens eine Übung – oder Einheit löschen.');return}
     const other=S.sessions.find(x=>x!==s&&x.kind===s.kind&&x.date===date);
     if(other){const map=new Map((other.items||[]).map(i=>[i.ex,i]));items.forEach(i=>map.set(i.ex,i));other.items=[...map.values()];other.mod=Date.now();
@@ -1002,7 +1029,7 @@ function demoData(){
       const ids=dd===2?['beinpresse','beinstrecker','adduktoren','abduktoren','squat','plank']:['butterfly','reversebf','latzug','facepull','trizeps','pullup_sup','sideplank'];
       mk(d,{kind:'kraft',items:ids.map(id=>{const e=exById(id);
         if(e.t==='t')return {ex:id,n:e.n,sets:3,sec:Math.round(50+w*2+r(0,8))};
-        const w0=e.id==='pullup_sup'?Math.max(5,20-w*1.25):Math.round((e.w+w*e.s*.5)/e.s)*e.s;
+        let w0=e.id==='pullup_sup'?Math.max(5,20-w*1.25):Math.round((e.w+w*e.s*.5)/e.s)*e.s;if(isCable(e))w0=snapCable(w0);
         return {ex:id,n:e.n,sets:3,reps:12,w:w0}})})});
     const d3=addDays(mon,3);if(d3<=today()){const md=['tm','bike','row','run'][w%4];const min=45+Math.round(r(-5,10)),sp={tm:9.5,bike:24,row:11,run:9.2}[md]+w*.08;
       mk(d3,{kind:'z2',mode:md,zone:2,min,km:+(sp*min/60).toFixed(2),hf:Math.round(r(128,138))})}
@@ -1111,6 +1138,9 @@ window.addEventListener('hashchange',()=>{window.scrollTo(0,0);render()});
 
 const A={
   step(el){const inp=el.parentElement.querySelector('input');const cur=num(inp.value),ph=num(inp.placeholder);
+    if(inp.dataset.f==='w'&&isCable(exById(inp.dataset.ex))&&!(cur>CABLE_MAX+1.25)){const up=+el.dataset.d>0,v=isNaN(cur)?NaN:snapCable(cur);
+      const nx=isNaN(v)?CABLE[0]:up?(CABLE.find(c=>c>v+1e-9)??v):([...CABLE].reverse().find(c=>c<v-1e-9)??CABLE[0]);
+      inp.value=nx;inp.dispatchEvent(new Event('input',{bubbles:true}));return}
     const base=isNaN(cur)?(isNaN(ph)?0:ph):cur;const d=+el.dataset.d;
     inp.value=Math.max(0,Math.round((base+d)*100)/100);inp.dispatchEvent(new Event('input',{bubbles:true}))},
   hiitfmt(el){const [n,m]=el.dataset.v.split('x').map(Number);ui.hiit.n=n;ui.hiit.m=m;saveUi();render()},
@@ -1199,7 +1229,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 function setNavH(){const n=$('#nav');if(n&&innerWidth<900)document.documentElement.style.setProperty('--navh',n.offsetHeight+'px');else document.documentElement.style.removeProperty('--navh')}
 addEventListener('resize',setNavH);
-mergeKraftDays();applyCfgFromHash();persist();backup('täglich');render();setNavH();doSync();gSync();
+mergeKraftDays();applyCfgFromHash();if(!S.settings.cableStack){backup('vor Seilzug-Stufen',true);cableMigrate()}persist();backup('täglich');render();setNavH();doSync();gSync();
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 addEventListener('error',e=>{if(e.message&&(e.filename||'').startsWith(location.origin))toast('⚠️ Fehler: '+esc(e.message).slice(0,120))});
 </script>
